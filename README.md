@@ -1,6 +1,6 @@
 # nextup
 
-Restricts content to ease the transition out of bed.
+A new Flutter project.
 
 ## Getting Started
 
