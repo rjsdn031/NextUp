@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+    <array>
+      <string>audio</string>
+    </array>
+    <key>NSUserNotificationUsageDescription</key>
+    <string>알람 알림을 보내기 위해 필요합니다.</string>
 </dict>
 </plist>
