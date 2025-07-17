@@ -8,7 +8,7 @@
 PRODUCT_NAME = nextup
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.nextup
+PRODUCT_BUNDLE_IDENTIFIER = lab.p4c.nextup
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2025 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2025 lab.p4c. All rights reserved.
