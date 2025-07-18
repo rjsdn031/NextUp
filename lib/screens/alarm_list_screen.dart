@@ -3,6 +3,7 @@ import 'dart:async';
 import '../models/alarm_model.dart';
 import '../utils/alarm_utils.dart';
 import '../widgets/alarm_tile.dart';
+import 'add_alarm_screen.dart';
 
 class AlarmListScreen extends StatefulWidget {
   const AlarmListScreen({super.key});
@@ -174,8 +175,19 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
 
       // FAB
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: 알람 추가 화면
+        onPressed: () async {
+          final newAlarm = await Navigator.push<AlarmModel>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const AddAlarmScreen(),
+            ),
+          );
+
+          if (newAlarm != null) {
+            setState(() {
+              alarms.add(newAlarm);
+            });
+          }
         },
         backgroundColor: Colors.grey,
         child: const Icon(Icons.add, size: 28),
