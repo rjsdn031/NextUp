@@ -1,6 +1,12 @@
+import 'package:flutter/material.dart';
+
+enum DayOfWeek {
+  monday, tuesday, wednesday, thursday, friday, saturday, sunday
+}
+
 class AlarmModel {
-  final String time;
-  final List<String> days;
+  final TimeOfDay time;
+  final List<DayOfWeek> days;
   bool enabled;
 
   AlarmModel({

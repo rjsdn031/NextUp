@@ -13,9 +13,37 @@ class AlarmListScreen extends StatefulWidget {
 class _AlarmListScreenState extends State<AlarmListScreen> {
   // TODO: 동적 상태 리스트 사용하기
   final List<AlarmModel> alarms = [
-    AlarmModel(time: '오전 6:00', days: ['월', '화', '수', '목', '금'], enabled: false),
-    AlarmModel(time: '오전 8:00', days: ['월', '화', '수', '목', '금']),
-    AlarmModel(time: '오전 9:00', days: ['월', '화', '수', '목', '금']),
+    AlarmModel(
+      time: TimeOfDay(hour: 6, minute: 0),
+      days: [
+        DayOfWeek.monday,
+        DayOfWeek.tuesday,
+        DayOfWeek.wednesday,
+        DayOfWeek.thursday,
+        DayOfWeek.friday,
+      ],
+      enabled: false,
+    ),
+    AlarmModel(
+      time: TimeOfDay(hour: 8, minute: 0),
+      days: [
+        DayOfWeek.monday,
+        DayOfWeek.tuesday,
+        DayOfWeek.wednesday,
+        DayOfWeek.thursday,
+        DayOfWeek.friday,
+      ],
+    ),
+    AlarmModel(
+      time: TimeOfDay(hour: 9, minute: 0),
+      days: [
+        DayOfWeek.monday,
+        DayOfWeek.tuesday,
+        DayOfWeek.wednesday,
+        DayOfWeek.thursday,
+        DayOfWeek.friday,
+      ],
+    ),
   ];
 
   DateTime now = DateTime.now();
@@ -50,8 +78,34 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
     final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
     final minute = dt.minute.toString().padLeft(2, '0');
     final weekday = weekDays[dt.weekday % 7];
-
     return '${dt.month}월 ${dt.day}일 ($weekday) $period $hour:$minute';
+  }
+
+  // time formatting
+  String formatTimeOfDay(TimeOfDay time) {
+    final period = time.hour < 12 ? '오전' : '오후';
+    final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$period $hour:$minute';
+  }
+
+  String _dayOfWeekToKor(DayOfWeek day) {
+    switch (day) {
+      case DayOfWeek.monday:
+        return '월';
+      case DayOfWeek.tuesday:
+        return '화';
+      case DayOfWeek.wednesday:
+        return '수';
+      case DayOfWeek.thursday:
+        return '목';
+      case DayOfWeek.friday:
+        return '금';
+      case DayOfWeek.saturday:
+        return '토';
+      case DayOfWeek.sunday:
+        return '일';
+    }
   }
 
   @override
@@ -72,7 +126,10 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
           SizedBox(
             height: height * 0.3,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 32),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 32,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -88,10 +145,7 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
                   const SizedBox(height: 8),
                   Text(
                     nowFormatted,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
+                    style: const TextStyle(color: Colors.grey, fontSize: 16),
                   ),
                 ],
               ),
@@ -105,9 +159,10 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
               itemCount: alarms.length,
               itemBuilder: (context, index) {
                 final alarm = alarms[index];
+
                 return AlarmTile(
-                  time: alarm.time,
-                  days: alarm.days,
+                  time: formatTimeOfDay(alarm.time),
+                  days: alarm.days.map((d) => _dayOfWeekToKor(d)).toList(),
                   enabled: alarm.enabled,
                   onToggle: (val) => toggleAlarm(index, val),
                 );
