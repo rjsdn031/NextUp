@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/alarm_list_screen.dart';
 
-void main() {
+void main() async {
   runApp(const AlarmApp());
 }
 
@@ -16,7 +16,7 @@ class AlarmApp extends StatelessWidget {
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.black,
       ),
-      home: const AlarmListScreen(), // 시작 화면 설정!
+      home: const AlarmListScreen(),
     );
   }
 }
