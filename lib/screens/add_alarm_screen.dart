@@ -156,7 +156,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
                   },
                   child: CircleAvatar(
                     radius: 18,
-                    backgroundColor: selected ? Colors.blue : Colors.grey[700],
+                    backgroundColor: selected ? Colors.white : Colors.grey[700],
                     child: Text(
                       label,
                       style: const TextStyle(color: Colors.white),
@@ -175,7 +175,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
             ),
             value: skipHolidays,
             onChanged: (val) => setState(() => skipHolidays = val),
-            activeColor: Colors.blue,
+            activeColor: Colors.grey,
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -201,7 +201,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
             trailing: Switch(
               value: alarmSoundEnabled,
               onChanged: (val) => setState(() => alarmSoundEnabled = val),
-              activeColor: Colors.blue,
+              activeColor: Colors.grey,
             ),
           ),
           ListTile(
@@ -214,7 +214,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
             trailing: Switch(
               value: vibrationEnabled,
               onChanged: (val) => setState(() => vibrationEnabled = val),
-              activeColor: Colors.blue,
+              activeColor: Colors.grey,
             ),
           ),
           ListTile(
@@ -227,7 +227,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
             trailing: Switch(
               value: snoozeEnabled,
               onChanged: (val) => setState(() => snoozeEnabled = val),
-              activeColor: Colors.blue,
+              activeColor: Colors.grey,
             ),
           ),
           const Spacer(),
@@ -238,7 +238,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
                   onPressed: () => Navigator.pop(context),
                   child: const Text(
                     '취소',
-                    style: TextStyle(color: Colors.white70),
+                    style: TextStyle(fontSize: 18, color: Colors.white70),
                   ),
                 ),
               ),
@@ -258,7 +258,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
                   },
                   child: const Text(
                     '저장',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
               ),
