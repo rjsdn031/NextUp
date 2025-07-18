@@ -108,11 +108,58 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
     }
   }
 
+  String getTimeUntilAlarm(TimeOfDay alarmTime, DateTime now) {
+    final todayAlarm = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      alarmTime.hour,
+      alarmTime.minute,
+    );
+
+    final alarmDateTime = todayAlarm.isBefore(now)
+        ? todayAlarm.add(const Duration(days: 1))
+        : todayAlarm;
+
+    final difference = alarmDateTime.difference(now);
+    final hours = difference.inHours;
+    final minutes = difference.inMinutes % 60;
+
+    return '$hours시간 $minutes분 후\n알람이 울립니다';
+  }
+
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
     final now = DateTime.now();
     final nowFormatted = formatDateTime(now);
+
+    // 가장 빠른 활성화된 알람
+    final enabledAlarms = alarms.where((a) => a.enabled).toList();
+    enabledAlarms.sort((a, b) {
+      final dtA = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        a.time.hour,
+        a.time.minute,
+      );
+      final dtB = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        b.time.hour,
+        b.time.minute,
+      );
+      return dtA.isBefore(now)
+          ? dtA.add(Duration(days: 1)).compareTo(dtB)
+          : dtA.compareTo(dtB);
+    });
+
+    final nextAlarm = enabledAlarms.isNotEmpty ? enabledAlarms.first : null;
+    final nextAlarmMessage = nextAlarm != null
+        ? getTimeUntilAlarm(nextAlarm.time, now)
+        : '설정된 다음 알람이 없습니다';
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -121,31 +168,40 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
         elevation: 0,
         toolbarHeight: 0,
       ),
+
       body: Column(
         children: [
           SizedBox(
             height: height * 0.3,
+
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 20.0,
                 vertical: 32,
               ),
+
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const Spacer(),
-                  const Text(
-                    '14시간 21분 후\n알람이 울립니다', // TODO: 실제 알람 감지해서 동작하기
-                    style: TextStyle(
+                  Text(
+                    nextAlarmMessage,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.bold,
                     ),
+                    textAlign: TextAlign.center,
                   ),
+
                   const SizedBox(height: 8),
                   Text(
                     nowFormatted,
-                    style: const TextStyle(color: Colors.grey, fontSize: 16),
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
