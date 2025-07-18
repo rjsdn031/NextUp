@@ -73,6 +73,14 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
     });
   }
 
+  void _sortAlarms() {
+    alarms.sort((a, b) {
+      final aMinutes = a.time.hour * 60 + a.time.minute;
+      final bMinutes = b.time.hour * 60 + b.time.minute;
+      return aMinutes.compareTo(bMinutes);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
@@ -186,6 +194,7 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
           if (newAlarm != null) {
             setState(() {
               alarms.add(newAlarm);
+              _sortAlarms();
             });
           }
         },
