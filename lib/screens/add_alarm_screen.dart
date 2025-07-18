@@ -14,9 +14,92 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
 
   bool skipHolidays = false;
   String alarmName = '';
+
   bool alarmSoundEnabled = true;
+  String selectedRingtone = 'Classic Bell';
+  final ringtoneOptions = ['Classic Bell'];
+
   bool vibrationEnabled = true;
+  String vibrationPattern = '기본';
+  final vibrationOptions = ['기본'];
+
   bool snoozeEnabled = true;
+  String snoozeOption = '5분, 3회';
+  final snoozeOptions = ['5분, 3회'];
+
+  // alarm ringtone
+  Future<void> _showRingtonePicker() async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: const Text('알람음 선택'),
+          children: ringtoneOptions.map((tone) {
+            return RadioListTile<String>(
+              title: Text(tone),
+              value: tone,
+              groupValue: selectedRingtone,
+              onChanged: (val) => Navigator.pop(context, val),
+            );
+          }).toList(),
+        );
+      },
+    );
+
+    if (selected != null && selected != selectedRingtone) {
+      setState(() {
+        selectedRingtone = selected;
+      });
+    }
+  }
+
+  // alarm vibration
+  Future<void> _showVibrationPicker() async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: const Text('진동 패턴 선택'),
+          children: vibrationOptions.map((option) {
+            return RadioListTile<String>(
+              title: Text(option),
+              value: option,
+              groupValue: vibrationPattern,
+              onChanged: (val) => Navigator.pop(context, val),
+            );
+          }).toList(),
+        );
+      },
+    );
+
+    if (selected != null && selected != vibrationPattern) {
+      setState(() => vibrationPattern = selected);
+    }
+  }
+
+  // alarm snooze
+  Future<void> _showSnoozePicker() async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: const Text('다시 울림 설정'),
+          children: snoozeOptions.map((option) {
+            return RadioListTile<String>(
+              title: Text(option),
+              value: option,
+              groupValue: snoozeOption,
+              onChanged: (val) => Navigator.pop(context, val),
+            );
+          }).toList(),
+        );
+      },
+    );
+
+    if (selected != null && selected != snoozeOption) {
+      setState(() => snoozeOption = selected);
+    }
+  }
 
   void _pickTime() async {
     final picked = await showTimePicker(
@@ -108,32 +191,44 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
               onChanged: (val) => alarmName = val,
             ),
           ),
-          SwitchListTile(
+          ListTile(
+            onTap: alarmSoundEnabled ? _showRingtonePicker : null,
             title: const Text('알람음', style: TextStyle(color: Colors.white)),
-            subtitle: const Text(
-              'Fall Stroll',
-              style: TextStyle(color: Colors.grey),
-            ),
-            value: alarmSoundEnabled,
-            onChanged: (val) => setState(() => alarmSoundEnabled = val),
-            activeColor: Colors.blue,
-          ),
-          SwitchListTile(
-            title: const Text('진동', style: TextStyle(color: Colors.white)),
-            subtitle: const Text('기본', style: TextStyle(color: Colors.grey)),
-            value: vibrationEnabled,
-            onChanged: (val) => setState(() => vibrationEnabled = val),
-            activeColor: Colors.blue,
-          ),
-          SwitchListTile(
-            title: const Text('다시 울림', style: TextStyle(color: Colors.white)),
             subtitle: Text(
-              snoozeEnabled ? '5분, 3회' : '사용 안 함',
+              alarmSoundEnabled ? selectedRingtone : '사용 안 함',
               style: const TextStyle(color: Colors.grey),
             ),
-            value: snoozeEnabled,
-            onChanged: (val) => setState(() => snoozeEnabled = val),
-            activeColor: Colors.blue,
+            trailing: Switch(
+              value: alarmSoundEnabled,
+              onChanged: (val) => setState(() => alarmSoundEnabled = val),
+              activeColor: Colors.blue,
+            ),
+          ),
+          ListTile(
+            onTap: vibrationEnabled ? _showVibrationPicker : null,
+            title: const Text('진동', style: TextStyle(color: Colors.white)),
+            subtitle: Text(
+              vibrationEnabled ? vibrationPattern : '사용 안 함',
+              style: const TextStyle(color: Colors.grey),
+            ),
+            trailing: Switch(
+              value: vibrationEnabled,
+              onChanged: (val) => setState(() => vibrationEnabled = val),
+              activeColor: Colors.blue,
+            ),
+          ),
+          ListTile(
+            onTap: snoozeEnabled ? _showSnoozePicker : null,
+            title: const Text('다시 울림', style: TextStyle(color: Colors.white)),
+            subtitle: Text(
+              snoozeEnabled ? snoozeOption : '사용 안 함',
+              style: const TextStyle(color: Colors.grey),
+            ),
+            trailing: Switch(
+              value: snoozeEnabled,
+              onChanged: (val) => setState(() => snoozeEnabled = val),
+              activeColor: Colors.blue,
+            ),
           ),
           const Spacer(),
           Row(
@@ -150,8 +245,16 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
               Expanded(
                 child: TextButton(
                   onPressed: () {
-                    // TODO: 저장 처리
-                    Navigator.pop(context);
+                    final newAlarm = AlarmModel(
+                      time: selectedTime,
+                      days: selectedDays.toList(),
+                      name: alarmName,
+                      skipHolidays: skipHolidays,
+                      vibration: vibrationEnabled,
+                      snoozeEnabled: snoozeEnabled,
+                      ringtone: selectedRingtone, // ex: 'Classic Bell'
+                    );
+                    Navigator.pop(context, newAlarm);
                   },
                   child: const Text(
                     '저장',
