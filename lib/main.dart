@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/alarm_list_screen.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const AlarmApp());
 }
 
