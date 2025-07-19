@@ -169,11 +169,28 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
               itemBuilder: (context, index) {
                 final alarm = alarms[index];
 
-                return AlarmTile(
-                  time: formatTimeOfDay(alarm.time),
-                  days: alarm.days.map((d) => dayOfWeekToKor(d)).toList(),
-                  enabled: alarm.enabled,
-                  onToggle: (val) => toggleAlarm(index, val),
+                return GestureDetector(
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AddAlarmScreen(initialAlarm: alarm, index: index),
+                      ),
+                    );
+
+                    if (result is Map && result['alarm'] != null && result['index'] != null) {
+                      setState(() {
+                        alarms[result['index']] = result['alarm'];
+                        _sortAlarms();
+                      });
+                    }
+                  },
+                  child: AlarmTile(
+                    time: formatTimeOfDay(alarm.time),
+                    days: alarm.days.map((d) => dayOfWeekToKor(d)).toList(),
+                    enabled: alarm.enabled,
+                    onToggle: (val) => toggleAlarm(index, val),
+                  ),
                 );
               },
             ),

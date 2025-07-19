@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/alarm_model.dart';
 
 class AddAlarmScreen extends StatefulWidget {
-  const AddAlarmScreen({super.key});
+  final AlarmModel? initialAlarm; // ✅ null이면 새 알람 추가
+  final int? index; // 편집 시 인덱스 전달
+
+  const AddAlarmScreen({super.key, this.initialAlarm, this.index});
 
   @override
   State<AddAlarmScreen> createState() => _AddAlarmScreenState();
@@ -107,6 +110,24 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
       initialTime: selectedTime,
     );
     if (picked != null) setState(() => selectedTime = picked);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    final alarm = widget.initialAlarm;
+    if (alarm != null) {
+      selectedTime = alarm.time;
+      selectedDays = alarm.days.toSet();
+      skipHolidays = alarm.skipHolidays;
+      alarmName = alarm.name;
+      alarmSoundEnabled = alarm.ringtone != '없음';
+      selectedRingtone = alarm.ringtone;
+      vibrationEnabled = alarm.vibration;
+
+      snoozeEnabled = alarm.snoozeEnabled;
+    }
   }
 
   @override
@@ -245,16 +266,27 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
               Expanded(
                 child: TextButton(
                   onPressed: () {
-                    final newAlarm = AlarmModel(
+                    final updatedAlarm = AlarmModel(
                       time: selectedTime,
                       days: selectedDays.toList(),
                       name: alarmName,
                       skipHolidays: skipHolidays,
                       vibration: vibrationEnabled,
                       snoozeEnabled: snoozeEnabled,
-                      ringtone: selectedRingtone, // ex: 'Classic Bell'
+                      ringtone: selectedRingtone,
+                      enabled: widget.initialAlarm?.enabled ?? true,
                     );
-                    Navigator.pop(context, newAlarm);
+
+                    if (widget.initialAlarm != null && widget.index != null) {
+                      // 편집인 경우: Map으로 리턴
+                      Navigator.pop(context, {
+                        'alarm': updatedAlarm,
+                        'index': widget.index,
+                      });
+                    } else {
+                      // 새 알람 추가인 경우: AlarmModel 단독 리턴
+                      Navigator.pop(context, updatedAlarm);
+                    }
                   },
                   child: const Text(
                     '저장',
