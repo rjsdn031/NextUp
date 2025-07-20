@@ -184,6 +184,26 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
                         _sortAlarms();
                       });
                     }
+
+                    if (result is Map) {
+                      final int? resultIndex = result['index'] as int?;
+
+                      if (result['delete'] == true && resultIndex != null) {
+                        setState(() {
+                          alarms.removeAt(resultIndex);
+                        });
+                      } else if (result['alarm'] is AlarmModel && resultIndex != null) {
+                        setState(() {
+                          alarms[resultIndex] = result['alarm'];
+                          _sortAlarms();
+                        });
+                      }
+                    } else if (result is AlarmModel) {
+                      setState(() {
+                        alarms.add(result);
+                        _sortAlarms();
+                      });
+                    }
                   },
                   child: AlarmTile(
                     time: formatTimeOfDay(alarm.time),

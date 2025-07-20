@@ -180,6 +180,43 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
                 : null,
             onSwitch: (val) => setState(() => snoozeEnabled = val),
           ),
+          if (widget.initialAlarm != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('알람 삭제'),
+                        content: const Text('정말 이 알람을 삭제하시겠습니까?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('취소'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('삭제', style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirmed == true) {
+                      Navigator.pop(context, {
+                        'delete': true,
+                        'index': widget.index,
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  label: const Text('알람 삭제', style: TextStyle(color: Colors.red)),
+                ),
+              ),
+            ),
           const Spacer(),
           Row(
             children: [
