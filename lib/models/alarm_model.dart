@@ -26,4 +26,29 @@ class AlarmModel {
     this.snoozeEnabled = true,
     this.ringtone = 'null',
   });
+
+  // 알람 저장소 저장
+  Map<String, dynamic> toJson() => {
+    'hour': time.hour,
+    'minute': time.minute,
+    'days': days.map((d) => d.index).toList(),
+    'name': name,
+    'skipHolidays': skipHolidays,
+    'vibration': vibration,
+    'snoozeEnabled': snoozeEnabled,
+    'ringtone': ringtone,
+    'enabled': enabled,
+  };
+
+  factory AlarmModel.fromJson(Map<String, dynamic> json) => AlarmModel(
+    time: TimeOfDay(hour: json['hour'], minute: json['minute']),
+    days: (json['days'] as List).map((i) => DayOfWeek.values[i]).toList(),
+    name: json['name'] ?? '',
+    skipHolidays: json['skipHolidays'] ?? false,
+    vibration: json['vibration'] ?? true,
+    snoozeEnabled: json['snoozeEnabled'] ?? true,
+    ringtone: json['ringtone'] ?? 'Classic Bell',
+    enabled: json['enabled'] ?? true,
+  );
+
 }

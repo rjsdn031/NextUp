@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/alarm_model.dart';
+import '../utils/alarm_storage.dart';
 import '../utils/alarm_utils.dart';
 import '../widgets/alarm_tile.dart';
 import 'add_alarm_screen.dart';
@@ -54,11 +55,36 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
   @override
   void initState() {
     super.initState();
+    _loadAlarms();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() {
         now = DateTime.now();
       });
     });
+  }
+
+  void _loadAlarms() async {
+    final loaded = await AlarmStorage.loadAlarms();
+    setState(() {
+      alarms.clear();
+      alarms.addAll(loaded);
+      _sortAlarms();
+    });
+  }
+
+  void updateAlarm(int index, AlarmModel alarm) {
+    setState(() {
+      alarms[index] = alarm;
+      _sortAlarms();
+    });
+    AlarmStorage.saveAlarms(alarms);
+  }
+
+  void deleteAlarm(int index) {
+    setState(() {
+      alarms.removeAt(index);
+    });
+    AlarmStorage.saveAlarms(alarms);
   }
 
   @override
@@ -192,17 +218,20 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
                         setState(() {
                           alarms.removeAt(resultIndex);
                         });
+                        AlarmStorage.saveAlarms(alarms);
                       } else if (result['alarm'] is AlarmModel && resultIndex != null) {
                         setState(() {
                           alarms[resultIndex] = result['alarm'];
                           _sortAlarms();
                         });
+                        AlarmStorage.saveAlarms(alarms);
                       }
                     } else if (result is AlarmModel) {
                       setState(() {
                         alarms.add(result);
                         _sortAlarms();
                       });
+                      AlarmStorage.saveAlarms(alarms);
                     }
                   },
                   child: AlarmTile(
