@@ -5,6 +5,7 @@ enum DayOfWeek {
 }
 
 class AlarmModel {
+  final int id;
   final TimeOfDay time;
   final List<DayOfWeek> days;
   bool enabled;
@@ -16,10 +17,10 @@ class AlarmModel {
   final String ringtone;
 
   AlarmModel({
+    required this.id,
     required this.time,
     required this.days,
     this.enabled = true,
-
     this.name = '',
     this.skipHolidays = false,
     this.vibration = true,
@@ -27,8 +28,8 @@ class AlarmModel {
     this.ringtone = 'null',
   });
 
-  // 알람 저장소 저장
   Map<String, dynamic> toJson() => {
+    'id': id,
     'hour': time.hour,
     'minute': time.minute,
     'days': days.map((d) => d.index).toList(),
@@ -41,6 +42,7 @@ class AlarmModel {
   };
 
   factory AlarmModel.fromJson(Map<String, dynamic> json) => AlarmModel(
+    id: json['id'],
     time: TimeOfDay(hour: json['hour'], minute: json['minute']),
     days: (json['days'] as List).map((i) => DayOfWeek.values[i]).toList(),
     name: json['name'] ?? '',
@@ -50,5 +52,4 @@ class AlarmModel {
     ringtone: json['ringtone'] ?? 'Classic Bell',
     enabled: json['enabled'] ?? true,
   );
-
 }

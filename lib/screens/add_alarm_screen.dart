@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/alarm_model.dart';
+import '../services/alarm_service.dart';
 import '../widgets/day_selector.dart';
 import '../widgets/option_tile.dart';
 import '../utils/dialog_utils.dart';
@@ -53,8 +54,11 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
     if (picked != null) setState(() => selectedTime = picked);
   }
 
-  void _saveAlarm() {
+  void _saveAlarm() async {
+    final alarmId = widget.index ?? DateTime.now().hashCode;
+
     final updatedAlarm = AlarmModel(
+      id: alarmId,
       time: selectedTime,
       days: selectedDays.toList(),
       name: alarmName,
@@ -64,6 +68,15 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
       ringtone: selectedRingtone,
       enabled: widget.initialAlarm?.enabled ?? true,
     );
+
+    if (updatedAlarm.enabled) {
+      await AlarmService.scheduleAlarm(
+        id: alarmId,
+        time: updatedAlarm.time,
+        title: '알람',
+        body: '${updatedAlarm.time.format(context)} 알람입니다!',
+      );
+    }
 
     if (widget.initialAlarm != null && widget.index != null) {
       Navigator.pop(context, {'alarm': updatedAlarm, 'index': widget.index});

@@ -17,6 +17,7 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
   // TODO: 동적 상태 리스트 사용하기
   final List<AlarmModel> alarms = [
     AlarmModel(
+      id: 1,
       time: TimeOfDay(hour: 6, minute: 0),
       days: [
         DayOfWeek.monday,
@@ -28,6 +29,7 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
       enabled: false,
     ),
     AlarmModel(
+      id: 2,
       time: TimeOfDay(hour: 8, minute: 0),
       days: [
         DayOfWeek.monday,
@@ -38,6 +40,7 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
       ],
     ),
     AlarmModel(
+      id: 3,
       time: TimeOfDay(hour: 9, minute: 0),
       days: [
         DayOfWeek.monday,
