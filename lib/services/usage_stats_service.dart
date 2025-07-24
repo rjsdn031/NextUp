@@ -1,35 +1,57 @@
-import 'package:app_usage/app_usage.dart';
+import 'package:usage_stats/usage_stats.dart';
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:android_intent_plus/flag.dart';
 
 class UsageStatsService {
-  static Future<List<AppUsageInfo>> fetchUsageStats({
-    Duration range = const Duration(days: 7),
+  static Future<Map<String, Duration>> fetchUsageStats({
+    Duration range = const Duration(hours: 1),
   }) async {
     final end = DateTime.now();
     final start = end.subtract(range);
 
-    try {
-      final appUsage = AppUsage();
-      return await appUsage.getAppUsage(start, end);
-    } catch (e, stack) {
-      if (e is Exception && e.toString().contains("permission_not_granted")) {
-        await requestPermission();
-        return [];
-      }
-      print("UsageStatsService error: $e\n$stack");
-      rethrow;
+    final isPermitted = await UsageStats.checkUsagePermission();
+    if (isPermitted != true) {
+      await requestPermission();
+      return {};
     }
+
+    List<EventUsageInfo> events = [];
+
+    try {
+      events = await UsageStats.queryEvents(start, end);
+      print('이벤트 개수: ${events.length}');
+    } catch (e, stack) {
+      print('이벤트 수집 실패: $e');
+    }
+
+    for (final event in events.take(50)) {
+      print('[UsageStats] 이벤트: '
+          'package=${event.packageName}, '
+          'type=${event.eventType}, '
+          'timestamp=${event.timeStamp}');
+    }
+
+    final usageMap = <String, Duration>{};
+    final lastForeground = <String, DateTime>{};
+
+    for (final event in events) {
+      final pkg = event.packageName ?? 'unknown';
+
+      if (event.eventType == '1') {
+        lastForeground[pkg] = DateTime.parse(event.timeStamp!);
+      } else if (event.eventType == '2' && lastForeground.containsKey(pkg)) {
+        final startTime = lastForeground[pkg]!;
+        final endTime = DateTime.parse(event.timeStamp!);
+        final duration = endTime.difference(startTime);
+        usageMap[pkg] = (usageMap[pkg] ?? Duration.zero) + duration;
+        lastForeground.remove(pkg);
+      }
+    }
+
+    return usageMap;
   }
 
   static Future<void> requestPermission() async {
-    final now = DateTime.now();
-    final dummy = AppUsage();
-
-    try {
-      await dummy.getAppUsage(now.subtract(const Duration(minutes: 1)), now);
-    } catch (_) {}
-
     const intent = AndroidIntent(
       action: 'android.settings.USAGE_ACCESS_SETTINGS',
       flags: <int>[Flag.FLAG_ACTIVITY_NEW_TASK],
