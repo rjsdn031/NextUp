@@ -41,8 +41,6 @@ class AlarmService {
       importance: Importance.max,
       priority: Priority.high,
       fullScreenIntent: true,
-      playSound: true,
-      sound: RawResourceAndroidNotificationSound('test_sound'),
     );
 
     final notificationDetails = NotificationDetails(android: androidDetails);
