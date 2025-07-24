@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:usage_stats/usage_stats.dart';
 import 'package:intl/intl.dart';
+import '../models/UsageSession.dart';
+import 'app_usage_detail_screen.dart';
 
 class UsageStatsScreen extends StatefulWidget {
   const UsageStatsScreen({super.key});
@@ -13,6 +15,7 @@ class _UsageStatsScreenState extends State<UsageStatsScreen> {
   bool _loading = true;
   Map<String, Duration> _usageByApp = {};
   final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
+  final Map<String, List<UsageSession>> usageSessions = {};
 
   @override
   void initState() {
@@ -54,7 +57,7 @@ class _UsageStatsScreenState extends State<UsageStatsScreen> {
       return;
     }
 
-    final usageMap = <String, Duration>{};
+    // final usageMap = <String, Duration>{};
     final lastForegroundTime = <String, DateTime>{};
 
     print("Events:$events");
@@ -72,11 +75,15 @@ class _UsageStatsScreenState extends State<UsageStatsScreen> {
       if (event.eventType == Foreground) {
         // print('Foreground 기록: $pkg @ $eventTime ===>');
         lastForegroundTime[pkg] = eventTime;
-      } else if (event.eventType == Background && lastForegroundTime.containsKey(pkg)) {
+      } else if (event.eventType == Background &&
+          lastForegroundTime.containsKey(pkg)) {
         final start = lastForegroundTime[pkg]!;
-        final duration = eventTime.difference(start);
-        // print('Background 기록: $pkg, 사용 시간: ${duration.inSeconds}초 ===>');
-        usageMap[pkg] = (usageMap[pkg] ?? Duration.zero) + duration;
+        final session = UsageSession(
+          startTime: start,
+          endTime: eventTime,
+          packageName: pkg,
+        );
+        usageSessions.putIfAbsent(pkg, () => []).add(session);
         lastForegroundTime.remove(pkg);
       }
     }
@@ -85,7 +92,16 @@ class _UsageStatsScreenState extends State<UsageStatsScreen> {
       print('쌍이 맞지 않아 남은 Foreground 앱: ${lastForegroundTime.keys} ===>');
     }
 
-    final sortedEntries = usageMap.entries.toList()
+    final usageByApp = <String, Duration>{};
+    usageSessions.forEach((pkg, sessions) {
+      final total = sessions.fold(
+        Duration.zero,
+            (sum, s) => sum + s.duration,
+      );
+      usageByApp[pkg] = total;
+    });
+
+    final sortedEntries = usageByApp.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     setState(() {
@@ -94,9 +110,9 @@ class _UsageStatsScreenState extends State<UsageStatsScreen> {
     });
 
     // print('최종 앱 사용 시간 목록: ===>');
-    _usageByApp.forEach((key, value) {
-      print('$key → ${value.inMinutes}분 ${value.inSeconds % 60}초 ===>');
-    });
+    // _usageByApp.forEach((key, value) {
+    //   print('$key → ${value.inMinutes}분 ${value.inSeconds % 60}초 ===>');
+    // });
   }
 
   @override
@@ -117,7 +133,16 @@ class _UsageStatsScreenState extends State<UsageStatsScreen> {
                   title: Text(entry.key),
                   subtitle: Text('총 사용 시간: ${minutes}분 ${seconds}초'),
                   onTap: () {
-                    // TODO: 상세 화면으로 이동
+                    final sessions = usageSessions[entry.key] ?? [];
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => UsageDetailScreen(
+                          appName: entry.key,
+                          sessions: sessions,
+                        ),
+                      ),
+                    );
                   },
                 );
               },
