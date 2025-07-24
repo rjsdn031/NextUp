@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:nextup/screens/alarm_ringing_screen.dart';
+import 'package:nextup/screens/usage_stats_screen.dart';
 import 'package:nextup/services/alarm_service.dart';
 import 'screens/alarm_list_screen.dart';
 
@@ -39,7 +40,10 @@ void main() async {
     onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
   );
 
-  runApp(const AlarmApp());
+  // runApp(const AlarmApp());
+  runApp(const MaterialApp(
+    home: UsageStatsScreen(),
+  ));
 }
 
 class AlarmApp extends StatelessWidget {
