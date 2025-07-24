@@ -35,7 +35,7 @@ class AlarmService {
     }
 
     final androidDetails = AndroidNotificationDetails(
-      'alarm_channel_id',
+      'testAlarm1',
       'Alarm Notifications',
       channelDescription: 'Channel for alarm notifications',
       importance: Importance.max,

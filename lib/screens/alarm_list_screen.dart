@@ -5,6 +5,7 @@ import '../storage/alarm_storage.dart';
 import '../widgets/alarm_list_view.dart';
 import '../widgets/alarm_fab.dart';
 import 'add_alarm_screen.dart';
+import 'alarm_ringing_screen.dart';
 
 class AlarmListScreen extends StatefulWidget {
   const AlarmListScreen({super.key});
@@ -111,7 +112,18 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
         onToggle: _toggleAlarm,
         onTap: _onAlarmTap,
       ),
-      floatingActionButton: AlarmFAB(onAdd: _addAlarm),
+      floatingActionButton: FloatingActionButton(onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const AlarmRingingScreen(
+              title: '테스트 알람',
+              body: '전체화면 알람 UI 테스트 중입니다.',
+            ),
+          ),
+        );
+      },
+        child: const Icon(Icons.add),),
+      // floatingActionButton: AlarmFAB(onAdd: _addAlarm),
     );
   }
 }
