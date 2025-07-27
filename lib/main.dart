@@ -40,10 +40,10 @@ void main() async {
     onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
   );
 
-  // runApp(const AlarmApp());
-  runApp(const MaterialApp(
-    home: UsageStatsScreen(),
-  ));
+  runApp(const AlarmApp());
+  // runApp(const MaterialApp(
+  //   home: UsageStatsScreen(),
+  // ));
 }
 
 class AlarmApp extends StatelessWidget {

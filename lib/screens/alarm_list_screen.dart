@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nextup/screens/usage_stats_screen.dart';
 import 'dart:async';
 import '../models/alarm_model.dart';
 import '../storage/alarm_storage.dart';
@@ -101,7 +102,15 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        toolbarHeight: 0,
+        toolbarHeight: kToolbarHeight,
+        leading: IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const UsageStatsScreen()),
+            );
+          },
+        ),
       ),
       body: AlarmListView(
         alarms: alarms,
@@ -112,17 +121,6 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
         onToggle: _toggleAlarm,
         onTap: _onAlarmTap,
       ),
-      // floatingActionButton: FloatingActionButton(onPressed: () {
-      //   Navigator.of(context).push(
-      //     MaterialPageRoute(
-      //       builder: (_) => const AlarmRingingScreen(
-      //         title: '테스트 알람',
-      //         body: '전체화면 알람 UI 테스트 중입니다.',
-      //       ),
-      //     ),
-      //   );
-      // },
-      //   child: const Icon(Icons.add),),
       floatingActionButton: AlarmFAB(onAdd: _addAlarm),
     );
   }
