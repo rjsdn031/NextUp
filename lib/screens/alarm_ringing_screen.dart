@@ -1,3 +1,4 @@
+import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:nextup/utils/alarm_vibrator.dart';
 
@@ -6,11 +7,13 @@ import '../utils/alarm_sound_player.dart';
 class AlarmRingingScreen extends StatefulWidget {
   final String title;
   final String body;
+  final int alarmId;
 
   const AlarmRingingScreen({
     super.key,
     required this.title,
     required this.body,
+    required this.alarmId,
   });
 
   @override
@@ -43,15 +46,22 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(widget.title, style: const TextStyle(fontSize: 32, color: Colors.white)),
+            Text(
+              widget.title,
+              style: const TextStyle(fontSize: 32, color: Colors.white),
+            ),
             const SizedBox(height: 20),
-            Text(widget.body, style: const TextStyle(fontSize: 18, color: Colors.white70)),
+            Text(
+              widget.body,
+              style: const TextStyle(fontSize: 18, color: Colors.white70),
+            ),
             const SizedBox(height: 40),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 _vibrator.stop();
                 _soundPlayer.stop();
-                Navigator.of(context).pop();
+                await Alarm.stop(widget.alarmId); // 여기서 ID 직접 사용
+                if (mounted) Navigator.of(context).pop();
               },
               child: const Text('알람 끄기'),
             ),
