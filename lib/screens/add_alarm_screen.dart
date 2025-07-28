@@ -18,17 +18,21 @@ class AddAlarmScreen extends StatefulWidget {
 class _AddAlarmScreenState extends State<AddAlarmScreen> {
   TimeOfDay selectedTime = const TimeOfDay(hour: 7, minute: 0);
   Set<DayOfWeek> selectedDays = {};
-  bool skipHolidays = false;
+  bool skipHolidays = true;
+
   String alarmName = '';
+  bool vibrationEnabled = true;
+  double volume = 1.0;
+  int fadeDuration = 0;
+  bool loopAudio = true;
 
   bool alarmSoundEnabled = true;
-  String selectedRingtone = 'Classic Bell';
+  String selectedRingtoneName = 'Classic Bell';
+  String selectedRingtonePath = 'assets/sounds/test_sound.mp3';
 
-  bool vibrationEnabled = true;
-  String vibrationPattern = '기본';
-
-  bool snoozeEnabled = true;
-  String snoozeOption = '5분, 3회';
+  bool snoozeEnabled = false;
+  int snoozeInterval = 5;
+  int maxSnoozeCount = 3;
 
   @override
   void initState() {
@@ -39,10 +43,16 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
       selectedDays = alarm.days.toSet();
       skipHolidays = alarm.skipHolidays;
       alarmName = alarm.name;
-      alarmSoundEnabled = alarm.ringtone != '없음';
-      selectedRingtone = alarm.ringtone;
       vibrationEnabled = alarm.vibration;
-      snoozeEnabled = alarm.snoozeEnabled;
+      fadeDuration = alarm.fadeDuration;
+      volume = alarm.volume;
+      loopAudio = alarm.loopAudio;
+      alarmSoundEnabled = alarm.alarmSoundEnabled;
+      selectedRingtoneName = alarm.ringtoneName;
+      selectedRingtonePath = alarm.assetAudioPath;
+      snoozeEnabled = false;
+      snoozeInterval = 5;
+      maxSnoozeCount = 3;
     }
   }
 
@@ -61,21 +71,23 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
       id: alarmId,
       time: selectedTime,
       days: selectedDays.toList(),
-      name: alarmName,
       skipHolidays: skipHolidays,
+      name: alarmName,
       vibration: vibrationEnabled,
-      snoozeEnabled: snoozeEnabled,
-      ringtone: selectedRingtone,
+      fadeDuration: fadeDuration,
+      volume: volume,
+      loopAudio: loopAudio,
+      alarmSoundEnabled: alarmSoundEnabled,
+      ringtoneName: selectedRingtoneName,
+      assetAudioPath: selectedRingtonePath,
       enabled: widget.initialAlarm?.enabled ?? true,
+      snoozeEnabled: snoozeEnabled,
+      snoozeInterval: snoozeInterval,
+      maxSnoozeCount: maxSnoozeCount,
     );
 
     if (updatedAlarm.enabled) {
-      await AlarmService.scheduleAlarm(
-        id: alarmId,
-        time: updatedAlarm.time,
-        title: '알람',
-        body: '${updatedAlarm.time.format(context)} 알람입니다!',
-      );
+      await AlarmService.scheduleAlarm(updatedAlarm);
     }
 
     if (widget.initialAlarm != null && widget.index != null) {
@@ -87,6 +99,33 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    const alarmSounds = <String, String>{
+      'Classic Bell': 'assets/sounds/classic_bell.mp3',
+      'Soft Piano': 'assets/sounds/soft_piano.mp3',
+      'Nature Wind': 'assets/sounds/nature_wind.mp3',
+    };
+
+    Future<String?> showSoundSelectDialog(
+        BuildContext context,
+        String currentKey,
+        ) async {
+      return showDialog<String>(
+        context: context,
+        builder: (_) => SimpleDialog(
+          title: const Text('알람음 선택'),
+          children: alarmSounds.keys.map((name) {
+            return RadioListTile<String>(
+              title: Text(name),
+              value: name,
+              groupValue: currentKey,
+              onChanged: (value) => Navigator.pop(context, value),
+            );
+          }).toList(),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -95,160 +134,219 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          GestureDetector(
-            onTap: _pickTime,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              alignment: Alignment.center,
-              child: Text(
-                selectedTime.format(context),
-                style: const TextStyle(fontSize: 48, color: Colors.white),
-              ),
-            ),
-          ),
-          DaySelector(
-            selectedDays: selectedDays,
-            onChanged: (Set<DayOfWeek> days) {
-              setState(() => selectedDays = days);
-            },
-          ),
-          const SizedBox(height: 8),
-          Divider(color: Colors.grey[800]),
-          SwitchListTile(
-            title: const Text('공휴일엔 알람 끄기', style: TextStyle(color: Colors.white)),
-            value: skipHolidays,
-            onChanged: (val) => setState(() => skipHolidays = val),
-            activeColor: Colors.grey,
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: '알람 이름',
-                labelStyle: TextStyle(color: Colors.grey),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey),
-                ),
-              ),
-              onChanged: (val) => alarmName = val,
-            ),
-          ),
-          OptionTile(
-            title: '알람음',
-            value: alarmSoundEnabled,
-            subtitle: alarmSoundEnabled ? selectedRingtone : '사용 안 함',
-            onTap: alarmSoundEnabled
-                ? () async {
-              final selected = await showOptionDialog(
-                context,
-                '알람음 선택',
-                ['Classic Bell'],
-                selectedRingtone,
-              );
-              if (selected != null) {
-                setState(() => selectedRingtone = selected);
-              }
-            }
-                : null,
-            onSwitch: (val) => setState(() => alarmSoundEnabled = val),
-          ),
-          OptionTile(
-            title: '진동',
-            value: vibrationEnabled,
-            subtitle: vibrationEnabled ? vibrationPattern : '사용 안 함',
-            onTap: vibrationEnabled
-                ? () async {
-              final selected = await showOptionDialog(
-                context,
-                '진동 패턴 선택',
-                ['기본'],
-                vibrationPattern,
-              );
-              if (selected != null) {
-                setState(() => vibrationPattern = selected);
-              }
-            }
-                : null,
-            onSwitch: (val) => setState(() => vibrationEnabled = val),
-          ),
-          OptionTile(
-            title: '다시 울림',
-            value: snoozeEnabled,
-            subtitle: snoozeEnabled ? snoozeOption : '사용 안 함',
-            onTap: snoozeEnabled
-                ? () async {
-              final selected = await showOptionDialog(
-                context,
-                '다시 울림 설정',
-                ['5분, 3회'],
-                snoozeOption,
-              );
-              if (selected != null) {
-                setState(() => snoozeOption = selected);
-              }
-            }
-                : null,
-            onSwitch: (val) => setState(() => snoozeEnabled = val),
-          ),
-          if (widget.initialAlarm != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('알람 삭제'),
-                        content: const Text('정말 이 알람을 삭제하시겠습니까?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('취소'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text('삭제', style: TextStyle(color: Colors.red)),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    if (confirmed == true) {
-                      Navigator.pop(context, {
-                        'delete': true,
-                        'index': widget.index,
-                      });
-                    }
-                  },
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  label: const Text('알람 삭제', style: TextStyle(color: Colors.red)),
-                ),
-              ),
-            ),
-          const Spacer(),
-          Row(
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('취소', style: TextStyle(fontSize: 18, color: Colors.white70)),
+              GestureDetector(
+                onTap: _pickTime,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  alignment: Alignment.center,
+                  child: Text(
+                    selectedTime.format(context),
+                    style: const TextStyle(fontSize: 48, color: Colors.white),
+                  ),
                 ),
               ),
-              Expanded(
-                child: TextButton(
-                  onPressed: _saveAlarm,
-                  child: const Text('저장', style: TextStyle(fontSize: 18, color: Colors.white)),
+              DaySelector(
+                selectedDays: selectedDays,
+                onChanged: (Set<DayOfWeek> days) {
+                  setState(() => selectedDays = days);
+                },
+              ),
+              const SizedBox(height: 8),
+              Divider(color: Colors.grey[800]),
+              OptionTile(
+                title: '공휴일엔 알람 끄기',
+                subtitle: skipHolidays ? '사용' : '사용 안 함',
+                value: skipHolidays,
+                onTap: null,
+                onSwitch: (val) => setState(() => skipHolidays = val),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: '알람 이름',
+                    labelStyle: TextStyle(color: Colors.grey),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                  ),
+                  onChanged: (val) => alarmName = val,
                 ),
               ),
+              OptionTile(
+                title: '알람음',
+                subtitle: alarmSoundEnabled
+                    ? selectedRingtoneName
+                    : '사용 안 함',
+                value: alarmSoundEnabled,
+                onTap: alarmSoundEnabled
+                    ? () async {
+                  final selected = await showSoundSelectDialog(
+                    context,
+                    selectedRingtoneName,
+                  );
+                  if (selected != null) {
+                    setState(() {
+                      selectedRingtoneName = selected;
+                      selectedRingtonePath = alarmSounds[selected]!;
+                    });
+                  }
+                }
+                    : null,
+                onSwitch: (val) => setState(() => alarmSoundEnabled = val),
+              ),
+              OptionTile(
+                title: '진동',
+                value: vibrationEnabled,
+                subtitle: vibrationEnabled ? '사용' : '사용 안 함',
+                onTap: null,
+                onSwitch: (val) => setState(() => vibrationEnabled = val),
+              ),
+              OptionTile(
+                title: '다시 울림',
+                subtitle: snoozeEnabled ? '사용' : '사용 안 함',
+                value: snoozeEnabled,
+                onTap: null,
+                onSwitch: (val) => setState(() => snoozeEnabled = val),
+              ),
+              if (snoozeEnabled) ...[
+                OptionTile(
+                  title: '스누즈 간격',
+                  subtitle: '$snoozeInterval분',
+                  value: true,
+                  onTap: () async {
+                    final selected = await showSliderDialog(
+                      context: context,
+                      title: '스누즈 간격 (분)',
+                      initial: snoozeInterval.toDouble(),
+                      min: 1,
+                      max: 30,
+                      divisions: 29,
+                      formatValue: (v) => '${v.round()}분',
+                    );
+                    if (selected != null) setState(() => snoozeInterval = selected.round());
+                  },
+                  onSwitch: null,
+                ),
+                OptionTile(
+                  title: '최대 스누즈 횟수',
+                  subtitle: '$maxSnoozeCount회',
+                  value: true,
+                  onTap: () async {
+                    final selected = await showSliderDialog(
+                      context: context,
+                      title: '최대 스누즈 횟수',
+                      initial: maxSnoozeCount.toDouble(),
+                      min: 1,
+                      max: 10,
+                      divisions: 9,
+                      formatValue: (v) => '${v.round()}회',
+                    );
+                    if (selected != null) setState(() => maxSnoozeCount = selected.round());
+                  },
+                  onSwitch: null,
+                ),
+              ],
+              OptionTile(
+                title: '볼륨',
+                value: true,
+                subtitle: '${(volume * 100).round()}%',
+                onTap: () async {
+                  final selected = await showSliderDialog(
+                    context: context,
+                    title: '볼륨 설정',
+                    initial: volume,
+                    min: 0,
+                    max: 1,
+                    divisions: 10,
+                    formatValue: (v) => '${(v * 100).round()}%',
+                  );
+                  if (selected != null) setState(() => volume = selected);
+                },
+                onSwitch: null,
+              ),
+              OptionTile(
+                title: '점점 커지기',
+                value: fadeDuration > 0,
+                subtitle: fadeDuration > 0 ? '$fadeDuration초 동안 증가' : '사용 안 함',
+                onTap: () async {
+                  final selected = await showSliderDialog(
+                    context: context,
+                    title: '점점 커지는 시간',
+                    initial: fadeDuration.toDouble(),
+                    min: 0,
+                    max: 30,
+                    divisions: 6,
+                    formatValue: (v) => '${v.round()}초',
+                  );
+                  if (selected != null) setState(() => fadeDuration = selected.round());
+                },
+                onSwitch: (val) => setState(() => fadeDuration = val ? 10 : 0),
+              ),
+              if (widget.initialAlarm != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('알람 삭제'),
+                            content: const Text('정말 이 알람을 삭제하시겠습니까?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('취소'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('삭제', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true) {
+                          Navigator.pop(context, {
+                            'delete': true,
+                            'index': widget.index,
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      label: const Text('알람 삭제', style: TextStyle(color: Colors.red)),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('취소', style: TextStyle(fontSize: 18, color: Colors.white70)),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: _saveAlarm,
+                      child: const Text('저장', style: TextStyle(fontSize: 18, color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
             ],
           ),
-        ],
-      ),
+        )
+
     );
   }
 }

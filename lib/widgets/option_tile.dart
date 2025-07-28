@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 
 class OptionTile extends StatelessWidget {
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final bool value;
   final VoidCallback? onTap;
-  final ValueChanged<bool> onSwitch;
+  final ValueChanged<bool>? onSwitch;
 
   const OptionTile({
     super.key,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.value,
-    required this.onTap,
-    required this.onSwitch,
+    this.onTap,
+    this.onSwitch,
   });
 
   @override
@@ -21,12 +21,16 @@ class OptionTile extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       title: Text(title, style: const TextStyle(color: Colors.white)),
-      subtitle: Text(subtitle, style: const TextStyle(color: Colors.grey)),
-      trailing: Switch(
+      subtitle: subtitle != null
+          ? Text(subtitle!, style: const TextStyle(color: Colors.grey))
+          : null,
+      trailing: onSwitch != null
+          ? Switch(
         value: value,
         onChanged: onSwitch,
         activeColor: Colors.grey,
-      ),
+      )
+          : null,
     );
   }
 }

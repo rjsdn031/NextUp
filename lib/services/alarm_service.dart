@@ -1,68 +1,52 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
-
-import '../main.dart';
+import 'package:alarm/alarm.dart';
+import '../models/alarm_model.dart';
 
 class AlarmService {
-  /// 타임존 초기화
   static Future<void> init() async {
-    tz.initializeTimeZones();
-    // 로컬 타임존 - Seoul
-    tz.setLocalLocation(tz.getLocation('Asia/Seoul'));
+    await Alarm.init();
   }
 
-  /// 알람 예약
-  static Future<void> scheduleAlarm({
-    required int id,
-    required TimeOfDay time,
-    required String title,
-    required String body,
-  }) async {
+  static Future<void> scheduleAlarm(AlarmModel model) async {
     final now = DateTime.now();
-    DateTime scheduledDate = DateTime(
+    DateTime scheduled = DateTime(
       now.year,
       now.month,
       now.day,
-      time.hour,
-      time.minute,
+      model.time.hour,
+      model.time.minute,
     );
-
-    // 이미 지난 시간이면 다음날로 설정
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
     }
 
-    final androidDetails = AndroidNotificationDetails(
-      'testAlarm1',
-      'Alarm Notifications',
-      channelDescription: 'Channel for alarm notifications',
-      importance: Importance.max,
-      priority: Priority.high,
-      fullScreenIntent: true,
+    final alarmSettings = AlarmSettings(
+      id: model.id,
+      dateTime: scheduled,
+      assetAudioPath: model.assetAudioPath,
+      volumeSettings: VolumeSettings.fixed( // fixed volume, fade시 .fade()
+        volume: model.volume,
+      ),
+      notificationSettings: NotificationSettings(
+        title: model.name.isEmpty ? '알람' : model.name,
+        body: model.notificationBody,
+      ),
+      loopAudio: model.loopAudio,
+      vibrate: model.vibration,
+      warningNotificationOnKill: model.warningNotificationOnKill,
+      androidFullScreenIntent: model.androidFullScreenIntent,
     );
 
-    final notificationDetails = NotificationDetails(android: androidDetails);
-
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      id,
-      title,
-      body,
-      tz.TZDateTime.from(scheduledDate, tz.local),
-      notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time,
-    );
+    await Alarm.set(alarmSettings: alarmSettings);
   }
 
-  /// 특정 알람 취소
   static Future<void> cancelAlarm(int id) async {
-    await flutterLocalNotificationsPlugin.cancel(id);
+    await Alarm.stop(id);
   }
 
-  /// 모든 알람 취소
   static Future<void> cancelAllAlarms() async {
-    await flutterLocalNotificationsPlugin.cancelAll();
+    final alarms = await Alarm.getAlarms();
+    for (final alarm in alarms) {
+      await Alarm.stop(alarm.id);
+    }
   }
 }

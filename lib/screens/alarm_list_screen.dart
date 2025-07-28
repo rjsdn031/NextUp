@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:nextup/screens/usage_stats_screen.dart';
 import 'dart:async';
 import '../models/alarm_model.dart';
+import '../services/alarm_service.dart';
 import '../storage/alarm_storage.dart';
 import '../widgets/alarm_list_view.dart';
 import '../widgets/alarm_fab.dart';
 import 'add_alarm_screen.dart';
-import 'alarm_ringing_screen.dart';
 
 class AlarmListScreen extends StatefulWidget {
   const AlarmListScreen({super.key});
@@ -47,26 +47,44 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
     });
   }
 
-  void _updateAlarm(int index, AlarmModel alarm) {
-    setState(() => alarms[index] = alarm);
-    _sortAlarms();
-    AlarmStorage.saveAlarms(alarms);
-  }
-
-  void _deleteAlarm(int index) {
-    setState(() => alarms.removeAt(index));
-    AlarmStorage.saveAlarms(alarms);
-  }
-
   void _addAlarm(AlarmModel alarm) {
     setState(() => alarms.add(alarm));
     _sortAlarms();
     AlarmStorage.saveAlarms(alarms);
+
+    if (alarm.enabled) {
+      AlarmService.scheduleAlarm(alarm);
+    }
+  }
+
+  void _updateAlarm(int index, AlarmModel alarm) {
+    setState(() => alarms[index] = alarm);
+    _sortAlarms();
+    AlarmStorage.saveAlarms(alarms);
+
+    if (alarm.enabled) {
+      AlarmService.scheduleAlarm(alarm);
+    } else {
+      AlarmService.cancelAlarm(alarm.id);
+    }
+  }
+
+  void _deleteAlarm(int index) {
+    final deleted = alarms[index];
+    setState(() => alarms.removeAt(index));
+    AlarmStorage.saveAlarms(alarms);
+    AlarmService.cancelAlarm(deleted.id);
   }
 
   void _toggleAlarm(int index, bool value) {
     setState(() => alarms[index].enabled = value);
     AlarmStorage.saveAlarms(alarms);
+
+    if (value) {
+      AlarmService.scheduleAlarm(alarms[index]);
+    } else {
+      AlarmService.cancelAlarm(alarms[index].id);
+    }
   }
 
   Future<void> _onAlarmTap(BuildContext context, AlarmModel alarm, int index) async {

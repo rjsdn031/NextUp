@@ -23,3 +23,45 @@ Future<String?> showOptionDialog(
     },
   );
 }
+
+Future<double?> showSliderDialog({
+  required BuildContext context,
+  required String title,
+  required double initial,
+  required double min,
+  required double max,
+  int? divisions,
+  required String Function(double) formatValue,
+}) async {
+  double current = initial;
+  return showDialog<double>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text(title),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Slider(
+                  value: current,
+                  onChanged: (val) => setState(() => current = val),
+                  min: min,
+                  max: max,
+                  divisions: divisions,
+                  label: formatValue(current),
+                ),
+                Text(formatValue(current)),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+          TextButton(onPressed: () => Navigator.pop(context, current), child: const Text('확인')),
+        ],
+      );
+    },
+  );
+}

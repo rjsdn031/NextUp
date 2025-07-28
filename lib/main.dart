@@ -1,3 +1,4 @@
+import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:nextup/screens/alarm_ringing_screen.dart';
@@ -16,6 +17,9 @@ void notificationTapBackground(NotificationResponse response) {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  WidgetsFlutterBinding.ensureInitialized();
+  await Alarm.init();
 
   await AlarmService.init();
 
