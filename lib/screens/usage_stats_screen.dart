@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:usage_stats/usage_stats.dart';
 import 'package:intl/intl.dart';
-import '../models/UsageSession.dart';
+import '../models/usage_session.dart';
 import 'app_usage_detail_screen.dart';
 
 class UsageStatsScreen extends StatefulWidget {

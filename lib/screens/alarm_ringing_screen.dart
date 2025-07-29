@@ -1,7 +1,6 @@
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
-import 'package:nextup/utils/alarm_vibrator.dart';
-
+import '../utils/alarm_vibrator.dart';
 import '../utils/alarm_sound_player.dart';
 
 class AlarmRingingScreen extends StatefulWidget {

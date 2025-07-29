@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../models/UsageSession.dart';
+import '../models/usage_session.dart';
 
 class UsageDetailScreen extends StatelessWidget {
   final String appName;
