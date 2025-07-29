@@ -17,8 +17,8 @@ class AlarmNameField extends StatelessWidget {
       child: TextField(
         style: const TextStyle(color: Colors.white),
         decoration: const InputDecoration(
-          labelText: '알람 이름',
-          labelStyle: TextStyle(color: Colors.grey),
+          hintText: '알람 이름 입력',
+          hintStyle: TextStyle(color: Colors.grey),
           enabledBorder: UnderlineInputBorder(
             borderSide: BorderSide(color: Colors.grey),
           ),

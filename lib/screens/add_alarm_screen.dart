@@ -148,8 +148,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
                 setState(() => selectedDays = days);
               },
             ),
-            const SizedBox(height: 8),
-            Divider(color: Colors.grey[800]),
+            const SizedBox(height: 14),
             OptionTile(
               title: '공휴일엔 알람 끄기',
               subtitle: skipHolidays ? '사용' : '사용 안 함',
@@ -161,6 +160,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
               initialValue: alarmName,
               onChanged: (val) => alarmName = val,
             ),
+            const SizedBox(height: 14),
             OptionTile(
               title: '알람음',
               subtitle: alarmSoundEnabled ? selectedRingtoneName : '사용 안 함',
