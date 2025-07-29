@@ -3,6 +3,7 @@ import '../models/alarm_model.dart';
 import '../services/alarm_service.dart';
 import '../widgets/alarm_name_field.dart';
 import '../widgets/day_selector.dart';
+import '../widgets/delete_alarm_button.dart';
 import '../widgets/option_tile.dart';
 import '../utils/dialog_utils.dart';
 import '../widgets/alarm_time_picker.dart';
@@ -244,34 +245,16 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
               onTap: null,
               onSwitch: (val) => setState(() => fadeDuration = val ? 30 : 0),
             ),
-            if (widget.initialAlarm != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () async {
-                      final confirmed = await showConfirmDialog(
-                        context: context,
-                        title: '알람 삭제',
-                        content: '정말 이 알람을 삭제하시겠습니까?',
-                        confirmText: '삭제',
-                      );
 
-                      if (confirmed == true) {
-                        Navigator.pop(context, {
-                          'delete': true,
-                          'index': widget.index,
-                        });
-                      }
-                    },
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    label: const Text(
-                      '알람 삭제',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  ),
-                ),
+            if (widget.initialAlarm != null)
+              DeleteAlarmButton(
+                index: widget.index!,
+                onDelete: () {
+                  Navigator.pop(context, {
+                    'delete': true,
+                    'index': widget.index,
+                  });
+                },
               ),
             const SizedBox(height: 24),
             Row(
