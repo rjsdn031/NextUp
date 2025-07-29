@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/alarm_model.dart';
 import '../services/alarm_service.dart';
+import '../widgets/alarm_name_field.dart';
 import '../widgets/day_selector.dart';
 import '../widgets/option_tile.dart';
 import '../utils/dialog_utils.dart';
@@ -162,19 +163,9 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
               onTap: null,
               onSwitch: (val) => setState(() => skipHolidays = val),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: '알람 이름',
-                  labelStyle: TextStyle(color: Colors.grey),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
-                ),
-                onChanged: (val) => alarmName = val,
-              ),
+            AlarmNameField(
+              initialValue: alarmName,
+              onChanged: (val) => alarmName = val,
             ),
             OptionTile(
               title: '알람음',
