@@ -255,22 +255,9 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
             OptionTile(
               title: '점점 커지기',
               value: fadeDuration > 0,
-              subtitle: fadeDuration > 0 ? '$fadeDuration초 동안 증가' : '사용 안 함',
-              onTap: () async {
-                final selected = await showSliderDialog(
-                  context: context,
-                  title: '점점 커지는 시간',
-                  initial: fadeDuration.toDouble(),
-                  min: 0,
-                  max: 30,
-                  divisions: 6,
-                  formatValue: (v) => '${v.round()}초',
-                );
-                if (selected != null) {
-                  setState(() => fadeDuration = selected.round());
-                }
-              },
-              onSwitch: (val) => setState(() => fadeDuration = val ? 10 : 0),
+              subtitle: fadeDuration > 0 ? '사용' : '사용 안 함',
+              onTap: null,
+              onSwitch: (val) => setState(() => fadeDuration = val ? 30 : 0),
             ),
             if (widget.initialAlarm != null)
               Padding(
