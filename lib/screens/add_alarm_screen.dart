@@ -72,10 +72,10 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
 
   void _saveAlarm() async {
     final updatedAlarm = _buildAlarmModel();
+    updatedAlarm.enabled = true;
+    await AlarmService.scheduleAlarm(updatedAlarm);
 
-    if (updatedAlarm.enabled) {
-      await AlarmService.scheduleAlarm(updatedAlarm);
-    }
+    if (!mounted) return;
 
     if (widget.initialAlarm != null && widget.index != null) {
       Navigator.pop(context, {'alarm': updatedAlarm, 'index': widget.index});
