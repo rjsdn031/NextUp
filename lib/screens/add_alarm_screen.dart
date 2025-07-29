@@ -5,6 +5,7 @@ import '../widgets/alarm_name_field.dart';
 import '../widgets/day_selector.dart';
 import '../widgets/option_tile.dart';
 import '../utils/dialog_utils.dart';
+import '../widgets/alarm_time_picker.dart';
 
 const Map<String, String> alarmSounds = {
   'Classic Bell': 'assets/sounds/test_sound.mp3',
@@ -137,16 +138,9 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            GestureDetector(
+            AlarmTimePicker(
+              time: selectedTime,
               onTap: _pickTime,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                alignment: Alignment.center,
-                child: Text(
-                  selectedTime.format(context),
-                  style: const TextStyle(fontSize: 48, color: Colors.white),
-                ),
-              ),
             ),
             DaySelector(
               selectedDays: selectedDays,
