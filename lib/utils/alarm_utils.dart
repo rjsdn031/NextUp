@@ -50,5 +50,12 @@ String getTimeUntilAlarm(TimeOfDay alarmTime, DateTime now) {
   final hours = difference.inHours;
   final minutes = difference.inMinutes % 60;
 
-  return '$hours시간 $minutes분 후\n알람이 울립니다';
+  String msg = '';
+  if (difference >= Duration(minutes: 1)) {
+    msg = '$hours시간 $minutes분 후\n알람이 울립니다';
+  } else {
+    msg = '잠시 후\n알람이 울립니다';
+  }
+
+  return msg;
 }
