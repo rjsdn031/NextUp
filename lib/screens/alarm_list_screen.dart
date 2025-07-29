@@ -1,16 +1,12 @@
-import 'package:alarm/alarm.dart';
-import 'package:alarm/utils/alarm_set.dart';
 import 'package:flutter/material.dart';
-import 'package:nextup/screens/usage_stats_screen.dart';
 import 'dart:async';
-import '../main.dart';
 import '../models/alarm_model.dart';
 import '../services/alarm_service.dart';
 import '../storage/alarm_storage.dart';
 import '../widgets/alarm_list_view.dart';
 import '../widgets/alarm_fab.dart';
+import '../widgets/main_app_bar.dart';
 import 'add_alarm_screen.dart';
-import 'alarm_ringing_screen.dart';
 
 class AlarmListScreen extends StatefulWidget {
   const AlarmListScreen({super.key});
@@ -23,31 +19,17 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
   final List<AlarmModel> alarms = [];
   DateTime now = DateTime.now();
   late final Timer _timer;
-  static StreamSubscription<AlarmSet>? _ringSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadAlarms();
+    _startClock();
+  }
 
+  void _startClock() {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() => now = DateTime.now());
-    });
-
-    _ringSubscription ??= Alarm.ringing.listen((alarmSet) {
-      if (alarmSet.alarms.isNotEmpty) {
-        final alarm = alarmSet.alarms.first;
-
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(
-            builder: (_) => AlarmRingingScreen(
-              title: alarm.notificationSettings?.title ?? '알람',
-              body: alarm.notificationSettings?.body ?? '일어날 시간입니다!',
-              alarmId: alarm.id,
-            ),
-          ),
-        );
-      }
     });
   }
 
@@ -109,7 +91,11 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
     }
   }
 
-  Future<void> _onAlarmTap(BuildContext context, AlarmModel alarm, int index) async {
+  Future<void> _onAlarmTap(
+    BuildContext context,
+    AlarmModel alarm,
+    int index,
+  ) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -132,8 +118,6 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
   @override
   void dispose() {
     _timer.cancel();
-    _ringSubscription?.cancel();
-    _ringSubscription = null;
     super.dispose();
   }
 
@@ -141,19 +125,7 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        toolbarHeight: kToolbarHeight,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const UsageStatsScreen()),
-            );
-          },
-        ),
-      ),
+      appBar: const MainAppBar(),
       body: AlarmListView(
         alarms: alarms,
         now: now,

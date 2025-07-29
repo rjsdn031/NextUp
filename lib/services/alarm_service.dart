@@ -1,7 +1,14 @@
+import 'dart:async';
 import 'package:alarm/alarm.dart';
+import 'package:alarm/utils/alarm_set.dart';
+import 'package:flutter/material.dart';
 import '../models/alarm_model.dart';
+import '../screens/alarm_ringing_screen.dart';
+import 'navigation_service.dart';
 
 class AlarmService {
+  static StreamSubscription<AlarmSet>? _subscription;
+
   static Future<void> init() async {
     await Alarm.init();
   }
@@ -48,5 +55,29 @@ class AlarmService {
     for (final alarm in alarms) {
       await Alarm.stop(alarm.id);
     }
+  }
+
+  static void startListening() {
+    if (_subscription != null) return;
+
+    _subscription = Alarm.ringing.listen((alarmSet) {
+      if (alarmSet.alarms.isEmpty) return;
+      final alarm = alarmSet.alarms.first;
+
+      NavigationService.push(
+        MaterialPageRoute(
+          builder: (_) => AlarmRingingScreen(
+            title: alarm.notificationSettings?.title ?? '알람',
+            body: alarm.notificationSettings?.body ?? '일어날 시간입니다!',
+            alarmId: alarm.id,
+          ),
+        ),
+      );
+    });
+  }
+
+  static void stopListening() {
+    _subscription?.cancel();
+    _subscription = null;
   }
 }

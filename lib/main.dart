@@ -5,11 +5,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:nextup/screens/alarm_ringing_screen.dart';
 import 'package:nextup/screens/usage_stats_screen.dart';
 import 'package:nextup/services/alarm_service.dart';
+import 'package:nextup/services/navigation_service.dart';
 import 'screens/alarm_list_screen.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse response) {
@@ -21,28 +21,14 @@ void main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   await Alarm.init();
+  await AlarmService.init();
+  AlarmService.startListening();
 
-  // await AlarmService.init(
-  //   alarmRang: (alarmSettings) async {
-  //     navigatorKey.currentState?.push(
-  //       MaterialPageRoute(
-  //         builder: (_) => AlarmRingingScreen(
-  //           title: alarmSettings.notificationSettings?.title ?? '알람',
-  //           body: alarmSettings.notificationSettings?.body ?? '기상 시간입니다.',
-  //         ),
-  //       ),
-  //     );
-  //   },
-  //   alarmStopped: () async {
-  //     // 알람 종료 시 처리 로직 (필요시)
-  //   },
+  // const AndroidInitializationSettings initializationSettingsAndroid =
+  //     AndroidInitializationSettings('@mipmap/ic_launcher');
+  // const InitializationSettings initializationSettings = InitializationSettings(
+  //   android: initializationSettingsAndroid,
   // );
-
-  const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-  const InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-  );
 
   // await flutterLocalNotificationsPlugin.initialize(
   //   initializationSettings,
@@ -60,9 +46,6 @@ void main() async {
   // );
 
   runApp(const AlarmApp());
-  // runApp(const MaterialApp(
-  //   home: UsageStatsScreen(),
-  // ));
 }
 
 class AlarmApp extends StatelessWidget {
@@ -75,7 +58,7 @@ class AlarmApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(scaffoldBackgroundColor: Colors.black),
       home: const AlarmListScreen(),
-      navigatorKey: navigatorKey,
+      navigatorKey: NavigationService.navigatorKey,
     );
   }
 }
