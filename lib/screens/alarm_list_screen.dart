@@ -5,7 +5,7 @@ import '../services/alarm_service.dart';
 import '../storage/alarm_storage.dart';
 import '../widgets/alarm_list_view.dart';
 import '../widgets/alarm_fab.dart';
-import '../widgets/main_app_bar.dart';
+import '../widgets/alarm_list_screen_app_bar.dart';
 import 'add_alarm_screen.dart';
 
 class AlarmListScreen extends StatefulWidget {
@@ -125,7 +125,7 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: const MainAppBar(),
+      appBar: const AlarmListScreenAppBar(),
       body: AlarmListView(
         alarms: alarms,
         now: now,

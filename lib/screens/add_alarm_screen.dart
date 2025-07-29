@@ -1,34 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:nextup/widgets/bottom_action_buttons.dart';
+import '../data/alarm_constants.dart';
 import '../models/alarm_model.dart';
 import '../services/alarm_service.dart';
+import '../widgets/alarm_options_view.dart';
+import '../widgets/alarm_time_picker.dart';
 import '../widgets/alarm_name_field.dart';
 import '../widgets/day_selector.dart';
 import '../widgets/delete_alarm_button.dart';
 import '../widgets/option_tile.dart';
 import '../utils/dialog_utils.dart';
-import '../widgets/alarm_time_picker.dart';
-
-const Map<String, String> alarmSounds = {
-  'Classic Bell': 'assets/sounds/test_sound.mp3',
-  // 'Soft Piano': 'assets/sounds/soft_piano.mp3',
-  // 'Nature Wind': 'assets/sounds/nature_wind.mp3',
-};
-
-const snoozeOptions = [
-  {'interval': 5, 'count': 3},
-  {'interval': 5, 'count': 5},
-  {'interval': 5, 'count': -1},
-  {'interval': 10, 'count': 3},
-  {'interval': 10, 'count': 5},
-  {'interval': 10, 'count': -1},
-  {'interval': 15, 'count': 3},
-  {'interval': 15, 'count': 5},
-  {'interval': 15, 'count': -1},
-];
-
-String formatSnoozeOption(int interval, int count) {
-  return count == -1 ? '$interval분 × 계속반복' : '$interval분 × $count회';
-}
 
 class AddAlarmScreen extends StatefulWidget {
   final AlarmModel? initialAlarm;
@@ -52,33 +33,33 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
   bool loopAudio = true;
 
   bool alarmSoundEnabled = true;
-  String selectedRingtoneName = 'Classic Bell';
-  String selectedRingtonePath = 'assets/sounds/test_sound.mp3';
+  String selectedRingtoneName = defaultRingtoneName;
+  String selectedRingtonePath = defaultRingtonePath;
 
   bool snoozeEnabled = false;
-  int snoozeInterval = 5;
-  int maxSnoozeCount = 3;
+  int snoozeInterval = defalutSnoozeInterval;
+  int maxSnoozeCount = defaultMaxSnoozeCount;
 
   @override
   void initState() {
     super.initState();
-    final alarm = widget.initialAlarm;
-    if (alarm != null) {
-      selectedTime = alarm.time;
-      selectedDays = alarm.days.toSet();
-      skipHolidays = alarm.skipHolidays;
-      alarmName = alarm.name;
-      vibrationEnabled = alarm.vibration;
-      fadeDuration = alarm.fadeDuration;
-      volume = alarm.volume;
-      loopAudio = alarm.loopAudio;
-      alarmSoundEnabled = alarm.alarmSoundEnabled;
-      selectedRingtoneName = alarm.ringtoneName;
-      selectedRingtonePath = alarm.assetAudioPath;
-      snoozeEnabled = false;
-      snoozeInterval = 5;
-      maxSnoozeCount = 3;
-    }
+    _initializeFromAlarm(widget.initialAlarm);
+  }
+
+  void _initializeFromAlarm(AlarmModel? alarm) {
+    if (alarm == null) return;
+    selectedTime = alarm.time;
+    selectedDays = alarm.days.toSet();
+    skipHolidays = alarm.skipHolidays;
+    alarmName = alarm.name;
+    vibrationEnabled = alarm.vibration;
+    fadeDuration = alarm.fadeDuration;
+    volume = alarm.volume;
+    loopAudio = alarm.loopAudio;
+    alarmSoundEnabled = alarm.alarmSoundEnabled;
+    selectedRingtoneName = alarm.ringtoneName;
+    selectedRingtonePath = alarm.assetAudioPath;
+    // snoozeEnabled = false;
   }
 
   void _pickTime() async {
@@ -90,9 +71,22 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
   }
 
   void _saveAlarm() async {
-    final alarmId = widget.index ?? DateTime.now().hashCode;
+    final updatedAlarm = _buildAlarmModel();
 
-    final updatedAlarm = AlarmModel(
+    if (updatedAlarm.enabled) {
+      await AlarmService.scheduleAlarm(updatedAlarm);
+    }
+
+    if (widget.initialAlarm != null && widget.index != null) {
+      Navigator.pop(context, {'alarm': updatedAlarm, 'index': widget.index});
+    } else {
+      Navigator.pop(context, updatedAlarm);
+    }
+  }
+
+  AlarmModel _buildAlarmModel() {
+    final alarmId = widget.index ?? DateTime.now().hashCode;
+    return AlarmModel(
       id: alarmId,
       time: selectedTime,
       days: selectedDays.toList(),
@@ -110,20 +104,70 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
       snoozeInterval: snoozeInterval,
       maxSnoozeCount: maxSnoozeCount,
     );
-
-    if (updatedAlarm.enabled) {
-      await AlarmService.scheduleAlarm(updatedAlarm);
-    }
-
-    if (widget.initialAlarm != null && widget.index != null) {
-      Navigator.pop(context, {'alarm': updatedAlarm, 'index': widget.index});
-    } else {
-      Navigator.pop(context, updatedAlarm);
-    }
   }
 
   String get selectedSnoozeLabel =>
       formatSnoozeOption(snoozeInterval, maxSnoozeCount);
+
+  Future<void> _onSelectAlarmSound() async {
+    final selected = await showOptionDialog(
+      context,
+      '알람음 선택',
+      alarmSounds.keys.toList(),
+      selectedRingtoneName,
+    );
+    if (selected != null) {
+      setState(() {
+        selectedRingtoneName = selected;
+        selectedRingtonePath = alarmSounds[selected]!;
+      });
+    }
+  }
+
+  void _onToggleVibration(bool val) {
+    setState(() => vibrationEnabled = val);
+  }
+
+  Future<void> _onSelectSnooze() async {
+    final options = snoozeOptions
+        .map((opt) => formatSnoozeOption(opt['interval']!, opt['count']!))
+        .toList();
+    final selected = await showOptionDialog(
+      context,
+      '스누즈 설정 선택',
+      options,
+      selectedSnoozeLabel,
+    );
+    if (selected != null) {
+      final idx = options.indexOf(selected);
+      final selectedOption = snoozeOptions[idx];
+      setState(() {
+        snoozeInterval = selectedOption['interval']!;
+        maxSnoozeCount = selectedOption['count']!;
+      });
+    }
+  }
+
+  Future<void> _onSelectVolume() async {
+    final selected = await showSliderDialog(
+      context: context,
+      title: '볼륨 설정',
+      initial: volume,
+      min: 0,
+      max: 1,
+      divisions: 10,
+      formatValue: (v) => '${(v * 100).round()}%',
+    );
+    if (selected != null) setState(() => volume = selected);
+  }
+
+  void _onToggleFade(bool val) {
+    setState(() => fadeDuration = val ? 30 : 0);
+  }
+
+  void _onToggleAlarmSound(bool val) {
+    setState(() => alarmSoundEnabled = val);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -139,10 +183,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AlarmTimePicker(
-              time: selectedTime,
-              onTap: _pickTime,
-            ),
+            AlarmTimePicker(time: selectedTime, onTap: _pickTime),
             DaySelector(
               selectedDays: selectedDays,
               onChanged: (Set<DayOfWeek> days) {
@@ -162,88 +203,19 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
               onChanged: (val) => alarmName = val,
             ),
             const SizedBox(height: 14),
-            OptionTile(
-              title: '알람음',
-              subtitle: alarmSoundEnabled ? selectedRingtoneName : '사용 안 함',
-              value: alarmSoundEnabled,
-              onTap: alarmSoundEnabled
-                  ? () async {
-                      final selected = await showOptionDialog(
-                        context,
-                        '알람음 선택',
-                        alarmSounds.keys.toList(),
-                        selectedRingtoneName,
-                      );
-                      if (selected != null) {
-                        setState(() {
-                          selectedRingtoneName = selected;
-                          selectedRingtonePath = alarmSounds[selected]!;
-                        });
-                      }
-                    }
-                  : null,
-              onSwitch: (val) => setState(() => alarmSoundEnabled = val),
-            ),
-            OptionTile(
-              title: '진동',
-              value: vibrationEnabled,
-              subtitle: vibrationEnabled ? '사용' : '사용 안 함',
-              onTap: null,
-              onSwitch: (val) => setState(() => vibrationEnabled = val),
-            ),
-            OptionTile(
-              title: '스누즈 설정',
-              subtitle: selectedSnoozeLabel,
-              value: true,
-              onTap: () async {
-                final options = snoozeOptions
-                    .map(
-                      (opt) =>
-                          formatSnoozeOption(opt['interval']!, opt['count']!),
-                    )
-                    .toList();
-                final selected = await showOptionDialog(
-                  context,
-                  '스누즈 설정 선택',
-                  options,
-                  selectedSnoozeLabel,
-                );
-
-                if (selected != null) {
-                  final idx = options.indexOf(selected);
-                  final selectedOption = snoozeOptions[idx];
-                  setState(() {
-                    snoozeInterval = selectedOption['interval']!;
-                    maxSnoozeCount = selectedOption['count']!;
-                  });
-                }
-              },
-              onSwitch: null,
-            ),
-            OptionTile(
-              title: '볼륨',
-              value: true,
-              subtitle: '${(volume * 100).round()}%',
-              onTap: () async {
-                final selected = await showSliderDialog(
-                  context: context,
-                  title: '볼륨 설정',
-                  initial: volume,
-                  min: 0,
-                  max: 1,
-                  divisions: 10,
-                  formatValue: (v) => '${(v * 100).round()}%',
-                );
-                if (selected != null) setState(() => volume = selected);
-              },
-              onSwitch: null,
-            ),
-            OptionTile(
-              title: '점점 커지기',
-              value: fadeDuration > 0,
-              subtitle: fadeDuration > 0 ? '사용' : '사용 안 함',
-              onTap: null,
-              onSwitch: (val) => setState(() => fadeDuration = val ? 30 : 0),
+            AlarmOptionsView(
+              alarmSoundEnabled: alarmSoundEnabled,
+              selectedRingtoneName: selectedRingtoneName,
+              onAlarmSoundToggle: _onToggleAlarmSound,
+              onSelectSound: _onSelectAlarmSound,
+              vibrationEnabled: vibrationEnabled,
+              onVibrationToggle: _onToggleVibration,
+              snoozeLabel: selectedSnoozeLabel,
+              onSelectSnooze: _onSelectSnooze,
+              volume: volume,
+              onSelectVolume: _onSelectVolume,
+              fadeEnabled: fadeDuration > 0,
+              onFadeToggle: _onToggleFade,
             ),
 
             if (widget.initialAlarm != null)
@@ -257,27 +229,9 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
                 },
               ),
             const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      '취소',
-                      style: TextStyle(fontSize: 18, color: Colors.white70),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: TextButton(
-                    onPressed: _saveAlarm,
-                    child: const Text(
-                      '저장',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
+            BottomActionButtons(
+              onCancel: () => Navigator.pop(context),
+              onSave: _saveAlarm,
             ),
             const SizedBox(height: 24),
           ],

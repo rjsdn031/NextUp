@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../screens/usage_stats_screen.dart';
 
-class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const MainAppBar({super.key});
+class AlarmListScreenAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const AlarmListScreenAppBar({super.key});
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
