@@ -5,6 +5,12 @@ import '../widgets/day_selector.dart';
 import '../widgets/option_tile.dart';
 import '../utils/dialog_utils.dart';
 
+const Map<String, String> alarmSounds = {
+  'Classic Bell': 'assets/sounds/test_sound.mp3',
+  // 'Soft Piano': 'assets/sounds/soft_piano.mp3',
+  // 'Nature Wind': 'assets/sounds/nature_wind.mp3',
+};
+
 class AddAlarmScreen extends StatefulWidget {
   final AlarmModel? initialAlarm;
   final int? index;
@@ -99,33 +105,6 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
 
   @override
   Widget build(BuildContext context) {
-
-    const alarmSounds = <String, String>{
-      'Classic Bell': 'assets/sounds/classic_bell.mp3',
-      'Soft Piano': 'assets/sounds/soft_piano.mp3',
-      'Nature Wind': 'assets/sounds/nature_wind.mp3',
-    };
-
-    Future<String?> showSoundSelectDialog(
-        BuildContext context,
-        String currentKey,
-        ) async {
-      return showDialog<String>(
-        context: context,
-        builder: (_) => SimpleDialog(
-          title: const Text('알람음 선택'),
-          children: alarmSounds.keys.map((name) {
-            return RadioListTile<String>(
-              title: Text(name),
-              value: name,
-              groupValue: currentKey,
-              onChanged: (value) => Navigator.pop(context, value),
-            );
-          }).toList(),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -186,8 +165,10 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
                 value: alarmSoundEnabled,
                 onTap: alarmSoundEnabled
                     ? () async {
-                  final selected = await showSoundSelectDialog(
+                  final selected = await showOptionDialog(
                     context,
+                    '알람음 선택',
+                    alarmSounds.keys.toList(),
                     selectedRingtoneName,
                   );
                   if (selected != null) {
@@ -295,22 +276,11 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
                     alignment: Alignment.centerLeft,
                     child: TextButton.icon(
                       onPressed: () async {
-                        final confirmed = await showDialog<bool>(
+                        final confirmed = await showConfirmDialog(
                           context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('알람 삭제'),
-                            content: const Text('정말 이 알람을 삭제하시겠습니까?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('취소'),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text('삭제', style: TextStyle(color: Colors.red)),
-                              ),
-                            ],
-                          ),
+                          title: '알람 삭제',
+                          content: '정말 이 알람을 삭제하시겠습니까?',
+                          confirmText: '삭제',
                         );
 
                         if (confirmed == true) {
@@ -350,3 +320,4 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
     );
   }
 }
+

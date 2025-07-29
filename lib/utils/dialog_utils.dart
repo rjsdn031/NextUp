@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 Future<String?> showOptionDialog(
-    BuildContext context,
-    String title,
-    List<String> options,
-    String selectedOption,
-    ) async {
+  BuildContext context,
+  String title,
+  List<String> options,
+  String selectedOption,
+) async {
   return await showDialog<String>(
     context: context,
     builder: (context) {
@@ -58,10 +58,43 @@ Future<double?> showSliderDialog({
           },
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
-          TextButton(onPressed: () => Navigator.pop(context, current), child: const Text('확인')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, current),
+            child: const Text('확인'),
+          ),
         ],
       );
     },
+  );
+}
+
+Future<bool?> showConfirmDialog({
+  required BuildContext context,
+  required String title,
+  required String content,
+  String cancelText = '취소',
+  String confirmText = '확인',
+  Color confirmColor = Colors.red,
+}) {
+  return showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(title),
+      content: Text(content),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(cancelText),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(confirmText, style: TextStyle(color: confirmColor)),
+        ),
+      ],
+    ),
   );
 }
