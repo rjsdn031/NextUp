@@ -1,7 +1,7 @@
 const Map<String, String> alarmSounds = {
   'Classic Bell': 'assets/sounds/test_sound.mp3',
-  'Soft Piano': 'assets/sounds/soft_piano.mp3',
-  'Nature Wind': 'assets/sounds/nature_wind.mp3',
+  'Calm Sound': 'assets/sounds/calm_sound.mp3',
+  // 'Nature Wind': 'assets/sounds/nature_wind.mp3',
 };
 
 const defaultRingtoneName = 'Classic Bell';
@@ -19,7 +19,7 @@ const snoozeOptions = [
   {'interval': 15, 'count': -1},
 ];
 
-const defalutSnoozeInterval = 3;
+const defaultSnoozeInterval = 3;
 const defaultMaxSnoozeCount = 5;
 
 String formatSnoozeOption(int interval, int count) {

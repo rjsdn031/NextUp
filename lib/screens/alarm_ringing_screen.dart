@@ -20,20 +20,14 @@ class AlarmRingingScreen extends StatefulWidget {
 }
 
 class _AlarmRingingScreenState extends State<AlarmRingingScreen> {
-  final AlarmVibrator _vibrator = AlarmVibrator();
-  final AlarmSoundPlayer _soundPlayer = AlarmSoundPlayer();
 
   @override
   void initState() {
     super.initState();
-    _vibrator.start();
-    _soundPlayer.start();
   }
 
   @override
   void dispose() {
-    _vibrator.stop();
-    _soundPlayer.stop();
     super.dispose();
   }
 
@@ -57,9 +51,7 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen> {
             const SizedBox(height: 40),
             ElevatedButton(
               onPressed: () async {
-                _vibrator.stop();
-                _soundPlayer.stop();
-                await Alarm.stop(widget.alarmId); // 여기서 ID 직접 사용
+                await Alarm.stop(widget.alarmId);
                 if (mounted) Navigator.of(context).pop();
               },
               child: const Text('알람 끄기'),

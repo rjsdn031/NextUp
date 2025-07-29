@@ -37,7 +37,7 @@ class _AddAlarmScreenState extends State<AddAlarmScreen> {
   String selectedRingtonePath = defaultRingtonePath;
 
   bool snoozeEnabled = false;
-  int snoozeInterval = defalutSnoozeInterval;
+  int snoozeInterval = defaultSnoozeInterval;
   int maxSnoozeCount = defaultMaxSnoozeCount;
 
   @override
