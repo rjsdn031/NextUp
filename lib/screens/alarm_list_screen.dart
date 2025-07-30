@@ -7,6 +7,7 @@ import '../widgets/alarm_list_view.dart';
 import '../widgets/alarm_fab.dart';
 import '../widgets/alarm_list_screen_app_bar.dart';
 import 'add_alarm_screen.dart';
+import 'alarm_ringing_screen.dart';
 
 class AlarmListScreen extends StatefulWidget {
   const AlarmListScreen({super.key});
@@ -136,6 +137,26 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
         onTap: _onAlarmTap,
       ),
       floatingActionButton: AlarmFAB(onAdd: _addAlarm),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () {
+      //     if (alarms.isNotEmpty) {
+      //       Navigator.of(context).push(
+      //         MaterialPageRoute(
+      //           builder: (_) => AlarmRingingScreen(
+      //             title: alarms[0].name.isNotEmpty ? alarms[0].name : '알람',
+      //             body: alarms[0].notificationBody,
+      //             alarmId: alarms[0].id,
+      //           ),
+      //         ),
+      //       );
+      //     } else {
+      //       ScaffoldMessenger.of(context).showSnackBar(
+      //         const SnackBar(content: Text('저장된 알람이 없습니다')),
+      //       );
+      //     }
+      //   },
+      //   child: const Icon(Icons.add),
+      // ),
     );
   }
 }

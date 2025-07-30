@@ -1,7 +1,9 @@
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../utils/alarm_vibrator.dart';
 import '../utils/alarm_sound_player.dart';
+import '../widgets/swipe_to_dismiss_button.dart';
 
 class AlarmRingingScreen extends StatefulWidget {
   final String title;
@@ -20,41 +22,84 @@ class AlarmRingingScreen extends StatefulWidget {
 }
 
 class _AlarmRingingScreenState extends State<AlarmRingingScreen> {
+  late TimeOfDay now;
 
   @override
   void initState() {
     super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
+    now = TimeOfDay.now();
   }
 
   @override
   Widget build(BuildContext context) {
+    final date = DateFormat('M월 d일 EEEE', 'ko').format(DateTime.now());
+
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        child: Stack(
+          alignment: Alignment.center,
           children: [
-            Text(
-              widget.title,
-              style: const TextStyle(fontSize: 32, color: Colors.white),
+            Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 120),
+                    Text(
+                      now.format(context),
+                      style: const TextStyle(
+                        fontSize: 64,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      date,
+                      style: const TextStyle(fontSize: 20, color: Colors.white70),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.body,
+                      style: const TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                    const Spacer(),
+                    SwipeToDismissButton(
+                      onDismiss: () async {
+                        await Alarm.stop(widget.alarmId);
+                        if (mounted) Navigator.of(context).pop();
+                      },
+                    ),
+                    const SizedBox(height: 120),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 20),
-            Text(
-              widget.body,
-              style: const TextStyle(fontSize: 18, color: Colors.white70),
-            ),
-            const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: () async {
-                await Alarm.stop(widget.alarmId);
-                if (mounted) Navigator.of(context).pop();
-              },
-              child: const Text('알람 끄기'),
+
+            // 스누즈 버튼 (하단 고정)
+            Positioned(
+              bottom: 40,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white12,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                  ),
+                  onPressed: () {
+                    // snooze 처리
+                  },
+                  child: const Text(
+                    '5분 후 다시 알림',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
             ),
           ],
         ),

@@ -2,6 +2,7 @@ import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:nextup/screens/alarm_ringing_screen.dart';
 import 'package:nextup/screens/usage_stats_screen.dart';
 import 'package:nextup/services/alarm_service.dart';
@@ -19,7 +20,7 @@ void notificationTapBackground(NotificationResponse response) {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-
+  await initializeDateFormatting('ko', null);
   await Alarm.init();
   await AlarmService.init();
   AlarmService.startListening();
