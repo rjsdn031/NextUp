@@ -7,6 +7,7 @@ import 'package:flutter_accessibility_service/accessibility_event.dart';
 import 'package:flutter_accessibility_service/config/overlay_config.dart';
 import 'package:flutter_accessibility_service/config/overlay_gravity.dart';
 import 'package:flutter_accessibility_service/flutter_accessibility_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AccessibilityManager {
   static final Set<String> _blockedApps = {
@@ -39,7 +40,12 @@ class AccessibilityManager {
   }
 
   /// 접근성 이벤트 스트림 구독 및 오버레이 제어
-  static void _setupAccessibilityListener() {
+  static Future<void> _setupAccessibilityListener() async {
+    final prefs = await SharedPreferences.getInstance();
+    final blockUntilMillis = prefs.getInt('blockReadyUntil') ?? 0;
+    final blockUntil = DateTime.fromMillisecondsSinceEpoch(blockUntilMillis);
+    final now = DateTime.now();
+
     _subscription = FlutterAccessibilityService.accessStream.listen((
       event,
     ) async {
@@ -54,13 +60,14 @@ class AccessibilityManager {
       final pkg = event.packageName;
       if (pkg == null) return;
 
-      if (_blockedApps.contains(pkg) && event.isFocused == true) {
-        final now = DateTime.now();
-        if (now.difference(_lastShown).inSeconds > 2) {
-          _lastShown = now;
-          await FlutterAccessibilityService.showOverlayWindow(
-            _buildOverlayConfig(),
-          );
+      if (now.isBefore(blockUntil)) {
+        if (_blockedApps.contains(pkg) && event.isFocused == true) {
+          if (now.difference(_lastShown).inSeconds > 2) {
+            _lastShown = now;
+            await FlutterAccessibilityService.showOverlayWindow(
+              _buildOverlayConfig(),
+            );
+          }
         }
       }
 

@@ -1,8 +1,7 @@
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../utils/alarm_vibrator.dart';
-import '../utils/alarm_sound_player.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/swipe_to_dismiss_button.dart';
 
 class AlarmRingingScreen extends StatefulWidget {
@@ -28,6 +27,13 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen> {
   void initState() {
     super.initState();
     now = TimeOfDay.now();
+  }
+
+  Future<void> _startBlockPreparationPeriod() async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
+    final blockReadyUntil = now.add(const Duration(minutes: 10));
+    await prefs.setInt('blockReadyUntil', blockReadyUntil.millisecondsSinceEpoch);
   }
 
   @override
@@ -70,6 +76,7 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen> {
                     SwipeToDismissButton(
                       onDismiss: () async {
                         await Alarm.stop(widget.alarmId);
+                        await _startBlockPreparationPeriod();
                         if (mounted) Navigator.of(context).pop();
                       },
                     ),
