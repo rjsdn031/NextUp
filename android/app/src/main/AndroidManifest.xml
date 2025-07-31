@@ -44,7 +44,14 @@
         </activity>
 
         <service android:name="slayer.accessibility.service.flutter_accessibility_service.AccessibilityListener"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="false">
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="false"
+            android:theme="@style/OverlayTheme"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:finishOnTaskLaunch="true"
+            android:windowSoftInputMode="stateAlwaysHidden"
+            android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>

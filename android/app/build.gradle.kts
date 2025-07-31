@@ -25,7 +25,7 @@ android {
         applicationId = "lab.p4c.nextup"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 22
+        minSdk = 27
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
