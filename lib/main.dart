@@ -5,8 +5,10 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nextup/screens/alarm_ringing_screen.dart';
 import 'package:nextup/screens/usage_stats_screen.dart';
+import 'package:nextup/services/accessibility_manager.dart';
 import 'package:nextup/services/alarm_service.dart';
 import 'package:nextup/services/navigation_service.dart';
+import 'package:nextup/widgets/blocking_overlay.dart';
 import 'screens/alarm_list_screen.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -17,13 +19,21 @@ void notificationTapBackground(NotificationResponse response) {
   // background has no context
 }
 
+@pragma('vm:entry-point')
+void accessibilityOverlay() {
+  runApp(const BlockingOverlay());
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await initializeDateFormatting('ko', null);
+
   await Alarm.init();
   await AlarmService.init();
   AlarmService.startListening();
+
+  await AccessibilityManager.init();
 
   // const AndroidInitializationSettings initializationSettingsAndroid =
   //     AndroidInitializationSettings('@mipmap/ic_launcher');
