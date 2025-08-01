@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/alarm_model.dart';
 import '../services/alarm_service.dart';
+import '../services/navigation_service.dart';
 import '../storage/alarm_storage.dart';
 import '../widgets/alarm_list_view.dart';
 import '../widgets/alarm_fab.dart';
@@ -136,7 +137,21 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
         onToggle: _toggleAlarm,
         onTap: _onAlarmTap,
       ),
-      floatingActionButton: AlarmFAB(onAdd: _addAlarm),
+      // floatingActionButton: AlarmFAB(onAdd: _addAlarm),
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.bug_report),
+        onPressed: () {
+          NavigationService.push(
+            MaterialPageRoute(
+              builder: (_) => const AlarmRingingScreen(
+                title: '더미 알람',
+                body: '오버레이 테스트용 알람입니다.',
+                alarmId: -999,
+              ),
+            ),
+          );
+        },
+      ),
       // floatingActionButton: FloatingActionButton(
       //   onPressed: () {
       //     if (alarms.isNotEmpty) {

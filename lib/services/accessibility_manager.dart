@@ -44,18 +44,16 @@ class AccessibilityManager {
     final prefs = await SharedPreferences.getInstance();
     final blockUntilMillis = prefs.getInt('blockReadyUntil') ?? 0;
     final blockUntil = DateTime.fromMillisecondsSinceEpoch(blockUntilMillis);
-    final now = DateTime.now();
 
     _subscription = FlutterAccessibilityService.accessStream.listen((
       event,
     ) async {
-
+      final now = DateTime.now();
       print('=== 접근성 이벤트 감지됨 ===');
-      print('패키지: ${event.packageName}');
-      print('이벤트타입: ${event.eventType}');
+      print('package: ${event.packageName}');
+      print('eventType: ${event.eventType}');
       print('isFocused: ${event.isFocused}');
       print('isActive: ${event.isActive}');
-      print('isActionType: ${event.actionType}');
 
       final pkg = event.packageName;
       if (pkg == null) return;
@@ -67,13 +65,21 @@ class AccessibilityManager {
             await FlutterAccessibilityService.showOverlayWindow(
               _buildOverlayConfig(),
             );
+            print("[overlay] 오버레이 띄움");
           }
         }
       }
 
-      if (event.isFocused == false &&
-          DateTime.now().difference(_lastShown).inSeconds > 3) {
-        await FlutterAccessibilityService.hideOverlayWindow();
+      final isFromBlockedApp = _blockedApps.contains(pkg);
+      final isFromSystemUI = pkg.startsWith("com.android.systemui");
+      final isFromSelf = pkg.contains("nextup");
+
+      if (!isFromBlockedApp && !isFromSystemUI && !isFromSelf) {
+        if (event.isFocused == false &&
+            DateTime.now().difference(_lastShown).inSeconds > 3) {
+          await FlutterAccessibilityService.hideOverlayWindow();
+          print("[overlay] loose focus, hide overlay");
+        }
       }
     });
   }
@@ -90,6 +96,7 @@ class AccessibilityManager {
 
   static Future<void> hideOverlayManually() async {
     await FlutterAccessibilityService.hideOverlayWindow();
+    print("[overlay] close manually");
   }
 
   static Future<void> requestPermission() async {
