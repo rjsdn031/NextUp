@@ -48,6 +48,12 @@ kotlin {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.generateKotlin", "true")
+    // 선택: arg("room.incremental", "true")
+}
+
 dependencies {
     // Compose BOM
     implementation(platform(libs.androidx.compose.bom))
@@ -58,6 +64,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.material.icons.extended)
 
     // 오디오(알람 사운드/페이드인/오디오 포커스)
     implementation(libs.androidx.media3.exoplayer)
@@ -65,6 +72,7 @@ dependencies {
 
     // DI(Hilt)
     implementation(libs.hilt.android)
+    implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.hilt.compiler)
 
     // 저장소
