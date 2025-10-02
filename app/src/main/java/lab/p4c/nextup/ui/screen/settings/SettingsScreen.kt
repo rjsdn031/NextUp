@@ -2,7 +2,9 @@ package lab.p4c.nextup.ui.screen.settings
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -10,7 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 
+@RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun SettingsScreen() {
     val ctx = LocalContext.current
@@ -28,7 +32,7 @@ fun SettingsScreen() {
 
         Button(onClick = {
             val pkg = ctx.packageName
-            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$pkg"))
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:$pkg".toUri())
             ctx.startActivity(intent)
         }) { Text("오버레이 권한") }
 

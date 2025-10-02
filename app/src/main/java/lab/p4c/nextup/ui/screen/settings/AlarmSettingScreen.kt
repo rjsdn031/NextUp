@@ -2,7 +2,7 @@ package lab.p4c.nextup.ui.screen.settings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -12,20 +12,32 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
-import lab.p4c.nextup.util.ExactAlarmPermission
+import lab.p4c.nextup.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmSettingsScreen(navController: NavController) {
     val ctx = LocalContext.current
-    var exactGranted by remember { mutableStateOf(ExactAlarmPermission.canSchedule(ctx)) }
 
-    // 설정 화면 다녀오면 재확인
+    // 각각의 현재 상태
+    var exactGranted by remember { mutableStateOf(ExactAlarmPermission.canSchedule(ctx)) }
+    var overlayGranted by remember { mutableStateOf(OverlayPermission.canDraw(ctx)) }
+    var a11yEnabled by remember { mutableStateOf(AccessibilityPermission.isEnabled(ctx)) }
+    var usageGranted by remember { mutableStateOf(UsageAccessPermission.isGranted(ctx)) }
+    var notifGranted by remember { mutableStateOf(NotificationPermission.isGranted(ctx)) }
+    var batteryIgnored by remember { mutableStateOf(BatteryOptimizationPermission.isIgnoring(ctx)) }
+
+    // 설정 갔다가 돌아오면 다시 체크
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val obs = LifecycleEventObserver { _, e ->
             if (e == Lifecycle.Event.ON_RESUME) {
                 exactGranted = ExactAlarmPermission.canSchedule(ctx)
+                overlayGranted = OverlayPermission.canDraw(ctx)
+                a11yEnabled = AccessibilityPermission.isEnabled(ctx)
+                usageGranted = UsageAccessPermission.isGranted(ctx)
+                notifGranted = NotificationPermission.isGranted(ctx)
+                batteryIgnored = BatteryOptimizationPermission.isIgnoring(ctx)
             }
         }
         lifecycleOwner.lifecycle.addObserver(obs)
@@ -38,34 +50,82 @@ fun AlarmSettingsScreen(navController: NavController) {
                 title = { Text("설정") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
                     }
                 }
             )
         }
     ) { inner ->
         Column(
-            modifier = Modifier
-                .padding(inner)
-                .padding(16.dp),
+            modifier = Modifier.padding(inner).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Card {
-                ListItem(
-                    headlineContent = { Text("정확한 알람 권한") },
-                    supportingContent = {
-                        Text(if (exactGranted) "허용됨" else "허용 필요 (Android 12+)")
-                    },
-                    trailingContent = {
-                        Button(
-                            enabled = !exactGranted,
-                            onClick = { ExactAlarmPermission.request(ctx) }
-                        ) { Text("설정 열기") }
-                    }
-                )
-            }
+            PermissionCard(
+                title = "정확한 알람",
+                granted = exactGranted,
+                grantedText = "허용됨",
+                deniedText = "허용 필요 (Android 12+)",
+                onClick = { ExactAlarmPermission.request(ctx) }
+            )
 
-            // 필요하면 여기에 추가 옵션(예: 알림 권한, 배터리 최적화 제외 등)도 확장 가능
+            PermissionCard(
+                title = "오버레이 권한",
+                granted = overlayGranted,
+                grantedText = "허용됨",
+                deniedText = "앱 위에 그리기 필요",
+                onClick = { OverlayPermission.request(ctx) }
+            )
+
+            PermissionCard(
+                title = "접근성 서비스",
+                granted = a11yEnabled,
+                grantedText = "활성화됨",
+                deniedText = "비활성화됨 (차단 기능 사용 시 필요)",
+                onClick = { AccessibilityPermission.openSettings(ctx) }
+            )
+
+            PermissionCard(
+                title = "사용량 접근",
+                granted = usageGranted,
+                grantedText = "허용됨",
+                deniedText = "앱 사용 감지를 위해 필요",
+                onClick = { UsageAccessPermission.request(ctx) }
+            )
+
+            PermissionCard(
+                title = "알림 허용",
+                granted = notifGranted,
+                grantedText = "허용됨",
+                deniedText = "알람 알림/풀스크린 표시 위해 권장",
+                onClick = { NotificationPermission.openSettings(ctx) }
+            )
+
+            PermissionCard(
+                title = "배터리 최적화 제외",
+                granted = batteryIgnored,
+                grantedText = "제외됨",
+                deniedText = "절전 중 알람 지연 방지에 권장",
+                onClick = { BatteryOptimizationPermission.openOptimizationSettings(ctx) }
+            )
         }
+    }
+}
+
+@Composable
+private fun PermissionCard(
+    title: String,
+    granted: Boolean,
+    grantedText: String,
+    deniedText: String,
+    onClick: () -> Unit
+) {
+    Card {
+        ListItem(
+            headlineContent = { Text(title) },
+            supportingContent = { Text(if (granted) grantedText else deniedText) },
+            trailingContent = {
+                Button(enabled = !granted, onClick = onClick) { Text("설정 열기") }
+            }
+        )
     }
 }

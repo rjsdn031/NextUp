@@ -85,4 +85,12 @@ dependencies {
 
     // 스플래시
     implementation(libs.androidx.core.splashscreen)
+
+    // ViewTreeLifecycleOwner / ViewTreeViewModelStoreOwner
+    implementation(libs.androidx.lifecycle.runtime.android)
+
+    implementation(libs.androidx.lifecycle.viewmodel.android)
+
+    // ViewTreeSavedStateRegistryOwner
+    implementation(libs.androidx.savedstate.ktx)
 }
