@@ -18,9 +18,9 @@ fun AlarmTopBar(
     onMenuClick: (() -> Unit)? = null // 전달 안 하면 no-op
 ) {
     TopAppBar(
-        title = {}, // 타이틀 없음 (레거시 동일)
+        title = {}, // No title
         navigationIcon = {
-            IconButton(onClick = { onMenuClick?.invoke() /* null이면 아무 동작 없음 */ }) {
+            IconButton(onClick = { onMenuClick?.invoke() }) {
                 Icon(
                     imageVector = Icons.Filled.Menu,
                     contentDescription = "menu",

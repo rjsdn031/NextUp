@@ -1,12 +1,16 @@
 package lab.p4c.nextup.ui.screen.alarm
 
 import android.content.Intent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,7 +32,31 @@ fun AlarmListScreen(
     val ctx = LocalContext.current
 
     Scaffold(
-        topBar = { AlarmTopBar(onMenuClick = { navController.navigate("settings") }) },
+        topBar = {
+            var expanded by remember { mutableStateOf(false) }
+            Box {
+                AlarmTopBar(onMenuClick = { expanded = true })
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("설정") },
+                        onClick = {
+                            expanded = false
+                            navController.navigate("settings")
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("앱 사용 통계") },
+                        onClick = {
+                            expanded = false
+                            navController.navigate("usage")
+                        }
+                    )
+                }
+            }
+        },
         floatingActionButton = {
             AlarmFAB(onClick = { navController.navigate("add") })
 //            AlarmFAB(onClick = {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -101,7 +102,7 @@ fun EditAlarmScreen(
                         Switch(checked = ui.skipHolidays, onCheckedChange = vm::toggleSkipHolidays)
                     }
                 )
-                Divider()
+                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
 
                 AlarmNameField(
                     value = androidx.compose.ui.text.input.TextFieldValue(ui.label),
@@ -143,7 +144,7 @@ fun EditAlarmScreen(
                     snoozeEnabled = ui.snoozeEnabled,
                     onToggleSnooze = vm::toggleSnoozeEnabled,
 
-                )
+                    )
 
                 Spacer(Modifier.height(8.dp))
                 Text(
