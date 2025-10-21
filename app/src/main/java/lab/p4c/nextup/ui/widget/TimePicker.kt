@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import java.util.Locale
 
 @Composable
 fun AlarmTimePicker(
@@ -24,8 +25,8 @@ fun AlarmTimePicker(
     useSystemPicker: Boolean = true,
 ) {
     val ctx = LocalContext.current
-    val timeText = String.format("%02d:%02d", hour, minute)
-
+    // locale 지정 - Korea: 추후에 사용자 지정 시간으로 바꾸기
+    val timeText = String.format(locale = Locale.KOREA,"%02d:%02d", hour, minute)
     Box(
         modifier = modifier
             .fillMaxWidth()
