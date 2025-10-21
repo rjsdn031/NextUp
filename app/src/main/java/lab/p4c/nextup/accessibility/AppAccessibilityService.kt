@@ -5,6 +5,7 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import lab.p4c.nextup.ui.overlay.BlockingOverlayController
 import lab.p4c.nextup.util.BlockedAppsStore
+import androidx.core.content.edit
 
 class AppAccessibilityService : AccessibilityService() {
 
@@ -41,7 +42,20 @@ class AppAccessibilityService : AccessibilityService() {
         if (shouldBlock) {
             // 너무 자주 add/remove 방지
             if (!BlockingOverlayController.isShowing() || now - lastShowMillis > 1500) {
-                val shown = BlockingOverlayController.show(this)
+
+                // 따라 말할 문장 생성
+                val phrase = "나는 오늘 집중을 유지한다 ${(100..999).random()}"
+
+                val shown = BlockingOverlayController.show(
+                    context = this,
+                    targetPhrase = phrase,
+                    onUnlocked = {
+                        // 🔸 사용자가 따라 말해 해제에 성공하면 차단 종료
+                        prefs.edit { putLong(KEY_BLOCK_UNTIL, 0L) }
+                        Log.d(TAG, "Overlay unlocked for $pkg — block lifted")
+                    }
+                )
+
                 if (shown) {
                     lastShowMillis = now
                     Log.d(TAG, "Overlay shown for $pkg until $blockUntil")

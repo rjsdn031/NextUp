@@ -1,5 +1,6 @@
 package lab.p4c.nextup.ui.screen.settings
 
+import android.app.Activity
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -26,6 +27,7 @@ fun AlarmSettingsScreen(navController: NavController) {
     var usageGranted by remember { mutableStateOf(UsageAccessPermission.isGranted(ctx)) }
     var notifGranted by remember { mutableStateOf(NotificationPermission.isGranted(ctx)) }
     var batteryIgnored by remember { mutableStateOf(BatteryOptimizationPermission.isIgnoring(ctx)) }
+    var micGranted by remember { mutableStateOf(MicrophonePermission.isGranted(ctx)) }
 
     // 설정 갔다가 돌아오면 다시 체크
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -38,6 +40,7 @@ fun AlarmSettingsScreen(navController: NavController) {
                 usageGranted = UsageAccessPermission.isGranted(ctx)
                 notifGranted = NotificationPermission.isGranted(ctx)
                 batteryIgnored = BatteryOptimizationPermission.isIgnoring(ctx)
+                micGranted = MicrophonePermission.isGranted(ctx)
             }
         }
         lifecycleOwner.lifecycle.addObserver(obs)
@@ -107,6 +110,36 @@ fun AlarmSettingsScreen(navController: NavController) {
                 deniedText = "절전 중 알람 지연 방지에 권장",
                 onClick = { BatteryOptimizationPermission.openOptimizationSettings(ctx) }
             )
+
+            PermissionCard(
+                title = "마이크 권한",
+                granted = micGranted,
+                grantedText = "허용됨",
+                deniedText = "음성 인식 해제 기능 사용 시 필요",
+                onClick = {
+                    (ctx as? Activity)?.let {
+                        if (!MicrophonePermission.isGranted(it)) {
+                            MicrophonePermission.request(it)
+                        } else {
+                            MicrophonePermission.openSettings(it)
+                        }
+                    }
+                }
+            )
+
+            Card {
+                ListItem(
+                    headlineContent = { Text("오프라인 음성(한국어)") },
+                    supportingContent = {
+                        Text("오프라인 한국어 데이터 설치/관리")
+                    },
+                    trailingContent = {
+                        Button(onClick = { SpeechSettingsIntents.openOfflineSpeechSettings(ctx) }) {
+                            Text("설정 열기")
+                        }
+                    }
+                )
+            }
         }
     }
 }
