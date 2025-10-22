@@ -141,7 +141,7 @@ class SpeechUnlockSession(
     // ===== 매칭 규칙: 유사도 + 숫자 완전일치 =====
     private fun normalize(s: String) = s
         .lowercase()
-        .replace(Regex("[\\p{Punct}]"), " ")
+        .replace(Regex("\\p{Punct}"), " ")
         .replace(Regex("\\s+"), " ")
         .trim()
 

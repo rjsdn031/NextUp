@@ -6,6 +6,7 @@ import android.view.accessibility.AccessibilityEvent
 import lab.p4c.nextup.ui.overlay.BlockingOverlayController
 import lab.p4c.nextup.util.BlockedAppsStore
 import androidx.core.content.edit
+import lab.p4c.nextup.util.BlockGate
 
 class AppAccessibilityService : AccessibilityService() {
 
@@ -30,38 +31,27 @@ class AppAccessibilityService : AccessibilityService() {
         if (!interesting) return
 
         val now = System.currentTimeMillis()
-        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
-        val blockUntil = prefs.getLong(KEY_BLOCK_UNTIL, 0L)
 
+        val disabled = BlockGate.isDisabled(this)
         val isFromBlockedApp = blockedApps.contains(pkg)
         val isFromSystemUI = pkg.startsWith("com.android.systemui")
         val isFromSelf = pkg.startsWith(packageName)
 
-        val shouldBlock = now < blockUntil && isFromBlockedApp
+        val shouldBlock = !disabled && isFromBlockedApp
 
         if (shouldBlock) {
-            // 너무 자주 add/remove 방지
             if (!BlockingOverlayController.isShowing() || now - lastShowMillis > 1500) {
-
-                // 따라 말할 문장 생성
-                val phrase = "나는 오늘 집중을 유지한다 ${(100..999).random()}"
-
+                // 따라 말할 문장
+                val phrase = "나는 오늘 집중을 유지한다."
                 val shown = BlockingOverlayController.show(
                     context = this,
                     targetPhrase = phrase,
                     onUnlocked = {
-                        // 🔸 사용자가 따라 말해 해제에 성공하면 차단 종료
-                        prefs.edit { putLong(KEY_BLOCK_UNTIL, 0L) }
-                        Log.d(TAG, "Overlay unlocked for $pkg — block lifted")
+                        BlockGate.disableUntilNextAlarm(this)
+                        Log.d(TAG, "Overlay unlocked for $pkg — blocking disabled until next alarm")
                     }
                 )
-
-                if (shown) {
-                    lastShowMillis = now
-                    Log.d(TAG, "Overlay shown for $pkg until $blockUntil")
-                } else {
-                    Log.d(TAG, "Overlay show skipped (no permission?)")
-                }
+                if (shown) lastShowMillis = now
             }
         } else {
             // 시스템 UI나 우리 앱이 전면이 아니면 숨김
@@ -85,7 +75,5 @@ class AppAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "AppA11y"
-        private const val PREFS = "nextup_prefs"
-        private const val KEY_BLOCK_UNTIL = "blockReadyUntil"
     }
 }

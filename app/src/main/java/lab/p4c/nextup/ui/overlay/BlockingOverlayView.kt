@@ -34,6 +34,7 @@ fun BlockingOverlayView(
     onDismiss: () -> Unit,
     onStartListening: () -> Unit, // 🎙️ STT 시작 콜백
     onStopListening: () -> Unit,  // ⏹ STT 중지 콜백
+    onConfirm: () -> Unit,
     onBind: (
         setTarget: (String) -> Unit,
         setState: (String) -> Unit,
@@ -48,6 +49,9 @@ fun BlockingOverlayView(
 
     var isListening by remember { mutableStateOf(false) }
 
+    val threshold = 0.87f
+    val eligible = similarity >= threshold && partial.isNotBlank()
+
     LaunchedEffect(Unit) {
         onBind(
             { t -> target = t },
@@ -61,7 +65,7 @@ fun BlockingOverlayView(
             .fillMaxSize()
             .background(Color(0xCC000000))
             .pointerInput(Unit) {
-                detectTapGestures(onDoubleTap = { onDismiss() })
+//                detectTapGestures(onDoubleTap = { onDismiss() })
             },
         color = Color.Transparent
     ) {
@@ -142,5 +146,13 @@ fun BlockingOverlayView(
                 Text(if (!isListening) "🎙️ 말하기 시작" else "⏹ 중지")
             }
         }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Button(onClick = { /* start/stop 토글 */ }) { /* ... */ }
+
+        Button(
+            enabled = eligible,
+            onClick = onConfirm
+        ) { Text("이용하기") }
     }
 }

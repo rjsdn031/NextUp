@@ -83,6 +83,10 @@ object BlockingOverlayController {
                     onDismiss = { hide(appCtx) },
                     onStartListening = { startSession(appCtx, targetPhrase, onUnlocked) },
                     onStopListening = { stopSession() },
+                    onConfirm = {
+                        hide(context)
+                        onUnlocked()
+                                },
                     onBind = { setTarget, setState, setPartial ->
                         setTargetRef.set(setTarget)
                         setStateRef.set(setState)
@@ -153,7 +157,9 @@ object BlockingOverlayController {
                 lastPartial = hyp to sim
                 setPartialRef.get()?.let { postMain { it(hyp, sim) } }
             },
-            onSuccess = { onUnlocked() },
+            onSuccess = {
+                setStateRef.get()?.let { postMain { it("충분히 인식됨. ‘이용하기’를 눌러 계속하세요") } }
+            },
             onErrorUi = { code ->
                 when (code) {
                     SpeechRecognizer.ERROR_SPEECH_TIMEOUT,

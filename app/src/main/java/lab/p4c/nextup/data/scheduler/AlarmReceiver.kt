@@ -6,12 +6,16 @@ import android.content.Intent
 import androidx.core.content.ContextCompat
 import lab.p4c.nextup.data.player.AlarmPlayerService
 import lab.p4c.nextup.ui.screen.ringing.AlarmRingingActivity
+import lab.p4c.nextup.util.BlockGate
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_FIRE) return
         val id = intent.getIntExtra(EXTRA_ALARM_ID, -1)
         if (id < 0) return
+
+        // Overlay Init
+        BlockGate.rearmForNextAlarm(context)
 
         // Foreground service 시작 (O+)
         ContextCompat.startForegroundService(
