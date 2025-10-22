@@ -15,11 +15,11 @@
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <application
-        android:name=".NextUpApp"
+        android:name=".app.NextUpApp"
         android:label="NextUp"
         android:theme="@style/Theme.NextUp">
         <activity
-            android:name=".MainActivity"
+            android:name=".app.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -28,7 +28,7 @@
         </activity>
 
         <activity
-            android:name=".ui.screen.ringing.AlarmRingingActivity"
+            android:name=".feature.alarm.ui.ringing.AlarmRingingActivity"
             android:exported="false"
             android:showOnLockScreen="true"
             android:turnScreenOn="true"
@@ -36,12 +36,12 @@
             android:theme="@style/Theme.NextUp"/>
 
         <service
-            android:name=".data.player.AlarmPlayerService"
+            android:name=".feature.alarm.infra.scheduler.player.AlarmPlayerService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
         <service
-            android:name=".accessibility.AppAccessibilityService"
+            android:name=".platform.accessibility.AppAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="false">
             <intent-filter>
@@ -53,7 +53,7 @@
         </service>
 
         <receiver
-            android:name="lab.p4c.nextup.data.scheduler.AlarmReceiver"
+            android:name="lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver"
             android:exported="false" />
     </application>
 
