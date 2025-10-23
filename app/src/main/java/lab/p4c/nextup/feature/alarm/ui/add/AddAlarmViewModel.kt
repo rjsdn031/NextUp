@@ -7,12 +7,12 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
 import lab.p4c.nextup.core.common.time.getTimeUntilAlarm
-import java.time.DayOfWeek
+import lab.p4c.nextup.core.common.time.indicesToDays
 import java.time.ZoneId
-import java.time.ZonedDateTime
 
 data class AddAlarmUiState(
     val hour: Int = 7,
@@ -45,13 +45,14 @@ data class AddAlarmUiState(
 
 @HiltViewModel
 class AddAlarmViewModel @Inject constructor(
-    private val upsert: UpsertAlarmAndReschedule
+    private val upsert: UpsertAlarmAndReschedule,
+    private val timeProvider: TimeProvider
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(AddAlarmUiState())
     val ui = _ui.asStateFlow()
 
-    /* ---------- 업데이트 ---------- */
+    /* ---------- Update ---------- */
     fun updateTime(h: Int, m: Int) {
         _ui.value = _ui.value.copy(hour = h, minute = m)
         recalcNextTrigger()
@@ -81,7 +82,7 @@ class AddAlarmViewModel @Inject constructor(
     }
     fun consumeError() { _ui.value = _ui.value.copy(errorMessage = null) }
 
-    /* ---------- 저장 ---------- */
+    /* ---------- Save ---------- */
     fun save(onDone: (Boolean) -> Unit) = viewModelScope.launch {
         val s = _ui.value
         if (!s.canSave) return@launch
@@ -91,7 +92,7 @@ class AddAlarmViewModel @Inject constructor(
                 id = 0, // 신규
                 hour = s.hour,
                 minute = s.minute,
-                days = intsToDays(s.repeatDays),
+                days = s.repeatDays.indicesToDays(),
                 skipHolidays = s.skipHolidays,
                 enabled = true,
 
@@ -121,22 +122,10 @@ class AddAlarmViewModel @Inject constructor(
     }
 
     /* ---------- 내부 유틸 ---------- */
-    private fun intsToDays(days: List<Int>): Set<DayOfWeek> = days.mapNotNull {
-        when (it) {
-            1 -> DayOfWeek.MONDAY
-            2 -> DayOfWeek.TUESDAY
-            3 -> DayOfWeek.WEDNESDAY
-            4 -> DayOfWeek.THURSDAY
-            5 -> DayOfWeek.FRIDAY
-            6 -> DayOfWeek.SATURDAY
-            7 -> DayOfWeek.SUNDAY
-            else -> null
-        }
-    }.toSet()
-
     private fun recalcNextTrigger() {
         val s = _ui.value
-        val line = getTimeUntilAlarm(s.hour, s.minute, ZonedDateTime.now(ZoneId.systemDefault()))
+        val nowLocal = timeProvider.nowLocal()
+        val line = getTimeUntilAlarm(s.hour, s.minute, nowLocal.atZone(nowLocal.atZone(ZoneId.systemDefault()).zone))
         _ui.value = s.copy(nextTriggerText = line)
     }
 }

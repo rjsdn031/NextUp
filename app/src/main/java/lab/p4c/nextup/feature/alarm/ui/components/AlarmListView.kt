@@ -5,20 +5,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import lab.p4c.nextup.core.common.time.dayOfWeekToKor
 import lab.p4c.nextup.core.common.time.formatTimeOfDay
 import lab.p4c.nextup.core.common.time.getTimeUntilAlarm
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
-import java.time.Instant
-import java.time.ZoneId
 import java.time.ZonedDateTime
 
 @Composable
 fun AlarmListView(
     alarms: List<Alarm>,
-    now: Instant,
+    now: ZonedDateTime,
     onDelete: (Int) -> Unit,
     onUpdate: (Alarm) -> Unit,
     onAdd: (Alarm) -> Unit,
@@ -26,20 +25,17 @@ fun AlarmListView(
     onTap: (Alarm, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val nowZdt: ZonedDateTime = now.atZone(ZoneId.systemDefault())
-
-    // Flutter와 동일: 활성 알람만 추려 다음 울릴 순서로 정렬
-    val enabledAlarms = alarms.filter { it.enabled }.sortedBy {
-        val today = nowZdt.withHour(it.hour).withMinute(it.minute).withSecond(0).withNano(0)
-        val dt = if (today.isBefore(nowZdt)) today.plusDays(1) else today
-        dt.toInstant().toEpochMilli()
+    val (enabledSorted, nextAlarmMessage) = remember(alarms, now) {
+        val enabled = alarms.filter { it.enabled }.sortedBy {
+            val today = now.withHour(it.hour).withMinute(it.minute).withSecond(0).withNano(0)
+            val dt = if (today.isBefore(now)) today.plusDays(1) else today
+            dt.toInstant().toEpochMilli()
+        }
+        val next = enabled.firstOrNull()
+        val msg = if (next != null) getTimeUntilAlarm(next.hour, next.minute, now)
+        else "설정된 다음 알람이 없습니다"
+        enabled to msg
     }
-
-    val nextAlarm = enabledAlarms.firstOrNull()
-    val nextAlarmMessage = if (nextAlarm != null)
-        getTimeUntilAlarm(nextAlarm.hour, nextAlarm.minute, nowZdt)
-    else
-        "설정된 다음 알람이 없습니다"
 
     Column(modifier = modifier.fillMaxSize()) {
         AlarmHeader(now = now, nextAlarmMessage = nextAlarmMessage)

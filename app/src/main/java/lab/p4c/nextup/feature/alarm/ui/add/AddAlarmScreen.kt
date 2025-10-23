@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmNameField
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmOptionsView
@@ -20,7 +21,7 @@ fun AddAlarmScreen(
     navController: NavController,
     vm: AddAlarmViewModel = hiltViewModel()
 ) {
-    val ui by vm.ui.collectAsState()
+    val ui by vm.ui.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {

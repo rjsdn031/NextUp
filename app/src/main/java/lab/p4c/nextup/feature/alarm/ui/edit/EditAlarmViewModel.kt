@@ -7,14 +7,15 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import lab.p4c.nextup.core.common.time.daysToIndices
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
 import lab.p4c.nextup.core.domain.alarm.usecase.DeleteAlarmAndCancel
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
 import lab.p4c.nextup.core.common.time.getTimeUntilAlarm
-import java.time.DayOfWeek
+import lab.p4c.nextup.core.common.time.indicesToDays
+import lab.p4c.nextup.core.domain.system.TimeProvider
 import java.time.ZoneId
-import java.time.ZonedDateTime
 
 data class EditAlarmUiState(
     val id: Int? = null,
@@ -52,7 +53,8 @@ data class EditAlarmUiState(
 class EditAlarmViewModel @Inject constructor(
     private val repo: AlarmRepository,
     private val upsert: UpsertAlarmAndReschedule,   // 저장 + 재스케줄
-    private val delete: DeleteAlarmAndCancel        // 삭제 + 취소
+    private val delete: DeleteAlarmAndCancel,        // 삭제 + 취소
+    private val timeProvider: TimeProvider
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(EditAlarmUiState())
@@ -152,7 +154,12 @@ class EditAlarmViewModel @Inject constructor(
     /* ----- 매핑/유틸 ----- */
     private fun recalcNextTrigger() {
         val s = _ui.value
-        val line = getTimeUntilAlarm(s.hour, s.minute, ZonedDateTime.now(ZoneId.systemDefault()))
+        val nowLocal = timeProvider.nowLocal()
+        val line = getTimeUntilAlarm(
+            s.hour,
+            s.minute,
+            nowLocal.atZone(ZoneId.systemDefault())
+        )
         _ui.value = s.copy(nextTriggerText = line)
     }
 
@@ -161,7 +168,7 @@ class EditAlarmViewModel @Inject constructor(
         hour = a.hour,
         minute = a.minute,
         label = a.name,
-        repeatDays = daysToInts(a.days),
+        repeatDays = a.days.daysToIndices(),
         skipHolidays = a.skipHolidays,
 
         alarmSoundEnabled = a.alarmSoundEnabled,
@@ -182,9 +189,9 @@ class EditAlarmViewModel @Inject constructor(
         id = s.id ?: 0,
         hour = s.hour,
         minute = s.minute,
-        days = intsToDays(s.repeatDays),
+        days = s.repeatDays.indicesToDays(),
         skipHolidays = s.skipHolidays,
-        enabled = loadedEnabled,                  // ← 기존 enabled 보존
+        enabled = loadedEnabled,
         assetAudioPath = s.ringtonePath,
         alarmSoundEnabled = s.alarmSoundEnabled,
         ringtoneName = s.ringtoneName,
@@ -200,29 +207,4 @@ class EditAlarmViewModel @Inject constructor(
         snoozeInterval = s.snoozeInterval,
         maxSnoozeCount = s.maxSnoozeCount
     )
-
-    private fun daysToInts(set: Set<DayOfWeek>) = set.map {
-        when (it) {
-            DayOfWeek.MONDAY -> 1
-            DayOfWeek.TUESDAY -> 2
-            DayOfWeek.WEDNESDAY -> 3
-            DayOfWeek.THURSDAY -> 4
-            DayOfWeek.FRIDAY -> 5
-            DayOfWeek.SATURDAY -> 6
-            DayOfWeek.SUNDAY -> 7
-        }
-    }.sorted()
-
-    private fun intsToDays(list: List<Int>): Set<DayOfWeek> = list.mapNotNull {
-        when (it) {
-            1 -> DayOfWeek.MONDAY
-            2 -> DayOfWeek.TUESDAY
-            3 -> DayOfWeek.WEDNESDAY
-            4 -> DayOfWeek.THURSDAY
-            5 -> DayOfWeek.FRIDAY
-            6 -> DayOfWeek.SATURDAY
-            7 -> DayOfWeek.SUNDAY
-            else -> null
-        }
-    }.toSet()
 }

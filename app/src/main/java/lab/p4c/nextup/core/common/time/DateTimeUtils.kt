@@ -8,7 +8,7 @@ fun formatDateTime(zdt: ZonedDateTime): String {
     val h12 = (zdt.hour % 12).let { if (it == 0) 12 else it }
     val minute = zdt.minute.toString().padStart(2, '0')
 
-    // Flutter: [일, 월, 화, 수, 목, 금, 토], dt.weekday % 7
+    //[일, 월, 화, 수, 목, 금, 토], dt.weekday % 7
     val weekdayKor = when (zdt.dayOfWeek) {
         DayOfWeek.SUNDAY -> "일"
         DayOfWeek.MONDAY -> "월"

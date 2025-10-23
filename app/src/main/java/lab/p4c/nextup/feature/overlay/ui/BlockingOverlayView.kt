@@ -145,13 +145,13 @@ fun BlockingOverlayView(
                 Text(if (!isListening) "🎙️ 말하기 시작" else "⏹ 중지")
             }
         }
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = { /* start/stop 토글 */ }) { /* ... */ }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = { /* start/stop 토글 */ }) { /* ... */ }
 
-        Button(
-            enabled = eligible,
-            onClick = onConfirm
-        ) { Text("이용하기") }
+            Button(
+                enabled = eligible,
+                onClick = onConfirm
+            ) { Text("이용하기") }
+        }
     }
 }

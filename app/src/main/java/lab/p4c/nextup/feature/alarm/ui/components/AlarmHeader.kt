@@ -11,19 +11,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.platform.LocalConfiguration
-import java.time.Instant
-import java.time.ZoneId
 import lab.p4c.nextup.core.common.time.formatDateTime
+import java.time.ZonedDateTime
 
 @Composable
 fun AlarmHeader(
-    now: Instant,
+    now: ZonedDateTime,
     nextAlarmMessage: String,
     modifier: Modifier = Modifier
 ) {
     val conf = LocalConfiguration.current
     val headerHeight: Dp = (conf.screenHeightDp * 0.3f).dp
-    val zdt = now.atZone(ZoneId.systemDefault())
+    val zdt = now
 
     Box(
         modifier = modifier

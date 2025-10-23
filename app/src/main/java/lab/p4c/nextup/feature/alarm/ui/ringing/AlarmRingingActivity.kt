@@ -1,5 +1,6 @@
 package lab.p4c.nextup.feature.alarm.ui.ringing
 
+import android.R
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
@@ -22,12 +23,14 @@ import kotlinx.coroutines.withContext
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
 import androidx.core.content.edit
+import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.feature.alarm.infra.player.AlarmPlayerService
 
 @AndroidEntryPoint
 class AlarmRingingActivity : ComponentActivity() {
 
     @Inject lateinit var repo: AlarmRepository
+    @Inject lateinit var timeProvider: TimeProvider
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,7 +72,7 @@ class AlarmRingingActivity : ComponentActivity() {
                 onDismiss = {
                     stopService(Intent(this, AlarmPlayerService::class.java)
                         .putExtra(AlarmReceiver.EXTRA_ALARM_ID, id))
-                    markBlockReadyFor10Min(this)
+                    setReadyToBlock(this, timeProvider, 10)
                     finish()
                 },
                 onSnooze = {
@@ -104,8 +107,8 @@ class AlarmRingingActivity : ComponentActivity() {
     }
 }
 
-fun markBlockReadyFor10Min(context: Context) {
+fun setReadyToBlock(context: Context, timeProvider: TimeProvider, min : Long) {
     val prefs = context.getSharedPreferences("nextup_prefs", Context.MODE_PRIVATE)
-    val until = System.currentTimeMillis() + 10 * 60_000L
+    val until = timeProvider.now().toEpochMilli() + (min * 60_000L)
     prefs.edit { putLong("blockReadyUntil", until) }
 }
