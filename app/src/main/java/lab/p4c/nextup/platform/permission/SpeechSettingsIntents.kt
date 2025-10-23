@@ -21,7 +21,7 @@ object SpeechSettingsIntents {
         if (tryStart(
                 context,
                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    Intent.setData = "package:com.google.android.googlequicksearchbox".toUri()
+                    data = "package:com.google.android.googlequicksearchbox".toUri()
                 }
             )
         ) return
@@ -35,7 +35,7 @@ object SpeechSettingsIntents {
         tryStart(
             context,
             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                Intent.setData = "package:com.google.android.googlequicksearchbox".toUri()
+                data = "package:com.google.android.googlequicksearchbox".toUri()
             }
         )
     }

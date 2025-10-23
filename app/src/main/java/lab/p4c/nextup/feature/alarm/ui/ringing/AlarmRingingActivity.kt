@@ -19,10 +19,10 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import lab.p4c.nextup.feature.alarm.infra.scheduler.player.AlarmPlayerService
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
 import androidx.core.content.edit
+import lab.p4c.nextup.feature.alarm.infra.player.AlarmPlayerService
 
 @AndroidEntryPoint
 class AlarmRingingActivity : ComponentActivity() {

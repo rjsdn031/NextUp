@@ -3,10 +3,10 @@ package lab.p4c.nextup.feature.alarm.data.repository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import lab.p4c.nextup.feature.alarm.data.local.dao.AlarmDao
-import lab.p4c.nextup.feature.alarm.data.local.mapper.toDomain
-import lab.p4c.nextup.feature.alarm.data.local.mapper.toEntity
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
+import lab.p4c.nextup.feature.alarm.data.mapper.toDomain
+import lab.p4c.nextup.feature.alarm.data.mapper.toEntity
 import javax.inject.Inject
 
 class AlarmRepositoryImpl @Inject constructor(

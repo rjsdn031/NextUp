@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
-import lab.p4c.nextup.feature.alarm.infra.scheduler.player.AlarmPlayerService
+import lab.p4c.nextup.feature.alarm.infra.player.AlarmPlayerService
 import lab.p4c.nextup.feature.alarm.ui.ringing.AlarmRingingActivity
 import lab.p4c.nextup.feature.overlay.infra.BlockGate
 

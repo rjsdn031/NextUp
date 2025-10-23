@@ -20,9 +20,12 @@ class AndroidAlarmScheduler @Inject constructor(
 ) : AlarmScheduler {
 
     override fun schedule(id: Int, triggerAtUtcMillis: Long, alarm: Alarm) {
-        Log.d("Scheduler", "schedule id=$id at=$triggerAtUtcMillis")
+        Log.d(TAG, "schedule id=$id at=$triggerAtUtcMillis")
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            alarmManager.canScheduleExactAlarms()
+            // 정확 알람 권한 체크 결과를 활용하려면 분기/가이드 처리 추가
+            val canExact = alarmManager.canScheduleExactAlarms()
+            Log.d(TAG, "canScheduleExactAlarms=$canExact")
         }
 
         val firePi = buildFirePendingIntent(id)
@@ -32,10 +35,12 @@ class AndroidAlarmScheduler @Inject constructor(
     override fun cancel(id: Int) {
         // fire PI
         val fireIntent = Intent(context, AlarmReceiver::class.java).apply {
-            Intent.setAction = AlarmReceiver.ACTION_FIRE
+            action = AlarmReceiver.ACTION_FIRE
         }
         val firePi = PendingIntent.getBroadcast(
-            context, id, fireIntent,
+            context,
+            id,
+            fireIntent,
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         )
         if (firePi != null) {
@@ -45,11 +50,13 @@ class AndroidAlarmScheduler @Inject constructor(
 
         // show PI (AlarmClock용)
         val showIntent = Intent(context, AlarmRingingActivity::class.java).apply {
-            Intent.setAction = ACTION_SHOW_FROM_ALARM
+            action = ACTION_SHOW_FROM_ALARM
             putExtra(AlarmReceiver.EXTRA_ALARM_ID, id)
         }
         val showPi = PendingIntent.getActivity(
-            context, id, showIntent,
+            context,
+            id,
+            showIntent,
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         )
         showPi?.cancel()
@@ -61,7 +68,7 @@ class AndroidAlarmScheduler @Inject constructor(
         firePi: PendingIntent
     ) {
         val showIntent = Intent(context, AlarmRingingActivity::class.java).apply {
-            Intent.setAction = ACTION_SHOW_FROM_ALARM
+            action = ACTION_SHOW_FROM_ALARM
             putExtra(AlarmReceiver.EXTRA_ALARM_ID, id)
         }
         val showPi = PendingIntent.getActivity(
@@ -70,13 +77,14 @@ class AndroidAlarmScheduler @Inject constructor(
             showIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
         val info = AlarmManager.AlarmClockInfo(triggerAtUtcMillis, showPi)
         alarmManager.setAlarmClock(info, firePi)
     }
 
     private fun buildFirePendingIntent(id: Int): PendingIntent {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
-            Intent.setAction = AlarmReceiver.ACTION_FIRE
+            action = AlarmReceiver.ACTION_FIRE
             putExtra(AlarmReceiver.EXTRA_ALARM_ID, id)
         }
         return PendingIntent.getBroadcast(
@@ -88,7 +96,7 @@ class AndroidAlarmScheduler @Inject constructor(
     }
 
     companion object {
-        // 액션 네임으로 통일 (이전의 클래스 경로 문자열 대신)
+        private const val TAG = "Scheduler"
         const val ACTION_SHOW_FROM_ALARM = "lab.p4c.nextup.action.SHOW_FROM_ALARM"
     }
 }

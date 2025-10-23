@@ -5,10 +5,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import lab.p4c.nextup.feature.alarm.data.local.AppDatabase
 import lab.p4c.nextup.feature.alarm.data.local.dao.AlarmDao
-import lab.p4c.nextup.feature.alarm.data.local.mapper.toEntity
 import lab.p4c.nextup.core.domain.alarm.port.AlarmScheduler
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
+import lab.p4c.nextup.feature.alarm.data.mapper.toEntity
 import javax.inject.Inject
 
 class UpsertAlarmAndReschedule @Inject constructor(

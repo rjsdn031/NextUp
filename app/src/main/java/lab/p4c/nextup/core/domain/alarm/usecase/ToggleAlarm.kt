@@ -5,9 +5,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import lab.p4c.nextup.feature.alarm.data.local.AppDatabase
 import lab.p4c.nextup.feature.alarm.data.local.dao.AlarmDao
-import lab.p4c.nextup.feature.alarm.data.local.mapper.toDomain
 import lab.p4c.nextup.core.domain.alarm.port.AlarmScheduler
 import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
+import lab.p4c.nextup.feature.alarm.data.mapper.toDomain
 import javax.inject.Inject
 
 class ToggleAlarm @Inject constructor(
