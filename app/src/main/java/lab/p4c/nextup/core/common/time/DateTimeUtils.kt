@@ -1,4 +1,4 @@
-package lab.p4c.nextup.util
+package lab.p4c.nextup.core.common.time
 
 import java.time.*
 
@@ -61,4 +61,4 @@ fun getTimeUntilAlarm(alarmHour: Int, alarmMinute: Int, now: ZonedDateTime): Str
 
 /** List<DayOfWeek> → "월 화 ..." */
 fun daysToKorLine(days: Collection<DayOfWeek>): String =
-    days.map { dayOfWeekToKor(it) }.joinToString(" ")
+    days.joinToString(" ") { dayOfWeekToKor(it) }

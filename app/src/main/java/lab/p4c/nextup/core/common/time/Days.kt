@@ -1,4 +1,4 @@
-package lab.p4c.nextup.util
+package lab.p4c.nextup.core.common.time
 
 import java.time.DayOfWeek
 

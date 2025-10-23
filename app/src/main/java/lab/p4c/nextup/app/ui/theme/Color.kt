@@ -2,7 +2,6 @@ package lab.p4c.nextup.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// 레거시 XML 색상과 매칭
 val Purple200 = Color(0xFFBB86FC)
 val Purple500 = Color(0xFF6200EE)
 val Purple700 = Color(0xFF3700B3)

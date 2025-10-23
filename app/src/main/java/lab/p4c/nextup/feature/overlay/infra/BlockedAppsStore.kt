@@ -1,4 +1,4 @@
-package lab.p4c.nextup.util
+package lab.p4c.nextup.feature.overlay.infra
 
 import android.content.Context
 import androidx.core.content.edit

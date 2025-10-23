@@ -2,8 +2,8 @@ package lab.p4c.nextup.feature.alarm.data.mapper
 
 import lab.p4c.nextup.feature.alarm.data.local.entity.AlarmEntity
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
-import lab.p4c.nextup.util.toDayOfWeekSet
-import lab.p4c.nextup.util.toMask
+import lab.p4c.nextup.core.common.time.toDayOfWeekSet
+import lab.p4c.nextup.core.common.time.toMask
 
 fun AlarmEntity.toDomain(): Alarm =
     Alarm(

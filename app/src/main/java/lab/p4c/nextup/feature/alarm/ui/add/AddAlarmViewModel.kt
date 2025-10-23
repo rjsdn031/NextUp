@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
-import lab.p4c.nextup.util.getTimeUntilAlarm
+import lab.p4c.nextup.core.common.time.getTimeUntilAlarm
 import java.time.DayOfWeek
 import java.time.ZoneId
 import java.time.ZonedDateTime

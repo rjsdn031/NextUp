@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.platform.LocalConfiguration
 import java.time.Instant
 import java.time.ZoneId
-import lab.p4c.nextup.util.formatDateTime
+import lab.p4c.nextup.core.common.time.formatDateTime
 
 @Composable
 fun AlarmHeader(

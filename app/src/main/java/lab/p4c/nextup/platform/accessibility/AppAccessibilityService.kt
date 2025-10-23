@@ -4,7 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import lab.p4c.nextup.feature.overlay.infra.BlockingOverlayController
-import lab.p4c.nextup.util.BlockedAppsStore
+import lab.p4c.nextup.feature.overlay.infra.BlockedAppsStore
 import lab.p4c.nextup.feature.overlay.infra.BlockGate
 
 class AppAccessibilityService : AccessibilityService() {
