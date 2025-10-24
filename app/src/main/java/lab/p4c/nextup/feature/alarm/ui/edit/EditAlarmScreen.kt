@@ -2,6 +2,7 @@ package lab.p4c.nextup.feature.alarm.ui.edit
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
@@ -94,56 +95,73 @@ fun EditAlarmScreen(
                 )
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
 
-                AlarmNameField(
-                    value = TextFieldValue(ui.label),
-                    onValueChange = { vm.updateLabel(it.text) }
-                )
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(top = 12.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        AlarmNameField(
+                            value = TextFieldValue(ui.label),
+                            onValueChange = { vm.updateLabel(it.text) }
+                        )
+                    }
 
-                AlarmOptionsView(
-                    alarmSoundEnabled = ui.alarmSoundEnabled,
-                    selectedRingtoneName = ui.ringtoneName,
-                    onAlarmSoundToggle = vm::toggleAlarmSound,
-                    onSelectSound = {
-                        // 실제 사운드 선택 연결 필요 시 다이얼로그로 교체
-                        vm.selectSound("Classic Bell", "assets/sounds/test_sound.mp3")
-                    },
-                    isPreviewing = ui.isPreviewing,
-                    onTogglePreview = vm::togglePreview,
 
-                    vibrationEnabled = ui.vibration,
-                    onVibrationToggle = vm::toggleVibration,
+                    item {
+                        AlarmOptionsView(
+                            alarmSoundEnabled = ui.alarmSoundEnabled,
+                            selectedRingtoneName = ui.ringtoneName,
+                            onAlarmSoundToggle = vm::toggleAlarmSound,
+                            onSelectSound = {
+                                // 실제 사운드 선택 연결 필요 시 다이얼로그로 교체
+                                vm.selectSound("Classic Bell", "assets/sounds/test_sound.mp3")
+                            },
+                            isPreviewing = ui.isPreviewing,
+                            onTogglePreview = vm::togglePreview,
 
-                    // 스누즈 관련
-                    snoozeLabel = "매 ${ui.snoozeInterval}분, 최대 ${ui.maxSnoozeCount}회",
-                    onSelectSnooze = {
-                        val nextInterval = when (ui.snoozeInterval) {
-                            3 -> 5; 5 -> 10; else -> 3
-                        }
-                        val nextCount = if (ui.maxSnoozeCount == 3) 5 else 3
-                        vm.selectSnooze(nextInterval, nextCount)
-                    },
+                            vibrationEnabled = ui.vibration,
+                            onVibrationToggle = vm::toggleVibration,
 
-                    // 사운드 부가 옵션
-                    volume = ui.volume,
-                    onSelectVolume = vm::updateVolume,
+                            // 스누즈 관련
+                            snoozeLabel = "매 ${ui.snoozeInterval}분, 최대 ${ui.maxSnoozeCount}회",
+                            onSelectSnooze = {
+                                val nextInterval = when (ui.snoozeInterval) {
+                                    3 -> 5; 5 -> 10; else -> 3
+                                }
+                                val nextCount = if (ui.maxSnoozeCount == 3) 5 else 3
+                                vm.selectSnooze(nextInterval, nextCount)
+                            },
 
-                    fadeEnabled = ui.fadeSeconds > 0,
-                    onFadeToggle = vm::toggleFade,
+                            // 사운드 부가 옵션
+                            volume = ui.volume,
+                            onSelectVolume = vm::updateVolume,
 
-                    loop = ui.loop,
-                    onLoopToggle = vm::toggleLoop,
+                            fadeEnabled = ui.fadeSeconds > 0,
+                            onFadeToggle = vm::toggleFade,
 
-                    snoozeEnabled = ui.snoozeEnabled,
-                    onToggleSnooze = vm::toggleSnoozeEnabled,
+                            loop = ui.loop,
+                            onLoopToggle = vm::toggleLoop,
 
-                    )
+                            snoozeEnabled = ui.snoozeEnabled,
+                            onToggleSnooze = vm::toggleSnoozeEnabled,
 
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    ui.nextTriggerText ?: "다음 울림 시간이 계산됩니다.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
+                            )
+                    }
+
+
+
+                    item {
+                        Text(
+                            ui.nextTriggerText ?: "다음 울림 시간이 계산됩니다.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+
+                }
             }
         }
     }
