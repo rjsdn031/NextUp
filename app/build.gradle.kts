@@ -51,7 +51,6 @@ kotlin {
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
     arg("room.generateKotlin", "true")
-    // 선택: arg("room.incremental", "true")
 }
 
 dependencies {

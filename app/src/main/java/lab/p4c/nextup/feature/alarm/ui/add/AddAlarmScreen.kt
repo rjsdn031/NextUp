@@ -2,7 +2,6 @@ package lab.p4c.nextup.feature.alarm.ui.add
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
@@ -24,9 +23,6 @@ fun AddAlarmScreen(
     val ui by vm.ui.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(title = { Text("알람 추가") })
-        },
         bottomBar = {
             Surface(tonalElevation = 2.dp) {
                 Row(
@@ -53,13 +49,14 @@ fun AddAlarmScreen(
             modifier = Modifier
                 .padding(inner)
                 .padding(horizontal = 16.dp)
+                .padding(top = 30.dp)
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             AlarmTimePicker(
                 hour = ui.hour,
                 minute = ui.minute,
-                onTimePicked = { h, m -> vm.updateTime(h, m) }
+                onTimeChange = { h, m -> vm.updateTime(h, m) }
             )
 
             DaySelector(

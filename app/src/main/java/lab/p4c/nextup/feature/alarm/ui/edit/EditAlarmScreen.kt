@@ -35,17 +35,6 @@ fun EditAlarmScreen(
     }
 
     Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("알람 수정") },
-                actions = {
-                    IconButton(
-                        enabled = ui.loaded && !ui.isBusy,
-                        onClick = { vm.delete { navController.popBackStack() } }
-                    ) { Icon(Icons.Default.Delete, contentDescription = "삭제") }
-                }
-            )
-        },
         bottomBar = {
             Surface(tonalElevation = 2.dp) {
                 Row(
@@ -82,13 +71,13 @@ fun EditAlarmScreen(
                 modifier = Modifier
                     .padding(inner)
                     .padding(horizontal = 16.dp)
+                    .padding(top = 30.dp)
                     .fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 AlarmTimePicker(
                     hour = ui.hour,
-                    minute = ui.minute,
-                    onTimePicked = { h, m -> vm.updateTime(h, m) }
+                    minute = ui.minute, onTimeChange = { h, m -> vm.updateTime(h, m) }
                 )
 
                 DaySelector(
@@ -127,7 +116,9 @@ fun EditAlarmScreen(
                     // 스누즈 관련
                     snoozeLabel = "매 ${ui.snoozeInterval}분, 최대 ${ui.maxSnoozeCount}회",
                     onSelectSnooze = {
-                        val nextInterval = when (ui.snoozeInterval) { 3 -> 5; 5 -> 10; else -> 3 }
+                        val nextInterval = when (ui.snoozeInterval) {
+                            3 -> 5; 5 -> 10; else -> 3
+                        }
                         val nextCount = if (ui.maxSnoozeCount == 3) 5 else 3
                         vm.selectSnooze(nextInterval, nextCount)
                     },
