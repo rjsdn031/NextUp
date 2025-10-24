@@ -89,6 +89,14 @@ fun EditAlarmScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item {
+                        Text(
+                            ui.nextTriggerText ?: "다음 울림 시간이 계산됩니다.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+
+                    item {
                         DaySelector(
                             selectedDays = ui.repeatDays,
                             onChange = vm::updateDays
@@ -145,26 +153,11 @@ fun EditAlarmScreen(
                             volume = ui.volume,
                             onSelectVolume = vm::updateVolume,
 
-                            fadeEnabled = ui.fadeSeconds > 0,
-                            onFadeToggle = vm::toggleFade,
-
-                            loop = ui.loop,
-                            onLoopToggle = vm::toggleLoop,
-
                             snoozeEnabled = ui.snoozeEnabled,
                             onToggleSnooze = vm::toggleSnoozeEnabled,
 
                             )
                     }
-
-                    item {
-                        Text(
-                            ui.nextTriggerText ?: "다음 울림 시간이 계산됩니다.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-
                 }
             }
         }

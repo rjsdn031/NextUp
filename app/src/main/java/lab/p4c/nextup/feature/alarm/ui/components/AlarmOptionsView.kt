@@ -28,11 +28,11 @@ fun AlarmOptionsView(
     volume: Float,
     onSelectVolume: (Float) -> Unit,
 
-    fadeEnabled: Boolean,
-    onFadeToggle: (Boolean) -> Unit,
+    fadeEnabled: Boolean = false,
+    onFadeToggle: (Boolean) -> Unit = {},
 
-    loop: Boolean,
-    onLoopToggle: (Boolean) -> Unit,
+    loop: Boolean = true,
+    onLoopToggle: (Boolean) -> Unit = {},
 
     snoozeEnabled: Boolean,
     onToggleSnooze: (Boolean) -> Unit
@@ -54,13 +54,18 @@ fun AlarmOptionsView(
                         enabled = alarmSoundEnabled,
                         onClick = onSelectSound
                     ) {
-                        Icon(Icons.Default.ChevronRight, contentDescription = "선택")
+                        Icon(Icons.Default.ChevronRight, contentDescription = "알람음 선택")
                     }
                     Switch(checked = alarmSoundEnabled, onCheckedChange = onAlarmSoundToggle)
                 }
             }
         )
-        Divider()
+
+        /* 볼륨 */
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text("볼륨 ${(volume * 100).toInt()}%")
+            Slider(value = volume, onValueChange = onSelectVolume)
+        }
 
         /* 진동 */
         ListItem(
@@ -73,43 +78,24 @@ fun AlarmOptionsView(
 
         /* 스누즈 */
         ListItem(
-            headlineContent = { Text("스누즈 설정") },
-            supportingContent = { Text(snoozeLabel) },
+            headlineContent = { Text("다시 울림") },
+            supportingContent = {
+                Text(if (snoozeEnabled) snoozeLabel else "사용 안 함")
+            },
             trailingContent = {
-                IconButton(onClick = onSelectSnooze) {
-                    Icon(Icons.Default.ChevronRight, contentDescription = "변경")
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    IconButton(
+                        enabled = snoozeEnabled,
+                        onClick = onSelectSnooze
+                    ) {
+                        Icon(Icons.Default.ChevronRight, contentDescription = "스누즈 설정")
+                    }
+                    Switch(
+                        checked = snoozeEnabled,
+                        onCheckedChange = onToggleSnooze
+                    )
                 }
             }
-        )
-
-        /* 볼륨 */
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Text("볼륨 ${(volume * 100).toInt()}%")
-            Slider(value = volume, onValueChange = onSelectVolume)
-        }
-
-        /* 점점 커지기 */
-        ListItem(
-            headlineContent = { Text("점점 커지기") },
-            supportingContent = { Text(if (fadeEnabled) "사용" else "사용 안 함") },
-            trailingContent = {
-                Switch(checked = fadeEnabled, onCheckedChange = onFadeToggle)
-            }
-        )
-
-        /* 반복 재생 */
-        ListItem(
-            headlineContent = { Text("알람음 반복") },
-            supportingContent = { Text(if (loop) "사용" else "사용 안 함") },
-            trailingContent = {
-                Switch(checked = loop, onCheckedChange = onLoopToggle)
-            }
-        )
-
-        ListItem(
-            headlineContent = { Text("스누즈 사용") },
-            supportingContent = { Text(if (snoozeEnabled) "사용" else "사용 안 함") },
-            trailingContent = { Switch(checked = snoozeEnabled, onCheckedChange = onToggleSnooze) }
         )
     }
 }

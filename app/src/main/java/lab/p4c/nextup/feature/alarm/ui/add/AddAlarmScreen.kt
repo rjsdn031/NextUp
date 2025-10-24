@@ -67,15 +67,22 @@ fun AddAlarmScreen(
                 contentPadding = PaddingValues(top = 12.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                item {  // (Calculated) Next Alarm
+                    Text(
+                        ui.nextTriggerText ?: "다음 울림 시간이 계산됩니다.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
 
-                item {
+                item {  // Weekly Loop
                     DaySelector(
                         selectedDays = ui.repeatDays,
                         onChange = vm::updateDays
                     )
                 }
 
-                item {
+                item {  // Turn off alarms on Public Holidays
                     ListItem(
                         headlineContent = { Text("공휴일엔 알람 끄기") },
                         supportingContent = { Text(if (ui.skipHolidays) "사용" else "사용 안 함") },
@@ -88,14 +95,14 @@ fun AddAlarmScreen(
                     )
                 }
 
-                item {
+                item {  // Alarm Name
                     AlarmNameField(
                         value = TextFieldValue(ui.label),
                         onValueChange = { vm.updateLabel(it.text) }
                     )
                 }
 
-                item {
+                item {  // AlarmSound, Vibrate, Snooze
                     AlarmOptionsView(
                         alarmSoundEnabled = ui.alarmSoundEnabled,
                         selectedRingtoneName = ui.ringtoneName,
@@ -123,27 +130,11 @@ fun AddAlarmScreen(
                         volume = ui.volume,
                         onSelectVolume = vm::updateVolume,
 
-                        fadeEnabled = ui.fadeSeconds > 0,
-                        onFadeToggle = vm::toggleFade,
-
-                        loop = ui.loop,
-                        onLoopToggle = vm::toggleLoop,
-
                         snoozeEnabled = ui.snoozeEnabled,
                         onToggleSnooze = vm::toggleSnoozeEnabled,
                     )
                 }
-
-                item {
-                    Text(
-                        ui.nextTriggerText ?: "다음 울림 시간이 계산됩니다.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
-
             }
-
         }
     }
 }
