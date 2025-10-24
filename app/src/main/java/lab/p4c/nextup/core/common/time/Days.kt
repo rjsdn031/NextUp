@@ -38,3 +38,15 @@ fun Set<DayOfWeek>.daysToIndices(): List<Int> =
             DayOfWeek.SUNDAY -> 7
         }
     }.sorted()
+
+/** Int (1=Mon..7=Sun) → String ("월".."일") */
+fun Int.indexToStr(): String = when (this) {
+    1 -> "월"
+    2 -> "화"
+    3 -> "수"
+    4 -> "목"
+    5 -> "금"
+    6 -> "토"
+    7 -> "일"
+    else -> "?"
+}

@@ -81,20 +81,6 @@ fun EditAlarmScreen(
                     minute = ui.minute, onTimeChange = { h, m -> vm.updateTime(h, m) }
                 )
 
-                DaySelector(
-                    selectedDays = ui.repeatDays,
-                    onChange = vm::updateDays
-                )
-
-                ListItem(
-                    headlineContent = { Text("공휴일엔 알람 끄기") },
-                    supportingContent = { Text(if (ui.skipHolidays) "사용" else "사용 안 함") },
-                    trailingContent = {
-                        Switch(checked = ui.skipHolidays, onCheckedChange = vm::toggleSkipHolidays)
-                    }
-                )
-                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -102,6 +88,26 @@ fun EditAlarmScreen(
                     contentPadding = PaddingValues(top = 12.dp, bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    item {
+                        DaySelector(
+                            selectedDays = ui.repeatDays,
+                            onChange = vm::updateDays
+                        )
+                    }
+
+                    item {
+                        ListItem(
+                            headlineContent = { Text("공휴일엔 알람 끄기") },
+                            supportingContent = { Text(if (ui.skipHolidays) "사용" else "사용 안 함") },
+                            trailingContent = {
+                                Switch(
+                                    checked = ui.skipHolidays,
+                                    onCheckedChange = vm::toggleSkipHolidays
+                                )
+                            }
+                        )
+                    }
+
                     item {
                         AlarmNameField(
                             value = TextFieldValue(ui.label),
@@ -150,8 +156,6 @@ fun EditAlarmScreen(
 
                             )
                     }
-
-
 
                     item {
                         Text(
