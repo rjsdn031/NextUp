@@ -7,6 +7,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import lab.p4c.nextup.feature.alarm.ui.components.DismissSlider
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -54,20 +55,5 @@ fun RingingScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun DismissSlider(onComplete: () -> Unit) {
-    var v by remember { mutableFloatStateOf(0f) }
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("밀어서 해제", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
-        Slider(
-            value = v,
-            onValueChange = { v = it; if (it >= 0.98f) onComplete() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        )
     }
 }

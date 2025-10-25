@@ -1,5 +1,6 @@
 package lab.p4c.nextup.feature.alarm.ui.list
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -14,10 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
 import lab.p4c.nextup.feature.alarm.ui.list.AlarmListViewModel
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmFAB
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmListView
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmTopBar
+import lab.p4c.nextup.feature.alarm.ui.ringing.AlarmRingingActivity
 
 
 @Composable
