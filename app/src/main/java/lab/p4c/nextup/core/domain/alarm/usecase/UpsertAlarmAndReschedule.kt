@@ -49,8 +49,8 @@ class UpsertAlarmAndReschedule @Inject constructor(
         cancelId?.let { scheduler.cancel(it) }
         if (scheduleId != null && scheduleAt != null && scheduleAlarm != null) {
             // 동일 id 재등록 시 깔끔하게
-            scheduler.cancel(scheduleId!!)
-            scheduler.schedule(scheduleId!!, scheduleAt!!, scheduleAlarm!!)
+            scheduler.cancel(scheduleId)
+            scheduler.schedule(scheduleId, scheduleAt, scheduleAlarm)
         }
     }
 }

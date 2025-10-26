@@ -20,7 +20,4 @@ object TimeModule {
     @Provides
     @Singleton
     fun provideTimeProvider(clock: Clock): TimeProvider = SystemTimeProvider(clock)
-
-    @Provides @Singleton
-    fun provideHolidayProvider(): HolidayProvider = NoopHolidayProvider()
 }
