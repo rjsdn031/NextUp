@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import lab.p4c.nextup.core.common.time.dayOfWeekToKor
 import lab.p4c.nextup.core.common.time.formatTimeOfDay
-import lab.p4c.nextup.core.common.time.getTimeUntilAlarm
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import java.time.ZonedDateTime
 

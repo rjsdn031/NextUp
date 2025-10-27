@@ -2,6 +2,7 @@ package lab.p4c.nextup.feature.settings.ui
 
 import android.app.Activity
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -66,86 +67,102 @@ fun AlarmSettingsScreen(navController: NavController) {
             )
         }
     ) { inner ->
-        Column(
-            modifier = Modifier.padding(inner).padding(16.dp),
+        LazyColumn(
+            modifier = Modifier
+                .padding(inner)
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            PermissionCard(
-                title = "정확한 알람",
-                granted = exactGranted,
-                grantedText = "허용됨",
-                deniedText = "허용 필요 (Android 12+)",
-                onClick = { ExactAlarmPermission.request(ctx) }
-            )
+            item {
+                PermissionCard(
+                    title = "정확한 알람",
+                    granted = exactGranted,
+                    grantedText = "허용됨",
+                    deniedText = "허용 필요 (Android 12+)",
+                    onClick = { ExactAlarmPermission.request(ctx) }
+                )
+            }
 
-            PermissionCard(
-                title = "오버레이 권한",
-                granted = overlayGranted,
-                grantedText = "허용됨",
-                deniedText = "앱 위에 그리기 필요",
-                onClick = { OverlayPermission.request(ctx) }
-            )
+            item {
+                PermissionCard(
+                    title = "오버레이 권한",
+                    granted = overlayGranted,
+                    grantedText = "허용됨",
+                    deniedText = "앱 위에 그리기 필요",
+                    onClick = { OverlayPermission.request(ctx) }
+                )
+            }
 
-            PermissionCard(
-                title = "접근성 서비스",
-                granted = a11yEnabled,
-                grantedText = "활성화됨",
-                deniedText = "비활성화됨 (차단 기능 사용 시 필요)",
-                onClick = { AccessibilityPermission.openSettings(ctx) }
-            )
+            item {
+                PermissionCard(
+                    title = "접근성 서비스",
+                    granted = a11yEnabled,
+                    grantedText = "활성화됨",
+                    deniedText = "비활성화됨 (차단 기능 사용 시 필요)",
+                    onClick = { AccessibilityPermission.openSettings(ctx) }
+                )
+            }
 
-            PermissionCard(
-                title = "사용량 접근",
-                granted = usageGranted,
-                grantedText = "허용됨",
-                deniedText = "앱 사용 감지를 위해 필요",
-                onClick = { UsageAccessPermission.request(ctx) }
-            )
+            item {
+                PermissionCard(
+                    title = "사용량 접근",
+                    granted = usageGranted,
+                    grantedText = "허용됨",
+                    deniedText = "앱 사용 감지를 위해 필요",
+                    onClick = { UsageAccessPermission.request(ctx) }
+                )
+            }
 
-            PermissionCard(
-                title = "알림 허용",
-                granted = notifGranted,
-                grantedText = "허용됨",
-                deniedText = "알람 알림/풀스크린 표시 위해 권장",
-                onClick = { NotificationPermission.openSettings(ctx) }
-            )
+            item {
+                PermissionCard(
+                    title = "알림 허용",
+                    granted = notifGranted,
+                    grantedText = "허용됨",
+                    deniedText = "알람 알림/풀스크린 표시 위해 권장",
+                    onClick = { NotificationPermission.openSettings(ctx) }
+                )
+            }
 
-            PermissionCard(
-                title = "배터리 최적화 제외",
-                granted = batteryIgnored,
-                grantedText = "제외됨",
-                deniedText = "절전 중 알람 지연 방지에 권장",
-                onClick = { BatteryOptimizationPermission.openOptimizationSettings(ctx) }
-            )
+            item {
+                PermissionCard(
+                    title = "배터리 최적화 제외",
+                    granted = batteryIgnored,
+                    grantedText = "제외됨",
+                    deniedText = "절전 중 알람 지연 방지에 권장",
+                    onClick = { BatteryOptimizationPermission.openOptimizationSettings(ctx) }
+                )
+            }
 
-            PermissionCard(
-                title = "마이크 권한",
-                granted = micGranted,
-                grantedText = "허용됨",
-                deniedText = "음성 인식 해제 기능 사용 시 필요",
-                onClick = {
-                    (ctx as? Activity)?.let {
-                        if (!MicrophonePermission.isGranted(it)) {
-                            MicrophonePermission.request(it)
-                        } else {
-                            MicrophonePermission.openSettings(it)
-                        }
-                    }
-                }
-            )
-
-            Card {
-                ListItem(
-                    headlineContent = { Text("오프라인 음성(한국어)") },
-                    supportingContent = {
-                        Text("오프라인 한국어 데이터 설치/관리")
-                    },
-                    trailingContent = {
-                        Button(onClick = { SpeechSettingsIntents.openOfflineSpeechSettings(ctx) }) {
-                            Text("설정 열기")
+            item {
+                PermissionCard(
+                    title = "마이크 권한",
+                    granted = micGranted,
+                    grantedText = "허용됨",
+                    deniedText = "음성 인식 해제 기능 사용 시 필요",
+                    onClick = {
+                        (ctx as? Activity)?.let {
+                            if (!MicrophonePermission.isGranted(it)) {
+                                MicrophonePermission.request(it)
+                            } else {
+                                MicrophonePermission.openSettings(it)
+                            }
                         }
                     }
                 )
+            }
+
+            item {
+                Card {
+                    ListItem(
+                        headlineContent = { Text("오프라인 음성(한국어)") },
+                        supportingContent = { Text("오프라인 한국어 데이터 설치/관리") },
+                        trailingContent = {
+                            Button(onClick = { SpeechSettingsIntents.openOfflineSpeechSettings(ctx) }) {
+                                Text("설정 열기")
+                            }
+                        }
+                    )
+                }
             }
         }
     }
