@@ -10,8 +10,9 @@ import kotlinx.coroutines.launch
 import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
-import lab.p4c.nextup.core.common.time.getTimeUntilAlarm
 import lab.p4c.nextup.core.common.time.indicesToDays
+import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
+import java.time.Instant
 import java.time.ZoneId
 
 data class AddAlarmUiState(
@@ -46,31 +47,67 @@ data class AddAlarmUiState(
 @HiltViewModel
 class AddAlarmViewModel @Inject constructor(
     private val upsert: UpsertAlarmAndReschedule,
-    private val timeProvider: TimeProvider
+    private val timeProvider: TimeProvider,
+    private val nextTrigger: NextTriggerCalculator,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(AddAlarmUiState())
     val ui = _ui.asStateFlow()
+
+    init {
+        recalcNextTrigger()
+    }
 
     /* ---------- Update ---------- */
     fun updateTime(h: Int, m: Int) {
         _ui.value = _ui.value.copy(hour = h, minute = m)
         recalcNextTrigger()
     }
-    fun updateLabel(s: String) { _ui.value = _ui.value.copy(label = s) }
-    fun updateDays(days: List<Int>) { _ui.value = _ui.value.copy(repeatDays = days); recalcNextTrigger() }
-    fun toggleSkipHolidays(b: Boolean) { _ui.value = _ui.value.copy(skipHolidays = b); recalcNextTrigger() }
+
+    fun updateLabel(s: String) {
+        _ui.value = _ui.value.copy(label = s)
+    }
+
+    fun updateDays(days: List<Int>) {
+        _ui.value = _ui.value.copy(repeatDays = days); recalcNextTrigger()
+    }
+
+    fun toggleSkipHolidays(b: Boolean) {
+        _ui.value = _ui.value.copy(skipHolidays = b); recalcNextTrigger()
+    }
 
     fun toggleAlarmSound(enabled: Boolean) {
         val s = _ui.value
-        _ui.value = s.copy(alarmSoundEnabled = enabled, isPreviewing = if (!enabled) false else s.isPreviewing)
+        _ui.value = s.copy(
+            alarmSoundEnabled = enabled,
+            isPreviewing = if (!enabled) false else s.isPreviewing
+        )
     }
-    fun selectSound(name: String, path: String) { _ui.value = _ui.value.copy(ringtoneName = name, ringtonePath = path) }
-    fun toggleVibration(b: Boolean) { _ui.value = _ui.value.copy(vibration = b) }
-    fun updateVolume(v: Float) { _ui.value = _ui.value.copy(volume = v.coerceIn(0f, 1f)) }
-    fun toggleFade(on: Boolean) { _ui.value = _ui.value.copy(fadeSeconds = if (on) 30 else 0) }
-    fun toggleLoop(b: Boolean) { _ui.value = _ui.value.copy(loop = b) }
-    fun toggleSnoozeEnabled(b: Boolean) { _ui.value = _ui.value.copy(snoozeEnabled = b) }
+
+    fun selectSound(name: String, path: String) {
+        _ui.value = _ui.value.copy(ringtoneName = name, ringtonePath = path)
+    }
+
+    fun toggleVibration(b: Boolean) {
+        _ui.value = _ui.value.copy(vibration = b)
+    }
+
+    fun updateVolume(v: Float) {
+        _ui.value = _ui.value.copy(volume = v.coerceIn(0f, 1f))
+    }
+
+    fun toggleFade(on: Boolean) {
+        _ui.value = _ui.value.copy(fadeSeconds = if (on) 30 else 0)
+    }
+
+    fun toggleLoop(b: Boolean) {
+        _ui.value = _ui.value.copy(loop = b)
+    }
+
+    fun toggleSnoozeEnabled(b: Boolean) {
+        _ui.value = _ui.value.copy(snoozeEnabled = b)
+    }
+
     fun selectSnooze(interval: Int, count: Int) {
         _ui.value = _ui.value.copy(snoozeInterval = interval, maxSnoozeCount = count)
     }
@@ -80,7 +117,10 @@ class AddAlarmViewModel @Inject constructor(
         if (!s.alarmSoundEnabled || s.ringtonePath.isBlank()) return
         _ui.value = s.copy(isPreviewing = !s.isPreviewing)
     }
-    fun consumeError() { _ui.value = _ui.value.copy(errorMessage = null) }
+
+    fun consumeError() {
+        _ui.value = _ui.value.copy(errorMessage = null)
+    }
 
     /* ---------- Save ---------- */
     fun save(onDone: (Boolean) -> Unit) = viewModelScope.launch {
@@ -121,11 +161,65 @@ class AddAlarmViewModel @Inject constructor(
         }
     }
 
-    /* ---------- 내부 유틸 ---------- */
     private fun recalcNextTrigger() {
         val s = _ui.value
+
         val nowLocal = timeProvider.nowLocal()
-        val line = getTimeUntilAlarm(s.hour, s.minute, nowLocal.atZone(nowLocal.atZone(ZoneId.systemDefault()).zone))
+        val nowZdt = nowLocal.atZone(ZoneId.systemDefault())
+
+        val probe = Alarm(
+            id = 0,
+            hour = s.hour,
+            minute = s.minute,
+            days = s.repeatDays.indicesToDays(),
+            skipHolidays = s.skipHolidays,
+            enabled = true,
+
+            assetAudioPath = s.ringtonePath,
+            alarmSoundEnabled = s.alarmSoundEnabled,
+            ringtoneName = s.ringtoneName,
+            volume = s.volume.toDouble(),
+            fadeDuration = s.fadeSeconds,
+            name = s.label,
+            notificationBody = "기상 시간입니다.",
+            loopAudio = s.loop,
+            vibration = s.vibration,
+            warningNotificationOnKill = true,
+            androidFullScreenIntent = true,
+            snoozeEnabled = s.snoozeEnabled,
+            snoozeInterval = s.snoozeInterval,
+            maxSnoozeCount = s.maxSnoozeCount
+        )
+
+        val triggerMillis = nextTrigger.computeUtcMillis(probe, now = nowZdt)
+        val line = formatNextTriggerText(triggerMillis)
         _ui.value = s.copy(nextTriggerText = line)
+    }
+
+    private fun formatNextTriggerText(triggerAtUtcMillis: Long): String {
+        val zone = ZoneId.systemDefault()
+        val nowZdt = timeProvider.nowLocal().atZone(zone)
+        val trigger = Instant.ofEpochMilli(triggerAtUtcMillis).atZone(zone)
+
+        val datePart = when (val days = java.time.Duration.between(
+            nowZdt.toLocalDate().atStartOfDay(zone),
+            trigger.toLocalDate().atStartOfDay(zone)
+        ).toDays()) {
+            0L -> "오늘"
+            1L -> "내일"
+            else -> "${trigger.toLocalDate()}(${trigger.dayOfWeek.name.take(3)})"
+        }
+
+        val timePart = "%02d:%02d".format(trigger.hour, trigger.minute)
+
+        val diff = java.time.Duration.between(nowZdt, trigger)
+        val hours = diff.toHours()
+        val minutes = diff.minusHours(hours).toMinutes()
+        val remain = buildString {
+            if (hours > 0) append("${hours}시간 ")
+            append("${minutes}분 뒤")
+        }
+
+        return "$datePart $timePart ($remain)"
     }
 }

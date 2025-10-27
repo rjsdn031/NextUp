@@ -12,9 +12,10 @@ import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
 import lab.p4c.nextup.core.domain.alarm.usecase.DeleteAlarmAndCancel
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
-import lab.p4c.nextup.core.common.time.getTimeUntilAlarm
 import lab.p4c.nextup.core.common.time.indicesToDays
+import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
 import lab.p4c.nextup.core.domain.system.TimeProvider
+import java.time.Instant
 import java.time.ZoneId
 
 data class EditAlarmUiState(
@@ -54,7 +55,8 @@ class EditAlarmViewModel @Inject constructor(
     private val repo: AlarmRepository,
     private val upsert: UpsertAlarmAndReschedule,   // 저장 + 재스케줄
     private val delete: DeleteAlarmAndCancel,        // 삭제 + 취소
-    private val timeProvider: TimeProvider
+    private val timeProvider: TimeProvider,
+    private val nextTrigger: NextTriggerCalculator,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(EditAlarmUiState())
@@ -154,15 +156,21 @@ class EditAlarmViewModel @Inject constructor(
     /* ----- 매핑/유틸 ----- */
     private fun recalcNextTrigger() {
         val s = _ui.value
-        val nowLocal = timeProvider.nowLocal()
-        val line = getTimeUntilAlarm(
-            s.hour,
-            s.minute,
-            nowLocal.atZone(ZoneId.systemDefault())
+
+        val zone = ZoneId.systemDefault()
+        val nowZdt = timeProvider.nowLocal().atZone(zone)
+
+        val domain = mapUiToDomain(
+            s.copy(id = s.id ?: 0)
         )
+
+        val triggerMillis = nextTrigger.computeUtcMillis(domain, now = nowZdt)
+        val line = formatNextTriggerText(triggerMillis)
+
         _ui.value = s.copy(nextTriggerText = line)
     }
 
+    /* mapper */
     private fun mapDomainToUi(a: Alarm) = EditAlarmUiState(
         id = a.id,
         hour = a.hour,
@@ -185,6 +193,7 @@ class EditAlarmViewModel @Inject constructor(
         maxSnoozeCount = a.maxSnoozeCount
     )
 
+    /* mapper */
     private fun mapUiToDomain(s: EditAlarmUiState) = Alarm(
         id = s.id ?: 0,
         hour = s.hour,
@@ -207,4 +216,36 @@ class EditAlarmViewModel @Inject constructor(
         snoozeInterval = s.snoozeInterval,
         maxSnoozeCount = s.maxSnoozeCount
     )
+
+    private fun formatNextTriggerText(triggerAtUtcMillis: Long): String {
+        val zone = ZoneId.systemDefault()
+        val nowZdt = timeProvider.nowLocal().atZone(zone)
+        val trigger = Instant.ofEpochMilli(triggerAtUtcMillis).atZone(zone)
+
+        val dayDiff = java.time.Duration.between(
+            nowZdt.toLocalDate().atStartOfDay(zone),
+            trigger.toLocalDate().atStartOfDay(zone)
+        ).toDays()
+
+        val datePart = when (dayDiff) {
+            0L -> "오늘"
+            1L -> "내일"
+            else -> {
+                val fmt = java.time.format.DateTimeFormatter.ofPattern("M월 d일 (E)", java.util.Locale.KOREA)
+                trigger.format(fmt)
+            }
+        }
+
+        val timePart = "%02d:%02d".format(trigger.hour, trigger.minute)
+
+        val diff = java.time.Duration.between(nowZdt, trigger)
+        val hours = diff.toHours()
+        val minutes = diff.minusHours(hours).toMinutes()
+        val remain = buildString {
+            if (hours > 0) append("${hours}시간 ")
+            append("${minutes}분 뒤")
+        }
+
+        return "$datePart $timePart ($remain)"
+    }
 }

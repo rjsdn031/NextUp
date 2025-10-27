@@ -12,12 +12,16 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
+import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
 import lab.p4c.nextup.core.domain.alarm.usecase.DeleteAlarmAndCancel
 import lab.p4c.nextup.core.domain.alarm.usecase.ToggleAlarm
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
 import lab.p4c.nextup.core.domain.system.TimeProvider
+import java.time.Duration
+import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 @HiltViewModel
@@ -26,7 +30,8 @@ class AlarmListViewModel @Inject constructor(
     private val toggleAlarm: ToggleAlarm,
     private val upsert: UpsertAlarmAndReschedule,
     private val delete: DeleteAlarmAndCancel,
-    private val timeProvider: TimeProvider
+    private val timeProvider: TimeProvider,
+    private val nextTrigger: NextTriggerCalculator
 ) : ViewModel() {
 
     val alarms: StateFlow<List<Alarm>> =
@@ -59,5 +64,40 @@ class AlarmListViewModel @Inject constructor(
 
     fun onUpsert(alarm: Alarm) = viewModelScope.launch {
         upsert(alarm)
+    }
+
+    fun computeNextMillis(alarm: Alarm, now: ZonedDateTime): Long =
+        nextTrigger.computeUtcMillis(alarm, now)
+
+    fun formatNext(triggerAtUtcMillis: Long): String {
+        val zone = ZoneId.systemDefault()
+        val nowZdt = timeProvider.nowLocal().atZone(zone)
+        val trigger = Instant.ofEpochMilli(triggerAtUtcMillis).atZone(zone)
+
+        val dayDiff = Duration.between(
+            nowZdt.toLocalDate().atStartOfDay(zone),
+            trigger.toLocalDate().atStartOfDay(zone)
+        ).toDays()
+
+        val datePart = when (dayDiff) {
+            0L -> "오늘"
+            1L -> "내일"
+            else -> {
+                val fmt = DateTimeFormatter.ofPattern("M월 d일 (E)", java.util.Locale.KOREA)
+                trigger.format(fmt)
+            }
+        }
+
+        val timePart = "%02d:%02d".format(trigger.hour, trigger.minute)
+
+        val diff = Duration.between(nowZdt, trigger)
+        val hours = diff.toHours()
+        val minutes = diff.minusHours(hours).toMinutes()
+        val remain = buildString {
+            if (hours > 0) append("${hours}시간 ")
+            append("${minutes}분 뒤")
+        }
+
+        return "$datePart $timePart ($remain)"
     }
 }
