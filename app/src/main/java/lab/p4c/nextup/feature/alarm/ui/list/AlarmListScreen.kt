@@ -76,8 +76,8 @@ fun AlarmListScreen(
             onTap = { a, _ -> navController.navigate("edit/${a.id}") },
             onAdd = {},
             onUpdate = {},
-            computeNextMillis = vm::computeNextMillis, // ← VM에서 NextTriggerCalculator 사용
-            formatNext = vm::formatNext,               // ← VM의 포맷터 재사용
+            computeNextMillis = vm::computeNextMillis,
+            formatNext = vm::formatNext,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)

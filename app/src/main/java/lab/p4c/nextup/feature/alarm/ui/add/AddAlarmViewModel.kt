@@ -7,6 +7,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import lab.p4c.nextup.core.common.time.NextTriggerText
 import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
@@ -192,34 +193,7 @@ class AddAlarmViewModel @Inject constructor(
         )
 
         val triggerMillis = nextTrigger.computeUtcMillis(probe, now = nowZdt)
-        val line = formatNextTriggerText(triggerMillis)
+        val line = NextTriggerText.formatKor(triggerMillis, nowZdt)
         _ui.value = s.copy(nextTriggerText = line)
-    }
-
-    private fun formatNextTriggerText(triggerAtUtcMillis: Long): String {
-        val zone = ZoneId.systemDefault()
-        val nowZdt = timeProvider.nowLocal().atZone(zone)
-        val trigger = Instant.ofEpochMilli(triggerAtUtcMillis).atZone(zone)
-
-        val datePart = when (val days = java.time.Duration.between(
-            nowZdt.toLocalDate().atStartOfDay(zone),
-            trigger.toLocalDate().atStartOfDay(zone)
-        ).toDays()) {
-            0L -> "오늘"
-            1L -> "내일"
-            else -> "${trigger.toLocalDate()}(${trigger.dayOfWeek.name.take(3)})"
-        }
-
-        val timePart = "%02d:%02d".format(trigger.hour, trigger.minute)
-
-        val diff = java.time.Duration.between(nowZdt, trigger)
-        val hours = diff.toHours()
-        val minutes = diff.minusHours(hours).toMinutes()
-        val remain = buildString {
-            if (hours > 0) append("${hours}시간 ")
-            append("${minutes}분 뒤")
-        }
-
-        return "$datePart $timePart ($remain)"
     }
 }

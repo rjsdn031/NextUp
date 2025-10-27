@@ -40,25 +40,6 @@ fun dayOfWeekToKor(day: DayOfWeek): String = when (day) {
     DayOfWeek.SUNDAY -> "일"
 }
 
-/** Flutter getTimeUntilAlarm:
- *  - 1분 이상 남았으면 "X시간 Y분 후\n알람이 울립니다"
- *  - 그 미만이면 "잠시 후\n알람이 울립니다"
- */
-fun getTimeUntilAlarm(alarmHour: Int, alarmMinute: Int, now: ZonedDateTime): String {
-    val todayAlarm = now.withHour(alarmHour).withMinute(alarmMinute)
-        .withSecond(0).withNano(0)
-    val alarmDateTime = if (todayAlarm.isBefore(now)) todayAlarm.plusDays(1) else todayAlarm
-    val diff = Duration.between(now, alarmDateTime)
-    val totalMinutes = diff.toMinutes()
-    return if (totalMinutes >= 1) {
-        val hours = totalMinutes / 60
-        val minutes = totalMinutes % 60
-        "${hours}시간 ${minutes}분 후\n알람이 울립니다"
-    } else {
-        "잠시 후\n알람이 울립니다"
-    }
-}
-
 /** List<DayOfWeek> → "월 화 ..." */
 fun daysToKorLine(days: Collection<DayOfWeek>): String =
     days.joinToString(" ") { dayOfWeekToKor(it) }
