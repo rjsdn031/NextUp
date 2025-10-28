@@ -6,11 +6,16 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager.PARTIAL_WAKE_LOCK
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -35,10 +40,19 @@ class AlarmPlayerService : Service() {
     override fun onCreate() {
         super.onCreate()
         createChannel()
-        vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
+        vibrator = applicationContext.getVibratorCompat()
     }
 
+    private fun createAlarmAudioAttributes() = AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_ALARM)
+        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+        .build()
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        fadeJob?.cancel()
+        player?.stop(); player?.release(); player = null
+        vibrator?.cancel()
+
         val id = intent?.getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1) ?: -1
 
         startForeground(maxOf(1, id), buildNotification("알람", "일어날 시간입니다!", id))
@@ -50,7 +64,6 @@ class AlarmPlayerService : Service() {
                 return@launch
             }
 
-            // 알림 업데이트
             updateNotification(
                 title = alarm.name.ifBlank { "알람" },
                 body = alarm.notificationBody,
@@ -69,6 +82,7 @@ class AlarmPlayerService : Service() {
         player?.stop(); player?.release(); player = null
         vibrator?.cancel()
         scope.cancel()
+        stopForeground(STOP_FOREGROUND_REMOVE)
         super.onDestroy()
     }
 
@@ -86,32 +100,38 @@ class AlarmPlayerService : Service() {
                 val pathInAssets = alarm.assetAudioPath.removePrefix("assets/")
                 val afd = assets.openFd(pathInAssets)
                 player = MediaPlayer().apply {
+                    setAudioAttributes(createAlarmAudioAttributes())
+                    setWakeMode(this@AlarmPlayerService, PARTIAL_WAKE_LOCK)
                     setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
                     isLooping = alarm.loopAudio
                     setVolume(0f, 0f)
-                    prepare()
+
+                    prepareAsync()
                     start()
                 }
 
                 // 페이드 인
                 val target = alarm.volume.toFloat().coerceIn(0f, 1f)
                 val durationMs = (alarm.fadeDuration * 1000L).coerceAtLeast(0)
-                fadeJob?.cancel()
-                fadeJob = scope.launch {
-                    if (durationMs <= 0) {
-                        player?.setVolume(target, target)
-                    } else {
-                        val steps = 20
-                        val stepDelay = durationMs / steps
-                        for (i in 1..steps) {
-                            val v = target * (i / steps.toFloat())
-                            player?.setVolume(v, v)
-                            delay(stepDelay)
-                        }
-                    }
-                }
+                startFadeIn(target, durationMs)
             } catch (_: Exception) {
                 // 에셋 문제 등으로 실패해도 서비스는 계속 유지(진동/풀스크린 화면)
+            }
+        }
+    }
+
+    private fun startFadeIn(target: Float, durationMs: Long) {
+        fadeJob?.cancel()
+        fadeJob = scope.launch {
+            if (durationMs <= 0) {
+                player?.setVolume(target, target); return@launch
+            }
+            val steps = 20
+            val stepDelay = (durationMs / steps).coerceAtLeast(1L)
+            for (i in 1..steps) {
+                val v = target * (i / steps.toFloat())
+                player?.setVolume(v, v)
+                delay(stepDelay)
             }
         }
     }
@@ -132,7 +152,9 @@ class AlarmPlayerService : Service() {
             .setContentText(body)
             .setCategory(Notification.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setFullScreenIntent(fullPi, true)
+            .setContentIntent(fullPi)
             .setOngoing(true)
             .build()
     }
@@ -146,8 +168,21 @@ class AlarmPlayerService : Service() {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val ch = NotificationChannel(
             CHANNEL_ID, "Alarms", NotificationManager.IMPORTANCE_HIGH
-        ).apply { lockscreenVisibility = Notification.VISIBILITY_PUBLIC }
+        ).apply {
+            description = "알람 소리/진동 및 알림"
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+        }
         nm.createNotificationChannel(ch)
+    }
+
+    private fun Context.getVibratorCompat(): Vibrator {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vm = getSystemService(VibratorManager::class.java)
+            vm.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Vibrator::class.java)
+        }
     }
 
     companion object {
