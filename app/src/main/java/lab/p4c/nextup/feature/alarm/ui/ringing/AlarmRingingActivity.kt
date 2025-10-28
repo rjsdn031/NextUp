@@ -1,6 +1,5 @@
 package lab.p4c.nextup.feature.alarm.ui.ringing
 
-import android.R
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
@@ -9,22 +8,22 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.core.content.ContextCompat
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
-import androidx.core.content.edit
 import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.feature.alarm.infra.player.AlarmPlayerService
+import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class AlarmRingingActivity : ComponentActivity() {

@@ -143,9 +143,14 @@ fun EditAlarmScreen(
                             snoozeLabel = "매 ${ui.snoozeInterval}분, 최대 ${ui.maxSnoozeCount}회",
                             onSelectSnooze = {
                                 val nextInterval = when (ui.snoozeInterval) {
-                                    3 -> 5; 5 -> 10; else -> 3
+                                    1 -> 3
+                                    3 -> 5
+                                    5 -> 10
+                                    10 -> 1
+                                    else -> 1
                                 }
-                                val nextCount = if (ui.maxSnoozeCount == 3) 5 else 3
+                                val nextCount =
+                                    if (ui.maxSnoozeCount == 3) 5 else if (ui.maxSnoozeCount == 5) 10 else 3
                                 vm.selectSnooze(nextInterval, nextCount)
                             },
 

@@ -121,9 +121,14 @@ fun AddAlarmScreen(
                         onSelectSnooze = {
                             // 다이얼로그로 대체 가능. 샘플: 간단 순환
                             val nextInterval = when (ui.snoozeInterval) {
-                                3 -> 5; 5 -> 10; else -> 3
+                                1 -> 3
+                                3 -> 5
+                                5 -> 10
+                                10 -> 1
+                                else -> 1
                             }
-                            val nextCount = if (ui.maxSnoozeCount == 3) 5 else 3
+                            val nextCount =
+                                if (ui.maxSnoozeCount == 3) 5 else if (ui.maxSnoozeCount == 5) 10 else 3
                             vm.selectSnooze(nextInterval, nextCount)
                         },
 
