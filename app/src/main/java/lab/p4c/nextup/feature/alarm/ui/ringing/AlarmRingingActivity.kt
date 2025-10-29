@@ -3,6 +3,7 @@ package lab.p4c.nextup.feature.alarm.ui.ringing
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.LaunchedEffect
@@ -12,11 +13,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
+import lab.p4c.nextup.core.domain.alarm.usecase.DismissAlarm
 import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.feature.alarm.infra.player.AlarmPlayerService
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
@@ -33,10 +37,15 @@ class AlarmRingingActivity : ComponentActivity() {
 
     @Inject
     lateinit var repo: AlarmRepository
+
     @Inject
     lateinit var timeProvider: TimeProvider
+
     @Inject
     lateinit var scheduler: AndroidAlarmScheduler
+
+    @Inject
+    lateinit var dismissAlarm: DismissAlarm
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -103,8 +112,19 @@ class AlarmRingingActivity : ComponentActivity() {
                         remove(usedKey(id))
                     }
 
-                    setReadyToBlock(this, timeProvider, 10)
-                    finish()
+                    lifecycleScope.launch {
+                        runCatching { dismissAlarm(id) }
+                            .onFailure { e ->
+                                Log.e(
+                                    "AlarmFlow",
+                                    "Dismiss usecase failed id=$id: ${e.message}",
+                                    e
+                                )
+                            }
+
+                        setReadyToBlock(this@AlarmRingingActivity, timeProvider, 10)
+                        finish()
+                    }
                 },
 
                 onSnooze = {

@@ -64,7 +64,6 @@ class EditAlarmViewModel @Inject constructor(
     val ui = _ui.asStateFlow()
 
     private var baseline: String? = null
-    private var loadedEnabled: Boolean = true       // ← 기존 enabled 상태 보존
 
     fun load(alarmId: Int) = viewModelScope.launch {
         _ui.value = _ui.value.copy(isBusy = true)
@@ -74,7 +73,6 @@ class EditAlarmViewModel @Inject constructor(
                 _ui.value = _ui.value.copy(errorMessage = "알람을 찾을 수 없습니다.", isBusy = false)
                 return@launch
             }
-            loadedEnabled = a.enabled               // ← 보존
             _ui.value = mapDomainToUi(a).copy(loaded = true, isBusy = false)
             snapshot()
             recalcNextTrigger()
@@ -201,7 +199,7 @@ class EditAlarmViewModel @Inject constructor(
         minute = s.minute,
         days = s.repeatDays.indicesToDays(),
         skipHolidays = s.skipHolidays,
-        enabled = loadedEnabled,
+        enabled = true,
         assetAudioPath = s.ringtonePath,
         alarmSoundEnabled = s.alarmSoundEnabled,
         ringtoneName = s.ringtoneName,

@@ -13,7 +13,6 @@ import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
 import lab.p4c.nextup.core.common.time.indicesToDays
 import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
-import java.time.Instant
 import java.time.ZoneId
 
 data class AddAlarmUiState(

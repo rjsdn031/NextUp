@@ -8,4 +8,5 @@ interface AlarmRepository {
     suspend fun upsert(alarm: Alarm)
     suspend fun delete(id: Int)
     suspend fun getById(id: Int): Alarm?
+    suspend fun  setEnabled(id: Int, enabled: Boolean): Boolean
 }
