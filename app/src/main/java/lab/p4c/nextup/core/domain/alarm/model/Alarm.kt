@@ -6,7 +6,7 @@ import java.time.DayOfWeek
  * Represents a single alarm configuration in the NextUp alarm system.
  *
  * This data class encapsulates all settings related to a user-defined alarm:
- * trigger time, repetition days, sound/vibration preferences, and snooze behavior.
+ * trigger time, repetition days, sounds/vibration preferences, and snooze behavior.
  *
  * @property id Unique identifier for the alarm.
  * @property hour Hour of the alarm (0–23).

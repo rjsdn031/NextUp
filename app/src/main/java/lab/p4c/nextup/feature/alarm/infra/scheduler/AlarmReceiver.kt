@@ -14,19 +14,19 @@ class AlarmReceiver : BroadcastReceiver() {
         val id = intent.getIntExtra(EXTRA_ALARM_ID, -1)
         if (id < 0) return
 
-        // Overlay Init
         BlockGate.rearmForNextAlarm(context)
 
-        // Foreground service 시작 (O+)
         ContextCompat.startForegroundService(
             context,
             Intent(context, AlarmPlayerService::class.java)
                 .putExtra(EXTRA_ALARM_ID, id)
         )
 
-        // 풀스크린 링 화면
         context.startActivity(
-            Intent(context, AlarmRingingActivity::class.java)
+            Intent(
+                context,
+                AlarmRingingActivity::class.java
+            )
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 .putExtra(EXTRA_ALARM_ID, id)
         )

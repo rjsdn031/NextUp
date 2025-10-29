@@ -11,7 +11,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -50,12 +49,6 @@ class AlarmRingingActivity : ComponentActivity() {
         if (id <= 0) {
             finish(); return
         }
-
-        ContextCompat.startForegroundService(
-            this,
-            Intent(this, AlarmPlayerService::class.java)
-                .putExtra(AlarmReceiver.EXTRA_ALARM_ID, id)
-        )
 
         setContent {
             var title by remember { mutableStateOf("알람") }

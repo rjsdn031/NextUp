@@ -16,6 +16,7 @@ import android.os.PowerManager.PARTIAL_WAKE_LOCK
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -35,6 +36,8 @@ class AlarmPlayerService : Service() {
     private var vibrator: Vibrator? = null
     private var fadeJob: Job? = null
 
+    private var currentSessionId = 0
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -53,16 +56,15 @@ class AlarmPlayerService : Service() {
         player?.stop(); player?.release(); player = null
         vibrator?.cancel()
 
+        currentSessionId++
+        val sessionId = currentSessionId
+
         val id = intent?.getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1) ?: -1
 
         startForeground(maxOf(1, id), buildNotification("알람", "일어날 시간입니다!", id))
 
         scope.launch {
-            val alarm = withContext(Dispatchers.IO) { repo.getById(id) }
-            if (alarm == null) {
-                stopSelf()
-                return@launch
-            }
+            val alarm = withContext(Dispatchers.IO) { repo.getById(id) } ?: run { stopSelf(); return@launch }
 
             updateNotification(
                 title = alarm.name.ifBlank { "알람" },
@@ -71,7 +73,7 @@ class AlarmPlayerService : Service() {
             )
 
             // 재생 시작
-            startPlayback(alarm)
+            startPlayback(alarm, sessionId)
         }
 
         return START_NOT_STICKY
@@ -86,7 +88,7 @@ class AlarmPlayerService : Service() {
         super.onDestroy()
     }
 
-    private fun startPlayback(alarm: Alarm) {
+    private fun startPlayback(alarm: Alarm, sessionId: Int) {
         // 진동
         if (alarm.vibration) {
             vibrator?.vibrate(
@@ -97,40 +99,60 @@ class AlarmPlayerService : Service() {
         // 사운드 (알람음 비활성화면 스킵)
         if (alarm.alarmSoundEnabled) {
             try {
+                Log.d("AlarmPlayer", "SoundPlay Start")
                 val pathInAssets = alarm.assetAudioPath.removePrefix("assets/")
                 val afd = assets.openFd(pathInAssets)
+//                val afd = assets.openFd("sounds/test_sounds.mp3")
+
+                val target = alarm.volume.toFloat().coerceIn(0f, 1f)
+                val durationMs = (alarm.fadeDuration * 1000L).coerceAtLeast(0)
+
                 player = MediaPlayer().apply {
                     setAudioAttributes(createAlarmAudioAttributes())
                     setWakeMode(this@AlarmPlayerService, PARTIAL_WAKE_LOCK)
                     setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
                     isLooping = alarm.loopAudio
-                    setVolume(0f, 0f)
+                    setVolume(1f, 1f)
+
+                    setOnPreparedListener {
+                        if (sessionId != currentSessionId) return@setOnPreparedListener
+                        start()
+                        startFadeIn(sessionId, target, durationMs)
+                    }
+
+                    setOnErrorListener { _, what, extra ->
+                        Log.e("AlarmPlayer", "MediaPlayer error what=$what extra=$extra")
+                        true
+                    }
 
                     prepareAsync()
-                    start()
                 }
-
-                // 페이드 인
-                val target = alarm.volume.toFloat().coerceIn(0f, 1f)
-                val durationMs = (alarm.fadeDuration * 1000L).coerceAtLeast(0)
-                startFadeIn(target, durationMs)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.e("AlarmPlayer", "Failed to play asset ${alarm.assetAudioPath}", e)
                 // 에셋 문제 등으로 실패해도 서비스는 계속 유지(진동/풀스크린 화면)
             }
         }
     }
 
-    private fun startFadeIn(target: Float, durationMs: Long) {
+    private fun startFadeIn(sessionId: Int, target: Float, durationMs: Long) {
         fadeJob?.cancel()
         fadeJob = scope.launch {
             if (durationMs <= 0) {
-                player?.setVolume(target, target); return@launch
+                if (sessionId == currentSessionId) player?.setVolume(target, target)
+                return@launch
             }
             val steps = 20
             val stepDelay = (durationMs / steps).coerceAtLeast(1L)
             for (i in 1..steps) {
+                if (sessionId != currentSessionId) return@launch      // 세션 바뀌면 중단
+                val p = player ?: return@launch                        // 이미 정리되면 중단
                 val v = target * (i / steps.toFloat())
-                player?.setVolume(v, v)
+                try {
+                    p.setVolume(v, v)                                  // 준비 후 상태에서만 호출
+                } catch (e: IllegalStateException) {
+                    Log.w("AlarmPlayer", "setVolume in illegal state; session=$sessionId", e)
+                    return@launch
+                }
                 delay(stepDelay)
             }
         }
