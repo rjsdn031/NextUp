@@ -26,4 +26,19 @@ interface AlarmDao {
 
     @Query("UPDATE alarms SET enabled = :enabled WHERE id = :id")
     suspend fun setEnabled(id: Int, enabled: Boolean): Int
+
+    @Query("""
+        SELECT * FROM alarms
+        WHERE hour = :hour AND minute = :minute AND repeatMask = :repeatMask
+          AND id != :excludeId
+    """)
+    suspend fun findByTimeAndDaysExceptId(
+        hour: Int,
+        minute: Int,
+        repeatMask: Int,
+        excludeId: Int
+    ): List<AlarmEntity>
+
+    @Query("DELETE FROM alarms WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Int>)
 }

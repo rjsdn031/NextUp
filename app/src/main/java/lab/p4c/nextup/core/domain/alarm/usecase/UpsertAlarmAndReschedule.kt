@@ -22,44 +22,63 @@ class UpsertAlarmAndReschedule @Inject constructor(
     private val timeProvider: TimeProvider,
 ) {
     suspend operator fun invoke(alarm: Alarm) = withContext(Dispatchers.IO) {
-        var persistedId: Int? = null
-        var normalized: Alarm? = null
+        var finalId: Int = alarm.id
+        var finalModel: Alarm = alarm
+        var nextAt: Long? = null
 
         db.withTransaction {
-            val entity = alarm.toEntity()
-            val id = if (entity.id == 0) {
-                dao.insert(entity).toInt()
-            } else {
-                val rows = dao.update(entity)
-                if (rows == 0) dao.insert(entity).toInt() else entity.id
+            val incoming = alarm.toEntity()
+
+            val excludeId = if (incoming.id == 0) -1 else incoming.id
+            val dups = dao.findByTimeAndDaysExceptId(
+                hour = incoming.hour,
+                minute = incoming.minute,
+                repeatMask = incoming.repeatMask,
+                excludeId = excludeId
+            )
+
+            val survivorId = when {
+                incoming.id != 0 -> incoming.id
+                dups.isNotEmpty() -> dups.first().id
+                else -> 0
             }
-            persistedId = id
-            normalized = alarm.copy(id = id)
+
+            val toSave = if (survivorId == 0) incoming else incoming.copy(id = survivorId)
+            val persistedId = if (toSave.id == 0) {
+                dao.insert(toSave).toInt()
+            } else {
+                val rows = dao.update(toSave)
+                if (rows == 0) dao.insert(toSave).toInt() else toSave.id
+            }
+
+            finalId = persistedId
+            finalModel = alarm.copy(id = persistedId)
+
+            if (dups.isNotEmpty()) {
+                val survivors = setOf(persistedId)
+                val toDelete = dups.map { it.id }.filterNot { it in survivors }
+                if (toDelete.isNotEmpty()) {
+                    dao.deleteByIds(toDelete)
+                }
+            }
+
+            if (finalModel.enabled) {
+                val nowZdt = timeProvider.nowLocal().atZone(ZoneId.systemDefault())
+                nextAt = nextTrigger.computeUtcMillis(finalModel, now = nowZdt)
+            } else {
+                nextAt = null
+            }
         }
 
-        val id = requireNotNull(persistedId)
-        val model = requireNotNull(normalized)
+        scheduler.cancel(finalId)
 
-        if (!model.enabled) {
-            scheduler.cancel(id)
-            return@withContext
+        if (finalModel.enabled) {
+            val nowUtc = System.currentTimeMillis()
+            if (nextAt == null || nextAt!! <= nowUtc) {
+                Log.w("AlarmScheduler", "nextAt in the past or null: id=$finalId nextAt=$nextAt now=$nowUtc")
+                return@withContext
+            }
+            scheduler.schedule(finalId, nextAt!!, finalModel)
         }
-
-        // 동일 기준시간으로 계산
-        val nowZdt = timeProvider.nowLocal().atZone(ZoneId.systemDefault())
-        val nextAt = nextTrigger.computeUtcMillis(model, now = nowZdt)
-
-        // 방어 로직: nextAt 유효성 체크
-        val nowUtc = java.time.Instant.now().toEpochMilli()
-        if (nextAt <= nowUtc) {
-
-            scheduler.cancel(id)
-             Log.w("AlarmScheduler","nextAt in the past: id=$id nextAt=$nextAt now=$nowUtc")
-            return@withContext
-        }
-
-        // 동일 id 재등록 시 깔끔하게
-        scheduler.cancel(id)
-        scheduler.schedule(id, nextAt, model)
     }
 }
