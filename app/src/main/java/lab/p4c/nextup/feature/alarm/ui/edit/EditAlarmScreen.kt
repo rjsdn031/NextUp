@@ -1,15 +1,16 @@
 package lab.p4c.nextup.feature.alarm.ui.edit
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -163,6 +164,35 @@ fun EditAlarmScreen(
 
                             )
                     }
+
+                    item {
+                        Spacer(Modifier.height(4.dp))
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    "알람 삭제",
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "삭제",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(
+                                    enabled = !ui.isBusy,
+                                    onClick = { vm.delete { navController.popBackStack() } }
+                                ),
+                            colors = ListItemDefaults.colors(
+                                containerColor = Color.Transparent
+                            )
+                        )
+                    }
+
                 }
             }
         }
