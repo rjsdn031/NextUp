@@ -9,26 +9,33 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.navDeepLink
 import lab.p4c.nextup.feature.alarm.ui.list.AlarmListScreen
 import lab.p4c.nextup.feature.alarm.ui.add.AddAlarmScreen
 import lab.p4c.nextup.feature.alarm.ui.edit.EditAlarmScreen
 import lab.p4c.nextup.feature.settings.ui.AlarmSettingsScreen
+import lab.p4c.nextup.feature.survey.ui.SurveyScreen
+import lab.p4c.nextup.feature.survey.ui.SurveyScreenViewModel
 import lab.p4c.nextup.feature.usage.ui.UsageDetailRoute
 import lab.p4c.nextup.feature.usage.ui.UsageStatsScreen
 import lab.p4c.nextup.feature.usage.ui.UsageStatsSharedViewModel
 
 private object Routes {
-    const val Settings = "settings"
-    const val AlarmList = "alarm/list"
-    const val Add = "add"
-    const val Edit = "edit/{id}"
+    const val SETTINGS = "settings"
+    const val ALARMLIST = "alarm/list"
+    const val ADD = "add"
+    const val EDIT = "edit/{id}"
     fun edit(id: Int) = "edit/$id"
 
     // usage 서브그래프
-    const val UsageGraph = "usage_graph"
-    const val UsageList  = "usage"                 // 리스트
-    const val UsageDetail = "usage/detail/{pkg}"   // 상세
+    const val USAGEGRAPH = "usage_graph"
+    const val USAGELIST = "usage"                 // 리스트
+    const val USAGEDETAIL = "usage/detail/{pkg}"   // 상세
     fun usageDetail(pkg: String) = "usage/detail/$pkg"
+    
+    const val SURVEY = "survey"
+    const val SURVEY_COMPLETE = "survey/complete"
+    const val DEEPLINK_SURVEY = "app://nextup/survey" // 알림 URI
 }
 
 @Composable
@@ -37,33 +44,74 @@ fun AppRoot() {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.AlarmList
+        startDestination = Routes.ALARMLIST
     ) {
-        composable(Routes.AlarmList) {
+        composable(Routes.ALARMLIST) {
             AlarmListScreen(navController = navController)
         }
-        composable(Routes.Add) {
+        composable(Routes.ADD) {
             AddAlarmScreen(navController = navController)
         }
-        composable(Routes.Settings) {
+        composable(Routes.SETTINGS) {
             AlarmSettingsScreen(navController)
         }
         composable(
-            route = Routes.Edit,
+            route = Routes.EDIT,
             arguments = listOf(navArgument("id") { type = NavType.IntType })
         ) { entry ->
             val id = entry.arguments?.getInt("id") ?: return@composable
             EditAlarmScreen(alarmId = id, navController = navController)
         }
 
+        // ✅ 설문: 딥링크로 진입 가능
+        composable(
+            route = Routes.SURVEY,
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = Routes.DEEPLINK_SURVEY + "?source={source}"
+                }
+            ),
+            arguments = listOf(
+                navArgument("source") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                    nullable = true
+                }
+            )
+        ) { entry ->
+            val vm: SurveyScreenViewModel = hiltViewModel()
+            // val source = entry.arguments?.getString("source") // 필요 시 분석용
+
+            SurveyScreen(
+                viewModel = vm,
+                onComplete = {
+                    // 완료 이동: 1) 완료 화면으로
+                    // navController.navigate(Routes.SURVEY_COMPLETE) {
+                    //     launchSingleTop = true
+                    // }
+                    // 또는 2) 리스트로 복귀 + back stack 정리
+                    navController.navigate(Routes.ALARMLIST) {
+                        popUpTo(Routes.SURVEY) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        // (선택) 설문 완료 화면
+        composable(Routes.SURVEY_COMPLETE) {
+            // 가벼운 "완료" UI 혹은 토스트/스낵바로 대체 가능
+            // CompleteScreen(onDone = { navController.navigate(Routes.ALARMLIST) { popUpTo(0) } })
+        }
+
         // ✅ usage 서브그래프: 리스트/상세가 같은 부모 entry에 스코프된 VM 공유
         navigation(
-            route = Routes.UsageGraph,
-            startDestination = Routes.UsageList
+            route = Routes.USAGEGRAPH,
+            startDestination = Routes.USAGELIST
         ) {
-            composable(Routes.UsageList) { entry ->
+            composable(Routes.USAGELIST) { entry ->
                 val parentEntry = remember(entry) {
-                    navController.getBackStackEntry(Routes.UsageGraph)
+                    navController.getBackStackEntry(Routes.USAGEGRAPH)
                 }
                 val sharedVm: UsageStatsSharedViewModel = hiltViewModel(parentEntry)
                 UsageStatsScreen(
@@ -72,11 +120,11 @@ fun AppRoot() {
                 )
             }
             composable(
-                route = Routes.UsageDetail,
+                route = Routes.USAGEDETAIL,
                 arguments = listOf(navArgument("pkg") { type = NavType.StringType })
             ) { entry ->
                 val parentEntry = remember(entry) {
-                    navController.getBackStackEntry(Routes.UsageGraph)
+                    navController.getBackStackEntry(Routes.USAGEGRAPH)
                 }
                 val sharedVm: UsageStatsSharedViewModel = hiltViewModel(parentEntry)
 
