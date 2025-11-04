@@ -1,6 +1,7 @@
 package lab.p4c.nextup.feature.alarm.ui.list
 
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -15,11 +16,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmFAB
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmListView
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmTopBar
 import lab.p4c.nextup.feature.alarm.ui.ringing.AlarmRingingActivity
+import lab.p4c.nextup.feature.survey.infra.scheduler.AndroidSurveyReminderScheduler
+import java.time.ZoneId
 
 
 @Composable
@@ -29,7 +33,7 @@ fun AlarmListScreen(
 ) {
     val alarms by vm.alarms.collectAsStateWithLifecycle()
     val now by vm.now.collectAsStateWithLifecycle()
-//    val ctx = LocalContext.current
+    val ctx = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -52,6 +56,21 @@ fun AlarmListScreen(
                         onClick = {
                             expanded = false
                             navController.navigate("usage")
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("푸시알림 테스트") },
+                        onClick = {
+                            expanded = false
+
+                            val zdt = now.plusMinutes(2).withSecond(0).withNano(0)
+                            AndroidSurveyReminderScheduler(ctx).scheduleAt(zdt)
+                            Toast.makeText(
+                                ctx,
+                                "테스트 알림을 예약했습니다: ${zdt.toLocalTime()}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+
                         }
                     )
                 }

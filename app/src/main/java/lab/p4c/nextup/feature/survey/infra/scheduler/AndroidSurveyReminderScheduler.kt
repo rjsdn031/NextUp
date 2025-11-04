@@ -20,7 +20,7 @@ class AndroidSurveyReminderScheduler(
     override fun scheduleAt(zdt: ZonedDateTime) {
         val triggerAtMillis = zdt.toInstant().toEpochMilli()
 
-        if (ExactAlarmPermission.canSchedule(context)) {
+        if (!ExactAlarmPermission.canSchedule(context)) {
             // 필요 시 권한 요청
             Log.w(TAG, "Exact alarm not allowed. Consider directing user to Settings.")
             return
