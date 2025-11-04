@@ -65,6 +65,21 @@
         <receiver
             android:name="lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver"
             android:exported="false" />
+
+        <receiver
+            android:name=".feature.survey.infra.scheduler.SurveyReminderReceiver"
+            android:exported="false" />
+
+        <!-- 부팅 후 재예약 -->
+<!--        <receiver-->
+<!--            android:name=".feature.survey.infra.scheduler.SurveyBootReceiver"-->
+<!--            android:exported="false">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.BOOT_COMPLETED" />-->
+<!--                <action android:name="android.intent.action.TIME_SET" />-->
+<!--                <action android:name="android.intent.action.TIMEZONE_CHANGED" />-->
+<!--            </intent-filter>-->
+<!--        </receiver>-->
     </application>
 
 </manifest>
