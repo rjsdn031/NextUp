@@ -16,13 +16,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import lab.p4c.nextup.core.domain.system.TimeProvider
+import lab.p4c.nextup.app.time.SystemTimeProvider
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmFAB
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmListView
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmTopBar
 import lab.p4c.nextup.feature.alarm.ui.ringing.AlarmRingingActivity
 import lab.p4c.nextup.feature.survey.infra.scheduler.AndroidSurveyReminderScheduler
+import java.time.Clock
 import java.time.ZoneId
 
 
@@ -63,8 +64,8 @@ fun AlarmListScreen(
                         onClick = {
                             expanded = false
 
-                            val zdt = now.plusMinutes(2).withSecond(0).withNano(0)
-                            AndroidSurveyReminderScheduler(ctx).scheduleAt(zdt)
+                            val zdt = now.plusMinutes(1).withSecond(0).withNano(0)
+                            vm.scheduleTestSurveyReminder()
                             Toast.makeText(
                                 ctx,
                                 "테스트 알림을 예약했습니다: ${zdt.toLocalTime()}",

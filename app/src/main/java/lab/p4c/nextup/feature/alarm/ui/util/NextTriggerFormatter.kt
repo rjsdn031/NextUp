@@ -1,10 +1,12 @@
-package lab.p4c.nextup.core.common.time
+package lab.p4c.nextup.feature.alarm.ui.util
 
-import java.time.*
+import java.time.Duration
+import java.time.Instant
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-object NextTriggerText {
+object NextTriggerFormatter {
 
     fun formatKor(
         triggerAtUtcMillis: Long,

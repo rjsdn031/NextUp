@@ -25,8 +25,12 @@ class SurveyScreenViewModel @Inject constructor(
     var step by mutableIntStateOf(1)
         private set
 
-    // 폼 입력 상태 (불완전 가능)
+    // 폼 입력 상태
     var form by mutableStateOf(SurveyFormState())
+        private set
+
+    // 중복 제출 방지
+    var isSubmitting by mutableStateOf(false)
         private set
 
     // 입력 핸들러
@@ -41,11 +45,11 @@ class SurveyScreenViewModel @Inject constructor(
             1 -> form.productivityScore != null && (form.productivityScore ?: -1) in 0..4
             2 -> form.productivityReason.isNotBlank()
             3 -> form.goalAchievement != null && (form.goalAchievement ?: -1) in 0..4
-            4 -> form.nextGoal.isNotBlank()
+            4 -> form.nextGoal.isNotBlank() && !isSubmitting
             else -> false
         }
 
-    fun onPrev() { if (step > 1) step-- }
+    fun onPrev() { if (step > 1 && !isSubmitting) step-- }
 
     fun onNextOrSubmit(
         onSuccess: () -> Unit,
@@ -62,20 +66,28 @@ class SurveyScreenViewModel @Inject constructor(
         onSuccess: () -> Unit,
         onError: (List<SurveyValidationError>) -> Unit
     ) = viewModelScope.launch {
-        val dateKey = timeProvider.now()
-            .atZone(ZoneId.systemDefault())
-            .toLocalDate()
-            .toString()
+        if (isSubmitting) return@launch
+        isSubmitting = true
+        try {
+            val dateKey = timeProvider.now()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+                .toString()
 
-        when (val r = form.toDomain(dateKey)) {
-            is Validation.Ok -> {
-                submitDailySurvey(r.value)
-                scheduleDailySurveyReminder(21, 0)
-                onSuccess()
+            when (val r = form.toDomain(dateKey)) {
+                is Validation.Ok -> {
+                    submitDailySurvey(r.value)
+                    // 매일 21:00 (유스케이스 기본값 호출)
+                    scheduleDailySurveyReminder()
+                    onSuccess()
+                    // 성공 시 초기화
+                    step = 1
+                    form = SurveyFormState()
+                }
+                is Validation.Err -> onError(r.errors)
             }
-            is Validation.Err -> {
-                onError(r.errors)
-            }
+        } finally {
+            isSubmitting = false
         }
     }
 }

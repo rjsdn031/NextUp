@@ -7,7 +7,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import lab.p4c.nextup.core.common.time.NextTriggerText
+import lab.p4c.nextup.feature.alarm.ui.util.NextTriggerFormatter
 import lab.p4c.nextup.core.common.time.daysToIndices
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
@@ -16,7 +16,6 @@ import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
 import lab.p4c.nextup.core.common.time.indicesToDays
 import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
 import lab.p4c.nextup.core.domain.system.TimeProvider
-import java.time.Instant
 import java.time.ZoneId
 
 data class EditAlarmUiState(
@@ -164,7 +163,7 @@ class EditAlarmViewModel @Inject constructor(
         )
 
         val triggerMillis = nextTrigger.computeUtcMillis(domain, nowZdt)
-        val line = NextTriggerText.formatKor(triggerMillis, nowZdt)
+        val line = NextTriggerFormatter.formatKor(triggerMillis, nowZdt)
 
         _ui.value = s.copy(nextTriggerText = line)
     }

@@ -25,8 +25,8 @@ fun SurveyScreen(
     onComplete: () -> Unit,
     onError: (List<SurveyValidationError>) -> Unit = {}
 ) {
-    val step by viewModel::step
-    val form by viewModel::form
+    val step = viewModel.step
+    val form = viewModel.form
     val canProceed = viewModel.canProceed
 
     Surface(
@@ -68,9 +68,10 @@ fun SurveyScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (step > 1) {
-                    TextButton(onClick = viewModel::onPrev) {
-                        Text("이전")
-                    }
+                    TextButton(
+                        onClick = viewModel::onPrev,
+                        enabled = !viewModel.isSubmitting
+                    ) { Text("이전") }
                 } else {
                     Spacer(Modifier.width(64.dp))
                 }

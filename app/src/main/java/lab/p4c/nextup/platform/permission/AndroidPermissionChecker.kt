@@ -9,7 +9,7 @@ import lab.p4c.nextup.core.common.permission.PermissionChecker
 
 @Singleton
 class AndroidPermissionChecker @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param: ApplicationContext private val context: Context
 ) : PermissionChecker {
 
     override fun hasExactAlarm(): Boolean =

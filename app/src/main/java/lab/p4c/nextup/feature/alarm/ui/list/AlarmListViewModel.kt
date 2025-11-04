@@ -9,13 +9,14 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import lab.p4c.nextup.core.common.time.NextTriggerText
+import lab.p4c.nextup.feature.alarm.ui.util.NextTriggerFormatter
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
 import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
 import lab.p4c.nextup.core.domain.alarm.usecase.DeleteAlarmAndCancel
 import lab.p4c.nextup.core.domain.alarm.usecase.ToggleAlarm
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
+import lab.p4c.nextup.core.domain.survey.usecase.ScheduleDailySurveyReminder
 import lab.p4c.nextup.core.domain.system.TimeProvider
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -28,7 +29,8 @@ class AlarmListViewModel @Inject constructor(
     private val upsert: UpsertAlarmAndReschedule,
     private val delete: DeleteAlarmAndCancel,
     private val timeProvider: TimeProvider,
-    private val nextTrigger: NextTriggerCalculator
+    private val nextTrigger: NextTriggerCalculator,
+    private val scheduleDailySurveyReminder: ScheduleDailySurveyReminder    // reminder test
 ) : ViewModel() {
 
     val alarms: StateFlow<List<Alarm>> =
@@ -70,6 +72,13 @@ class AlarmListViewModel @Inject constructor(
 
     fun formatNext(triggerAtUtcMillis: Long): String {
         val nowZdt = timeProvider.nowLocal().atZone(ZoneId.systemDefault())
-        return NextTriggerText.formatKor(triggerAtUtcMillis, nowZdt, true)
+        return NextTriggerFormatter.formatKor(triggerAtUtcMillis, nowZdt, true)
+    }
+
+    // reminder test
+    fun scheduleTestSurveyReminder() = viewModelScope.launch {
+        val now = timeProvider.now().atZone(ZoneId.systemDefault())
+        val testZdt = now.plusMinutes(1).withSecond(0).withNano(0)
+        scheduleDailySurveyReminder(testZdt.toLocalTime())
     }
 }

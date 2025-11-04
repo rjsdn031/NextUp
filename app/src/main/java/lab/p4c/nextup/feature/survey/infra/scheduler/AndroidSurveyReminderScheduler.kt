@@ -5,32 +5,34 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
 import lab.p4c.nextup.core.domain.survey.port.SurveyReminderScheduler
 import lab.p4c.nextup.platform.permission.ExactAlarmPermission
-import java.time.ZoneId
 import java.time.ZonedDateTime
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class AndroidSurveyReminderScheduler(
-    private val context: Context
+@Singleton
+class AndroidSurveyReminderScheduler @Inject constructor(
+    @param: ApplicationContext private val context: Context,
 ) : SurveyReminderScheduler {
 
     private val alarmMgr: AlarmManager =
         context.getSystemService(AlarmManager::class.java)
 
     override fun scheduleAt(zdt: ZonedDateTime) {
-        val triggerAtMillis = zdt.toInstant().toEpochMilli()
-
         if (!ExactAlarmPermission.canSchedule(context)) {
             // 필요 시 권한 요청
             Log.w(TAG, "Exact alarm not allowed. Consider directing user to Settings.")
             return
         }
 
+        val triggerAtMillis = zdt.toInstant().toEpochMilli()
         try {
             alarmMgr.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 triggerAtMillis,
-                pendingIntent(triggerAtMillis)
+                firePendingIntent() // extras 없어도 동일 identity
             )
         } catch (se: SecurityException) {
             Log.w(TAG, "Exact alarm permission not granted.", se)
@@ -38,37 +40,12 @@ class AndroidSurveyReminderScheduler(
     }
 
     override fun cancel() {
-        alarmMgr.cancel(pendingIntent(/* extras는 identity에 영향 없음 */0L))
+        alarmMgr.cancel(firePendingIntent())
     }
 
-    /**
-     * 리시버에서 전달받은 마지막 트리거 시각을 기준으로 다음날 같은 시각에 재예약.
-     * lastTriggerAtMillis가 0이면 지금 시각 기준 +1일 21:00처럼 고정 로직을 별도로 적용해도 된다.
-     */
-    fun scheduleNextDaySameTime(lastTriggerAtMillis: Long) {
-        val next = if (lastTriggerAtMillis > 0L) {
-            lastTriggerAtMillis + AlarmManager.INTERVAL_DAY
-        } else {
-            // fallback: 시스템 현지 시간 기준으로 +1일 같은 시각
-            val now = ZonedDateTime.now(ZoneId.systemDefault())
-            now.plusDays(1).toInstant().toEpochMilli()
-        }
-
-        try {
-            alarmMgr.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                next,
-                pendingIntent(next)
-            )
-        } catch (se: SecurityException) {
-            Log.w(TAG, "Exact alarm permission not granted for reschedule.", se)
-        }
-    }
-
-    private fun pendingIntent(triggerAtMillis: Long): PendingIntent {
-        val intent = Intent(context, SurveyReminderReceiver::class.java).apply {
-            putExtra(EXTRA_TRIGGER_AT, triggerAtMillis)
-        }
+    private fun firePendingIntent(): PendingIntent {
+        val intent = Intent(context, SurveyReminderReceiver::class.java)
+            .setAction(ACTION_SURVEY_REMINDER)
         return PendingIntent.getBroadcast(
             context,
             REQUEST_CODE,
@@ -80,6 +57,6 @@ class AndroidSurveyReminderScheduler(
     companion object {
         private const val TAG = "SurveyScheduler"
         private const val REQUEST_CODE = 9121
-        const val EXTRA_TRIGGER_AT = "extra_trigger_at"
+        private const val ACTION_SURVEY_REMINDER = "lab.p4c.nextup.action.SURVEY_REMINDER"
     }
 }
