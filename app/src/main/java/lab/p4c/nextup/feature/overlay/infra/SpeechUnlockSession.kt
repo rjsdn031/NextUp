@@ -67,7 +67,7 @@ class SpeechUnlockSession(
     }
 
     private val listener = object : RecognitionListener {
-        override fun onReadyForSpeech(params: Bundle?) { onState("말하세요") }
+        override fun onReadyForSpeech(params: Bundle?) { onState("듣는 중...") }
         override fun onBeginningOfSpeech() {}
         override fun onRmsChanged(rmsdB: Float) {}
         override fun onBufferReceived(buffer: ByteArray?) {}
