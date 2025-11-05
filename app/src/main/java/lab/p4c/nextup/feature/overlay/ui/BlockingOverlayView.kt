@@ -41,14 +41,14 @@ fun BlockingOverlayView(
     onConfirm: () -> Unit,
     onBind: (
         setTarget: (String) -> Unit,
-        setState: (String) -> Unit,
+        setPhase: (UnlockPhase) -> Unit,
         setPartial: (hyp: String, sim: Float) -> Unit
     ) -> Unit,
     threshold: Float = 0.87f
 ) {
     var title by remember { mutableStateOf("YOUTUBE를 계속 이용하려면\n아래 문장을 또박또박 따라 말하세요") }
     var target by remember { mutableStateOf("문장을 불러오는 중…") }
-    var stateText by remember { mutableStateOf("준비 중…") }
+    var phase by remember { mutableStateOf(UnlockPhase.Idle) }
     var partial by remember { mutableStateOf("") }
     var similarity by remember { mutableFloatStateOf(0f) }
     var isListening by remember { mutableStateOf(false) }
@@ -58,7 +58,7 @@ fun BlockingOverlayView(
     LaunchedEffect(Unit) {
         onBind(
             { t -> target = t },
-            { s -> stateText = s },
+            { p -> phase = p },
             { h, s -> partial = h; similarity = s.coerceIn(0f, 1f) }
         )
     }
@@ -125,7 +125,7 @@ fun BlockingOverlayView(
 
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = stateText,
+                    text = phaseText(phase),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color(0xFFEEEEEE),
                     textAlign = TextAlign.Center

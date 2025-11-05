@@ -8,13 +8,14 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import lab.p4c.nextup.feature.overlay.ui.UnlockPhase
 import kotlin.math.max
 import kotlin.math.min
 
 class SpeechUnlockSession(
     private val context: Context,
     private val targetPhrase: String,
-    private val onState: (String) -> Unit,          // 상태 표시 ("듣는 중…" 등)
+    private val onPhase: (UnlockPhase) -> Unit,         // 상태 표시 ("듣는 중…" 등)
     private val onPartial: (String, Float) -> Unit, // 부분 인식 + 유사도
     private val onSuccess: () -> Unit,
     private val onErrorUi: (Int) -> Unit            // 에러 코드 전달(로그/UI)
@@ -29,7 +30,7 @@ class SpeechUnlockSession(
         if (isDestroyed || isListening) return
         ensureRecognizer()
         isListening = true
-        onState("듣는 중…")
+        onPhase(UnlockPhase.Listening)
         recognizer?.startListening(koreanOfflineIntent())
     }
 
@@ -37,7 +38,7 @@ class SpeechUnlockSession(
         isDestroyed = true
         isListening = false
         safeStopAndDestroy()
-        onState("대기 중…")
+        onPhase(UnlockPhase.Idle)
     }
 
     private fun ensureRecognizer() {
@@ -67,11 +68,11 @@ class SpeechUnlockSession(
     }
 
     private val listener = object : RecognitionListener {
-        override fun onReadyForSpeech(params: Bundle?) { onState("듣는 중...") }
+        override fun onReadyForSpeech(params: Bundle?) { onPhase(UnlockPhase.Listening) }
         override fun onBeginningOfSpeech() {}
         override fun onRmsChanged(rmsdB: Float) {}
         override fun onBufferReceived(buffer: ByteArray?) {}
-        override fun onEndOfSpeech() { onState("처리 중…") }
+        override fun onEndOfSpeech() { onPhase(UnlockPhase.Processing) }
 
         override fun onPartialResults(partialResults: Bundle?) {
             val hyp = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
@@ -82,6 +83,7 @@ class SpeechUnlockSession(
                 if (isSuccess(hyp, targetPhrase, sim)) {
                     isListening = false
                     onSuccess()
+                    onPhase(UnlockPhase.Matched)
                 }
             }
         }
@@ -93,46 +95,27 @@ class SpeechUnlockSession(
             if (isSuccess(best, targetPhrase, sim)) {
                 isListening = false
                 onSuccess()
+                onPhase(UnlockPhase.Matched)
             } else {
                 // 실패해도 자동 재시작하지 않음 (버튼으로 다시 시도)
                 isListening = false
-                onState("일치하지 않아요. 다시 시도해 주세요.")
+                onPhase(UnlockPhase.Mismatch)
             }
         }
 
         override fun onError(error: Int) {
-            // ✅ 자동 재시작 금지: 루프/StackOverflow 방지
             isListening = false
             onErrorUi(error)
-            onState(
-                when (error) {
-                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "권한 오류: 설정에서 마이크 허용 필요"
-                    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "음성 엔진 사용 중. 잠시 후 다시 시도"
-                    SpeechRecognizer.ERROR_CLIENT -> "클라이언트 오류. 다시 시도해주세요"
-                    SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "음성이 감지되지 않았어요"
-                    SpeechRecognizer.ERROR_NO_MATCH -> "인식되지 않았어요"
-                    else -> "인식 오류($error)"
-                }
-            )
-            // 엔진 상태 초기화
-            safeStopAndDestroy()
-
-            // ───────────────────────────────────────────────
-            // 🔧 필요 시, 일부 에러(타임아웃/노매치)만 자동 재시작하고 싶다면 아래 주석 해제
-            /*
-            if (error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT ||
-                error == SpeechRecognizer.ERROR_NO_MATCH) {
-                main.postDelayed({
-                    if (!isDestroyed) {
-                        ensureRecognizer()
-                        isListening = true
-                        onState("다시 듣는 중…")
-                        recognizer?.startListening(koreanOfflineIntent())
-                    }
-                }, 600L)
+            val phase = when (error) {
+                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> UnlockPhase.PermissionErr
+                SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> UnlockPhase.Busy
+                SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> UnlockPhase.Timeout
+                SpeechRecognizer.ERROR_NO_MATCH -> UnlockPhase.Mismatch
+                else -> UnlockPhase.ClientErr
             }
-            */
-            // ───────────────────────────────────────────────
+            onPhase(phase)
+            // Todo: ClientErr일때 확인용 코드 추가
+            safeStopAndDestroy()
         }
 
         override fun onEvent(eventType: Int, params: Bundle?) {}

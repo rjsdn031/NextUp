@@ -16,6 +16,7 @@ import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import lab.p4c.nextup.feature.overlay.ui.BlockingOverlayView
+import lab.p4c.nextup.feature.overlay.ui.UnlockPhase
 
 object BlockingOverlayController {
     private val overlayRef = AtomicReference<WeakReference<View>?>(null)
@@ -32,6 +33,8 @@ object BlockingOverlayController {
     private var lastTarget: String? = null
     private var lastState: String? = null
     private var lastPartial: Pair<String, Float>? = null
+
+    private val setPhaseRef = AtomicReference<((UnlockPhase) -> Unit)?>(null)
 
     fun isShowing(): Boolean = overlayRef.get()?.get() != null
 
@@ -84,17 +87,14 @@ object BlockingOverlayController {
                     onDismiss = { hide(appCtx) },
                     onStartListening = { startSession(appCtx, targetPhrase, onUnlocked) },
                     onStopListening = { stopSession() },
-                    onConfirm = {
-                        hide(context)
-                        onUnlocked()
-                    },
-                    onBind = { setTarget, setState, setPartial ->
+                    onConfirm = { hide(context); onUnlocked() },
+                    onBind = { setTarget, setPhase, setPartial ->
                         setTargetRef.set(setTarget)
-                        setStateRef.set(setState)
                         setPartialRef.set(setPartial)
-                        lastTarget?.let { setTarget(it) }
-                        lastState?.let { setState(it) }
-                        lastPartial?.let { (h, s) -> setPartial(h, s) }
+                        setPhaseRef.set(setPhase)
+
+                        setTarget(targetPhrase)
+                        setPhase(UnlockPhase.Idle)
                     }
                 )
             }
@@ -107,9 +107,8 @@ object BlockingOverlayController {
         // Compose가 올라오도록 한 프레임 뒤에 UI 초기값 세팅 & STT 시작
         Handler(Looper.getMainLooper()).post {
             lastTarget = targetPhrase
-            lastState = "대기 중…"
             setTargetRef.get()?.invoke(targetPhrase)
-            setStateRef.get()?.invoke("버튼을 눌러 말하기를 시작하세요")
+            setPhaseRef.get()?.invoke(UnlockPhase.Idle)
         }
 
         return true
@@ -150,29 +149,10 @@ object BlockingOverlayController {
         stt = SpeechUnlockSession(
             context = context,
             targetPhrase = targetPhrase,
-            onState = { text ->
-                lastState = text
-                setStateRef.get()?.let { postMain { it(text) } }
-            },
-            onPartial = { hyp, sim ->
-                lastPartial = hyp to sim
-                setPartialRef.get()?.let { postMain { it(hyp, sim) } }
-            },
-            onSuccess = {
-                setStateRef.get()?.let { postMain { it("충분히 인식됨. ‘이용하기’를 눌러 계속하세요") } }
-            },
-            onErrorUi = { code ->
-                when (code) {
-                    SpeechRecognizer.ERROR_SPEECH_TIMEOUT,
-                    SpeechRecognizer.ERROR_NO_MATCH -> {
-                        setStateRef.get()?.let { postMain { it("다시 말해주세요") } }
-                    }
-                    else -> {
-                        setStateRef.get()?.let { postMain { it("인식 오류($code)") } }
-                    }
-                }
-            }
-
+            onPhase = { phase -> setPhaseRef.get()?.invoke(phase) },
+            onPartial = { hyp, sim -> lastPartial = hyp to sim; setPartialRef.get()?.let { postMain { it(hyp, sim) } } },
+            onSuccess = { /* 성공 시 UI 상태는 Matched에서 처리됨 */ },
+            onErrorUi = { /* 필요시 로깅 전용 */ }
         ).also { it.start() }
     }
 
