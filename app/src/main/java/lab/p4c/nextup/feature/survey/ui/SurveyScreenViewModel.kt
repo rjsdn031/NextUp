@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.launch
+import lab.p4c.nextup.core.domain.overlay.usecase.UpdateTodayTargetFromSurvey
 import lab.p4c.nextup.core.domain.survey.usecase.ScheduleDailySurveyReminder
 import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.core.domain.survey.usecase.SubmitDailySurvey
@@ -18,6 +19,7 @@ import java.time.ZoneId
 class SurveyScreenViewModel @Inject constructor(
     private val submitDailySurvey: SubmitDailySurvey,
     private val scheduleDailySurveyReminder: ScheduleDailySurveyReminder,
+    private val updateTodayTargetFromSurvey: UpdateTodayTargetFromSurvey,
     private val timeProvider: TimeProvider
 ) : ViewModel() {
 
@@ -77,6 +79,11 @@ class SurveyScreenViewModel @Inject constructor(
             when (val r = form.toDomain(dateKey)) {
                 is Validation.Ok -> {
                     submitDailySurvey(r.value)
+
+                    if (form.nextGoal.isNotBlank()) {
+                        updateTodayTargetFromSurvey(form.nextGoal)
+                    }
+
                     // 매일 21:00 (유스케이스 기본값 호출)
                     scheduleDailySurveyReminder()
                     onSuccess()

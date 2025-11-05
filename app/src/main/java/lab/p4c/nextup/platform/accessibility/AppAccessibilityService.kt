@@ -3,11 +3,22 @@ package lab.p4c.nextup.platform.accessibility
 import android.accessibilityservice.AccessibilityService
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
-import lab.p4c.nextup.feature.overlay.infra.BlockingOverlayController
-import lab.p4c.nextup.feature.overlay.infra.BlockedAppsStore
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+import kotlinx.coroutines.*
 import lab.p4c.nextup.feature.overlay.infra.BlockGate
+import lab.p4c.nextup.feature.overlay.infra.BlockedAppsStore
+import lab.p4c.nextup.feature.overlay.infra.BlockingOverlayController
+import lab.p4c.nextup.core.domain.overlay.usecase.GetActiveBlockingTarget
 
+@AndroidEntryPoint
 class AppAccessibilityService : AccessibilityService() {
+
+    @Inject
+    lateinit var getActiveBlockingTarget: GetActiveBlockingTarget
+
+    private val serviceJob = SupervisorJob()
+    private val serviceScope = CoroutineScope(Dispatchers.Main.immediate + serviceJob)
 
     private var lastShowMillis = 0L
     private var blockedApps: Set<String> = emptySet()
@@ -22,7 +33,6 @@ class AppAccessibilityService : AccessibilityService() {
         event ?: return
         val pkg = event.packageName?.toString() ?: return
 
-        // 관심 이벤트만 처리 (포그라운드 전환, 창 변경 등)
         val type = event.eventType
         val interesting = type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
                 type == AccessibilityEvent.TYPE_WINDOWS_CHANGED ||
@@ -40,20 +50,23 @@ class AppAccessibilityService : AccessibilityService() {
 
         if (shouldBlock) {
             if (!BlockingOverlayController.isShowing() || now - lastShowMillis > 1500) {
-                // 따라 말할 문장
-                val phrase = "나는 오늘 집중을 유지한다."
-                val shown = BlockingOverlayController.show(
-                    context = this,
-                    targetPhrase = phrase,
-                    onUnlocked = {
-                        BlockGate.disableUntilNextAlarm(this)
-                        Log.d(TAG, "Overlay unlocked for $pkg — blocking disabled until next alarm")
-                    }
-                )
-                if (shown) lastShowMillis = now
+                serviceScope.launch {
+                    val phrase = getActiveBlockingTarget()
+                    val shown = BlockingOverlayController.show(
+                        context = this@AppAccessibilityService,
+                        targetPhrase = phrase,
+                        onUnlocked = {
+                            BlockGate.disableUntilNextAlarm(this@AppAccessibilityService)
+                            Log.d(
+                                TAG,
+                                "Overlay unlocked for $pkg — blocking disabled until next alarm"
+                            )
+                        }
+                    )
+                    if (shown) lastShowMillis = now
+                }
             }
         } else {
-            // 시스템 UI나 우리 앱이 전면이 아니면 숨김
             if (!isFromSystemUI && !isFromSelf && BlockingOverlayController.isShowing()) {
                 BlockingOverlayController.hide(this)
                 Log.d(TAG, "Overlay hidden by pkg=$pkg")
@@ -61,12 +74,11 @@ class AppAccessibilityService : AccessibilityService() {
         }
     }
 
-    override fun onInterrupt() {
-        // no-op
-    }
+    override fun onInterrupt() = Unit
 
     override fun onDestroy() {
         super.onDestroy()
+        serviceJob.cancel()
         if (BlockingOverlayController.isShowing()) {
             BlockingOverlayController.hide(this)
         }
