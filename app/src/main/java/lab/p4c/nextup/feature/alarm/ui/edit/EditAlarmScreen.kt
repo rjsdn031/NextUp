@@ -29,6 +29,9 @@ fun EditAlarmScreen(
 ) {
     val ui by vm.ui.collectAsState()
 
+    val c = MaterialTheme.colorScheme
+    val t = MaterialTheme.typography
+
     LaunchedEffect(alarmId) { vm.load(alarmId) }
 
     BackHandler(enabled = true) {
@@ -38,7 +41,12 @@ fun EditAlarmScreen(
 
     Scaffold(
         bottomBar = {
-            Surface(tonalElevation = 2.dp) {
+            Surface(
+                color = c.background,
+                contentColor = c.onBackground,
+                tonalElevation = 0.dp,
+                shadowElevation = 4.dp
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -91,9 +99,9 @@ fun EditAlarmScreen(
                 ) {
                     item {
                         Text(
-                            ui.nextTriggerText ?: "다음 울림 시간이 계산됩니다.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
+                            text = ui.nextTriggerText ?: "다음 울림 시간이 계산됩니다.",
+                            style = t.bodySmall,
+                            color = c.onSurfaceVariant
                         )
                     }
 
@@ -107,13 +115,26 @@ fun EditAlarmScreen(
                     item {
                         ListItem(
                             headlineContent = { Text("공휴일엔 알람 끄기") },
-                            supportingContent = { Text(if (ui.skipHolidays) "사용" else "사용 안 함") },
+                            supportingContent = {
+                                Text(if (ui.skipHolidays) "사용" else "사용 안 함")
+                            },
                             trailingContent = {
                                 Switch(
                                     checked = ui.skipHolidays,
-                                    onCheckedChange = vm::toggleSkipHolidays
+                                    onCheckedChange = vm::toggleSkipHolidays,
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = c.onPrimary,
+                                        checkedTrackColor = c.primary,
+                                        uncheckedThumbColor = c.outline,
+                                        uncheckedTrackColor = c.background
+                                    )
                                 )
-                            }
+                            },
+                            colors = ListItemDefaults.colors(
+                                containerColor = c.surface,
+                                headlineColor = c.onSurface,
+                                supportingColor = c.onSurfaceVariant
+                            )
                         )
                     }
 
@@ -166,19 +187,15 @@ fun EditAlarmScreen(
                     }
 
                     item {
-                        Spacer(Modifier.height(4.dp))
                         ListItem(
                             headlineContent = {
-                                Text(
-                                    "알람 삭제",
-                                    color = MaterialTheme.colorScheme.error
-                                )
+                                Text("알람 삭제", color = c.error)
                             },
                             leadingContent = {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
                                     contentDescription = "삭제",
-                                    tint = MaterialTheme.colorScheme.error
+                                    tint = c.error
                                 )
                             },
                             modifier = Modifier
@@ -188,7 +205,7 @@ fun EditAlarmScreen(
                                     onClick = { vm.delete { navController.popBackStack() } }
                                 ),
                             colors = ListItemDefaults.colors(
-                                containerColor = Color.Transparent
+                                containerColor = c.surface
                             )
                         )
                     }

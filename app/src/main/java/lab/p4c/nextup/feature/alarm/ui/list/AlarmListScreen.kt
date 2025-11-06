@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
+import androidx.compose.material3.MenuDefaults.itemColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,7 +37,12 @@ fun AlarmListScreen(
     val now by vm.now.collectAsStateWithLifecycle()
     val ctx = LocalContext.current
 
+    val c = MaterialTheme.colorScheme
+    val t = MaterialTheme.typography
+
     Scaffold(
+        containerColor = c.background,
+        contentColor = c.onBackground,
         topBar = {
             var expanded by remember { mutableStateOf(false) }
             Box {
@@ -46,24 +52,35 @@ fun AlarmListScreen(
                     onDismissRequest = { expanded = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("설정") },
+                        text = { Text("설정", style = t.bodyLarge, color = c.onSurface) },
                         onClick = {
                             expanded = false
                             navController.navigate("settings")
-                        }
+                        },
+                        colors = itemColors(
+                            textColor = c.onSurface,
+                            leadingIconColor = c.onSurfaceVariant,
+                            trailingIconColor = c.onSurfaceVariant,
+                            disabledTextColor = c.onSurface.copy(alpha = 0.38f)
+                        )
                     )
                     DropdownMenuItem(
-                        text = { Text("앱 사용 통계") },
+                        text = { Text("앱 사용 통계", style = t.bodyLarge, color = c.onSurface) },
                         onClick = {
                             expanded = false
                             navController.navigate("usage")
-                        }
+                        },
+                        colors = itemColors(
+                            textColor = c.onSurface,
+                            leadingIconColor = c.onSurfaceVariant,
+                            trailingIconColor = c.onSurfaceVariant,
+                            disabledTextColor = c.onSurface.copy(alpha = 0.38f)
+                        )
                     )
                     DropdownMenuItem(
-                        text = { Text("푸시알림 테스트") },
+                        text = { Text("푸시알림 테스트", style = t.bodyLarge, color = c.onSurface) },
                         onClick = {
                             expanded = false
-
                             val zdt = now.plusMinutes(1).withSecond(0).withNano(0)
                             vm.scheduleTestSurveyReminder()
                             Toast.makeText(
@@ -71,8 +88,13 @@ fun AlarmListScreen(
                                 "테스트 알림을 예약했습니다: ${zdt.toLocalTime()}",
                                 Toast.LENGTH_SHORT
                             ).show()
-
-                        }
+                        },
+                        colors = itemColors(
+                            textColor = c.onSurface,
+                            leadingIconColor = c.onSurfaceVariant,
+                            trailingIconColor = c.onSurfaceVariant,
+                            disabledTextColor = c.onSurface.copy(alpha = 0.38f)
+                        )
                     )
                 }
             }

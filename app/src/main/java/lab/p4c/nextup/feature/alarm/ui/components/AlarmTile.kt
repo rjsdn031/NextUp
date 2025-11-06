@@ -20,12 +20,14 @@ fun AlarmTile(
     enabled: Boolean,
     onToggle: ((Boolean) -> Unit)?
 ) {
-    val bg = Color(0xFF212121) // Flutter Colors.grey[900]
-    val timeColor = if (enabled) Color.White else Color(0xFF9E9E9E)
-    val daysColor = if (enabled) Color(0xB3FFFFFF) /* white70 */ else Color(0xFF9E9E9E)
+    val c = MaterialTheme.colorScheme
+    val t = MaterialTheme.typography
+
+    val timeColor = if (enabled) c.onSurface else c.onSurfaceVariant
+    val daysColor = if (enabled) c.onSurfaceVariant else c.onSurfaceVariant.copy(alpha = 0.6f)
 
     Surface(
-        color = bg,
+        color = c.surface,
         shape = RoundedCornerShape(20.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -40,14 +42,13 @@ fun AlarmTile(
                 Text(
                     text = time,
                     color = timeColor,
-                    fontSize = MaterialTheme.typography.headlineMedium.fontSize, // ~28sp
-                    fontWeight = FontWeight.Bold
+                    style = t.headlineMedium.copy(fontWeight = FontWeight.Bold)
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = days.joinToString(" "),
                     color = daysColor,
-                    fontSize = MaterialTheme.typography.bodySmall.fontSize
+                    style = t.bodySmall
                 )
             }
 
@@ -55,8 +56,10 @@ fun AlarmTile(
                 checked = enabled,
                 onCheckedChange = onToggle,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color(0xFF9E9E9E), // Flutter activeColor: Colors.grey
-                    checkedTrackColor = Color(0xFFBDBDBD)
+                    checkedThumbColor = c.onPrimary,
+                    checkedTrackColor = c.primary,
+                    uncheckedThumbColor = c.outline,
+                    uncheckedTrackColor = c.background
                 )
             )
         }

@@ -22,10 +22,19 @@ fun AddAlarmScreen(
     vm: AddAlarmViewModel = hiltViewModel()
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    val c = MaterialTheme.colorScheme
+    val t = MaterialTheme.typography
 
     Scaffold(
+        containerColor = c.background,
+        contentColor = c.onBackground,
         bottomBar = {
-            Surface(tonalElevation = 2.dp) {
+            Surface(
+                color = c.background,
+                contentColor = c.onBackground,
+                tonalElevation = 0.dp,
+                shadowElevation = 4.dp
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -69,9 +78,9 @@ fun AddAlarmScreen(
             ) {
                 item {  // (Calculated) Next Alarm
                     Text(
-                        ui.nextTriggerText ?: "다음 울림 시간이 계산됩니다.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
+                        text = ui.nextTriggerText ?: "다음 울림 시간이 계산됩니다.",
+                        style = t.bodySmall,
+                        color = c.onSurfaceVariant
                     )
                 }
 
@@ -85,13 +94,26 @@ fun AddAlarmScreen(
                 item {  // Turn off alarms on Public Holidays
                     ListItem(
                         headlineContent = { Text("공휴일엔 알람 끄기") },
-                        supportingContent = { Text(if (ui.skipHolidays) "사용" else "사용 안 함") },
+                        supportingContent = {
+                            Text(if (ui.skipHolidays) "사용" else "사용 안 함")
+                        },
                         trailingContent = {
                             Switch(
                                 checked = ui.skipHolidays,
-                                onCheckedChange = vm::toggleSkipHolidays
+                                onCheckedChange = vm::toggleSkipHolidays,
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = c.onPrimary,
+                                    checkedTrackColor = c.primary,
+                                    uncheckedThumbColor = c.outline,
+                                    uncheckedTrackColor = c.background
+                                )
                             )
-                        }
+                        },
+                        colors = ListItemDefaults.colors(
+                            containerColor = c.surface,
+                            headlineColor = c.onSurface,
+                            supportingColor = c.onSurfaceVariant
+                        )
                     )
                 }
 
@@ -119,7 +141,6 @@ fun AddAlarmScreen(
 
                         snoozeLabel = "매 ${ui.snoozeInterval}분, 최대 ${ui.maxSnoozeCount}회",
                         onSelectSnooze = {
-                            // 다이얼로그로 대체 가능. 샘플: 간단 순환
                             val nextInterval = when (ui.snoozeInterval) {
                                 1 -> 3
                                 3 -> 5

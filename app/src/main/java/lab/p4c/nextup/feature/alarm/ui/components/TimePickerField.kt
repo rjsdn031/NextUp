@@ -1,5 +1,6 @@
 package lab.p4c.nextup.feature.alarm.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -18,7 +19,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.util.Locale
 
-
 @Composable
 fun AlarmTimePicker(
     hour: Int,                    // 0..23 (외부가 진실)
@@ -28,7 +28,11 @@ fun AlarmTimePicker(
     use24h: Boolean = false,      // 12시간 고정이면 false
     visibleCount: Int = 3
 ) {
-    val itemHeight =80.dp
+
+    val c = MaterialTheme.colorScheme
+    val t = MaterialTheme.typography
+
+    val itemHeight = 80.dp
     val haptic = LocalHapticFeedback.current
 
     // 외부 값 → 인덱스
@@ -41,7 +45,11 @@ fun AlarmTimePicker(
     }
     val minuteIndex = minute.coerceIn(0, 59)
 
-    Surface(modifier = modifier) {
+    Surface(
+        color = c.background,
+        contentColor = c.onBackground,
+        modifier = modifier
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -70,10 +78,15 @@ fun AlarmTimePicker(
                 },
                 itemHeight = itemHeight,
                 visibleCount = visibleCount,
-                weight = 2f,
+                weight = 2f
             )
 
-            Text(":", style = MaterialTheme.typography.displayMedium, modifier = Modifier.padding(horizontal = 4.dp))
+            Text(
+                ":",
+                style = t.displayMedium,
+                color = c.onSurface,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
 
             // 분 (원형 60칸)
             StepperWheel(
@@ -123,6 +136,9 @@ private fun RowScope.StepperWheel(
     weight: Float,
     smallFont: Boolean = false
 ) {
+    val c = MaterialTheme.colorScheme
+    val t = MaterialTheme.typography
+
     // 드래그 누적
     var dragPx by remember { mutableFloatStateOf(0f) }
     val itemHeightPx = with(LocalDensity.current) { itemHeight.toPx() }
@@ -133,55 +149,62 @@ private fun RowScope.StepperWheel(
         return if (m < 0) m + size else m
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .weight(weight)
             .fillMaxHeight()
-            .draggable(
-                orientation = Orientation.Vertical,
-                state = rememberDraggableState { delta ->
-                    dragPx += delta
-                    while (dragPx <= -itemHeightPx) {
-                        dragPx += itemHeightPx
-                        onChange(wrap(selectedIndex + 1))
-                    }
-                    while (dragPx >= itemHeightPx) {
-                        dragPx -= itemHeightPx
-                        onChange(wrap(selectedIndex - 1))
-                    }
-                }
-            ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
     ) {
-        // 위쪽(이전)
-        if (visibleCount >= 3) {
+        // 라벨 영역
+        Column(
+            modifier = Modifier
+                .matchParentSize()
+                .draggable(
+                    orientation = Orientation.Vertical,
+                    state = rememberDraggableState { delta ->
+                        dragPx += delta
+                        while (dragPx <= -itemHeightPx) {
+                            dragPx += itemHeightPx
+                            onChange(wrap(selectedIndex + 1))
+                        }
+                        while (dragPx >= itemHeightPx) {
+                            dragPx -= itemHeightPx
+                            onChange(wrap(selectedIndex - 1))
+                        }
+                    }
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // 위쪽(이전)
+            if (visibleCount >= 3) {
+                Text(
+                    text = labelFor(wrap(selectedIndex - 1)),
+                    style = if (!smallFont) t.displayMedium else t.headlineMedium,
+                    color = c.onSurface.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.height(itemHeight)
+                )
+            }
+
+            // 중앙(선택)
             Text(
-                text = labelFor(wrap(selectedIndex - 1)),
-                style = if (!smallFont) MaterialTheme.typography.displayMedium else MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                text = labelFor(selectedIndex),
+                style = if (!smallFont) t.displayMedium else t.headlineMedium,
+                color = c.onBackground,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.height(itemHeight)
             )
-        }
 
-        // 중앙(선택)
-        Text(
-            text = labelFor(selectedIndex),
-            style = if (!smallFont) MaterialTheme.typography.displayMedium else MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.height(itemHeight)
-        )
-
-        // 아래쪽(다음)
-        if (visibleCount >= 3) {
-            Text(
-                text = labelFor(wrap(selectedIndex + 1)),
-                style = if (!smallFont) MaterialTheme.typography.displayMedium else MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.height(itemHeight)
-            )
+            // 아래쪽(다음)
+            if (visibleCount >= 3) {
+                Text(
+                    text = labelFor(wrap(selectedIndex + 1)),
+                    style = if (!smallFont) t.displayMedium else t.headlineMedium,
+                    color = c.onSurface.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.height(itemHeight)
+                )
+            }
         }
     }
 }
