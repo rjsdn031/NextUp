@@ -24,17 +24,13 @@ object BlockingOverlayController {
 
     // UI 업데이트 바인딩용 콜백 홀더
     private val setTargetRef = AtomicReference<((String) -> Unit)?>(null)
-    private val setStateRef = AtomicReference<((String) -> Unit)?>(null)
     private val setPartialRef = AtomicReference<((String, Float) -> Unit)?>(null)
+    private val setPhaseRef = AtomicReference<((UnlockPhase) -> Unit)?>(null)
 
     // STT 세션
     private var stt: SpeechUnlockSession? = null
 
-    private var lastTarget: String? = null
-    private var lastState: String? = null
-    private var lastPartial: Pair<String, Float>? = null
 
-    private val setPhaseRef = AtomicReference<((UnlockPhase) -> Unit)?>(null)
 
     fun isShowing(): Boolean = overlayRef.get()?.get() != null
 
@@ -56,14 +52,17 @@ object BlockingOverlayController {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                     WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                    // WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+            // WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
             PixelFormat.TRANSLUCENT
         ).apply { gravity = Gravity.TOP or Gravity.START }
 
         val owner = OverlayLifecycleOwner()
         val view = ComposeView(appCtx).apply {
             addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-                override fun onViewAttachedToWindow(v: View) { owner.onAttach() }
+                override fun onViewAttachedToWindow(v: View) {
+                    owner.onAttach()
+                }
+
                 override fun onViewDetachedFromWindow(v: View) {
                     owner.onDetach()
                     overlayRef.set(null)
@@ -91,7 +90,9 @@ object BlockingOverlayController {
                     onBind = { setTarget, setPhase, setPartial ->
                         setTargetRef.set(setTarget)
                         setPartialRef.set(setPartial)
-                        setPhaseRef.set(setPhase)
+                        setPhaseRef.set { phase ->
+                            postMain { setPhase(phase) }
+                        }
 
                         setTarget(targetPhrase)
                         setPhase(UnlockPhase.Idle)
@@ -104,29 +105,19 @@ object BlockingOverlayController {
         overlayRef.set(WeakReference(view))
         ownerRef.set(owner)
 
-        // Compose가 올라오도록 한 프레임 뒤에 UI 초기값 세팅 & STT 시작
-        Handler(Looper.getMainLooper()).post {
-            lastTarget = targetPhrase
-            setTargetRef.get()?.invoke(targetPhrase)
-            setPhaseRef.get()?.invoke(UnlockPhase.Idle)
-        }
-
         return true
     }
 
     fun hide(context: Context) {
         val view = overlayRef.get()?.get() ?: return
-        val wm = context.applicationContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val wm =
+            context.applicationContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         try {
             wm.removeView(view)
         } catch (_: Throwable) {
         } finally {
             ownerRef.getAndSet(null)?.onDetach()
             overlayRef.set(null)
-
-            lastTarget = null
-            lastState = null
-            lastPartial = null
 
             clearBindings()
             stopSession()
@@ -135,8 +126,8 @@ object BlockingOverlayController {
 
     private fun clearBindings() {
         setTargetRef.set(null)
-        setStateRef.set(null)
         setPartialRef.set(null)
+        setPhaseRef.set(null)
     }
 
     // ==== STT 세션 제어 ====
@@ -150,7 +141,9 @@ object BlockingOverlayController {
             context = context,
             targetPhrase = targetPhrase,
             onPhase = { phase -> setPhaseRef.get()?.invoke(phase) },
-            onPartial = { hyp, sim -> lastPartial = hyp to sim; setPartialRef.get()?.let { postMain { it(hyp, sim) } } },
+            onPartial = { hyp, sim ->
+                setPartialRef.get()?.let { postMain { it(hyp, sim) } }
+            },
             onSuccess = { /* 성공 시 UI 상태는 Matched에서 처리됨 */ },
             onErrorUi = { /* 필요시 로깅 전용 */ }
         ).also { it.start() }

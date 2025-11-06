@@ -2,7 +2,6 @@ package lab.p4c.nextup.feature.overlay.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Mic
@@ -10,7 +9,6 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -23,15 +21,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import lab.p4c.nextup.feature.overlay.ui.util.getSimilarity
 
 @Composable
 fun BlockingOverlayView(
@@ -44,7 +43,7 @@ fun BlockingOverlayView(
         setPhase: (UnlockPhase) -> Unit,
         setPartial: (hyp: String, sim: Float) -> Unit
     ) -> Unit,
-    threshold: Float = 0.87f
+    threshold: Float = 0.90f
 ) {
     var title by remember { mutableStateOf("YOUTUBE를 계속 이용하려면\n아래 문장을 또박또박 따라 말하세요") }
     var target by remember { mutableStateOf("문장을 불러오는 중…") }
@@ -98,55 +97,26 @@ fun BlockingOverlayView(
                 )
                 Spacer(Modifier.height(16.dp))
 
+                val annotated = remember(target, partial) {
+                    val (res, _) = getSimilarity(target, partial)
+                    buildAnnotatedStringFromMatch(target, res.matchedInTarget)
+                }
+
                 Text(
-                    text = target,
+                    text = annotated,
                     style = MaterialTheme.typography.titleLarge,
                     color = Color.White,
                     textAlign = TextAlign.Center,
                     lineHeight = 28.sp
                 )
-                Spacer(Modifier.height(20.dp))
-
-                LinearProgressIndicator(
-                    progress = { similarity },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(999.dp)),
-                    trackColor = Color(0x40FFFFFF),
-                    color = Color.White
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "유사도 ${(similarity * 100).toInt()}%",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFFBDBDBD)
-                )
 
                 Spacer(Modifier.height(16.dp))
                 Text(
                     text = phaseText(phase),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = Color(0xFFEEEEEE),
                     textAlign = TextAlign.Center
                 )
-
-                if (partial.isNotBlank()) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "인식: $partial",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFBDBDBD),
-                        textAlign = TextAlign.Center,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clearAndSetSemantics {
-                                contentDescription = "부분 인식 결과"
-                            }
-                    )
-                }
             }
 
             if (!eligible) {
@@ -159,6 +129,7 @@ fun BlockingOverlayView(
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
                         .padding(bottom = 16.dp)
+                        .offset(y = (-88).dp)
                         .size(72.dp)
                 ) {
                     if (isListening) {
@@ -168,6 +139,7 @@ fun BlockingOverlayView(
                     }
                 }
             } else {
+                isListening = false
                 Button(
                     onClick = onConfirm,
                     modifier = Modifier
@@ -175,10 +147,38 @@ fun BlockingOverlayView(
                         .fillMaxWidth()
                         .navigationBarsPadding()
                         .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .offset(y = (-88).dp)
                 ) {
                     Text("이용하기")
                 }
             }
         }
+    }
+}
+
+private fun buildAnnotatedStringFromMatch(
+    target: String,
+    matched: BooleanArray,
+    matchedStyle: SpanStyle = SpanStyle(color = Color.White, fontWeight = FontWeight.SemiBold),
+    dimmedStyle: SpanStyle = SpanStyle(color = Color(0x99FFFFFF))
+): AnnotatedString {
+    if (target.isEmpty() || matched.isEmpty()) return AnnotatedString(target)
+
+    return buildAnnotatedString {
+        var runStart = 0
+        var runMatched = matched.getOrElse(0) { false }
+        for (idx in 1 until target.length) {
+            val sameBucket = matched.getOrElse(idx) { false } == runMatched
+            if (!sameBucket) {
+                pushStyle(if (runMatched) matchedStyle else dimmedStyle)
+                append(target.substring(runStart, idx))
+                pop()
+                runStart = idx
+                runMatched = matched.getOrElse(idx) { false }
+            }
+        }
+        pushStyle(if (runMatched) matchedStyle else dimmedStyle)
+        append(target.substring(runStart, target.length))
+        pop()
     }
 }

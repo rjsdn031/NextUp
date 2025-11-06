@@ -25,9 +25,10 @@ class SpeechUnlockSession(
     private var recognizer: SpeechRecognizer? = null
     private var isListening = false
     private var isDestroyed = false
+    private var locked = false
 
     fun start() {
-        if (isDestroyed || isListening) return
+        if (isDestroyed || isListening || locked) return
         ensureRecognizer()
         isListening = true
         onPhase(UnlockPhase.Listening)
@@ -37,8 +38,8 @@ class SpeechUnlockSession(
     fun stop() {
         isDestroyed = true
         isListening = false
-        safeStopAndDestroy()
-        onPhase(UnlockPhase.Idle)
+        stopAndDestroy()
+        if (!locked) onPhase(UnlockPhase.Idle)
     }
 
     private fun ensureRecognizer() {
@@ -50,7 +51,7 @@ class SpeechUnlockSession(
         }
     }
 
-    private fun safeStopAndDestroy() {
+    private fun stopAndDestroy() {
         main.post {
             try { recognizer?.cancel() } catch (_: Throwable) {}
             try { recognizer?.stopListening() } catch (_: Throwable) {}
@@ -75,13 +76,16 @@ class SpeechUnlockSession(
         override fun onEndOfSpeech() { onPhase(UnlockPhase.Processing) }
 
         override fun onPartialResults(partialResults: Bundle?) {
+            if (locked) return
             val hyp = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 ?.firstOrNull().orEmpty()
             if (hyp.isNotEmpty()) {
-                val sim = similarity(hyp, targetPhrase)
+                val (_, sim) = lab.p4c.nextup.feature.overlay.ui.util.getSimilarity(targetPhrase, hyp)
                 onPartial(hyp, sim)
                 if (isSuccess(hyp, targetPhrase, sim)) {
+                    locked = true
                     isListening = false
+                    stopAndDestroy()
                     onSuccess()
                     onPhase(UnlockPhase.Matched)
                 }
@@ -89,21 +93,23 @@ class SpeechUnlockSession(
         }
 
         override fun onResults(results: Bundle?) {
+            if (locked) return
             val best = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 ?.firstOrNull().orEmpty()
-            val sim = similarity(best, targetPhrase)
+            val (_, sim) = lab.p4c.nextup.feature.overlay.ui.util.getSimilarity(targetPhrase, best)
+            isListening = false
             if (isSuccess(best, targetPhrase, sim)) {
-                isListening = false
+                locked = true
+                stopAndDestroy()
                 onSuccess()
                 onPhase(UnlockPhase.Matched)
             } else {
-                // 실패해도 자동 재시작하지 않음 (버튼으로 다시 시도)
-                isListening = false
                 onPhase(UnlockPhase.Mismatch)
             }
         }
 
         override fun onError(error: Int) {
+            if (locked) return
             isListening = false
             onErrorUi(error)
             val phase = when (error) {
@@ -115,7 +121,7 @@ class SpeechUnlockSession(
             }
             onPhase(phase)
             // Todo: ClientErr일때 확인용 코드 추가
-            safeStopAndDestroy()
+            stopAndDestroy()
         }
 
         override fun onEvent(eventType: Int, params: Bundle?) {}
@@ -140,7 +146,7 @@ class SpeechUnlockSession(
         val tDigits = Regex("\\d+").findAll(target).map { it.value }.toList()
         val hDigits = Regex("\\d+").findAll(hyp).map { it.value }.toList()
         val digitsOk = tDigits.isEmpty() || tDigits == hDigits
-        return digitsOk && sim >= 0.87f
+        return digitsOk && sim >= 0.90f
     }
 
     private fun levenshtein(a: String, b: String): Int {
