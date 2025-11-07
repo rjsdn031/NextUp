@@ -18,6 +18,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import lab.p4c.nextup.app.ui.theme.NextUpTheme
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
 import lab.p4c.nextup.core.domain.alarm.usecase.DismissAlarm
@@ -95,71 +96,72 @@ class AlarmRingingActivity : ComponentActivity() {
                 val used = snoozePrefs.getInt(usedKey(id), 0)
                 canSnooze = snoozeEnabled && (used < maxSnoozeCount)
             }
-
-            RingingScreen(
-                title = title,
-                body = body,
-                showSnooze = canSnooze,
-                snoozeMinutes = snoozeInterval,
-                onDismiss = {
-                    stopService(
-                        Intent(this, AlarmPlayerService::class.java)
-                            .putExtra(AlarmReceiver.EXTRA_ALARM_ID, id)
-                    )
-
-                    snoozePrefs.edit {
-                        remove(instanceKey(id))
-                        remove(usedKey(id))
-                    }
-
-                    lifecycleScope.launch {
-                        runCatching { dismissAlarm(id) }
-                            .onFailure { e ->
-                                Log.e(
-                                    "AlarmFlow",
-                                    "Dismiss usecase failed id=$id: ${e.message}",
-                                    e
-                                )
-                            }
-
-                        setReadyToBlock(this@AlarmRingingActivity, timeProvider, 10)
-                        finish()
-                    }
-                },
-
-                onSnooze = {
-                    if (isSnoozing) return@RingingScreen
-                    isSnoozing = true
-                    try {
-                        val used = snoozePrefs.getInt(usedKey(id), 0)
-                        if (used >= maxSnoozeCount) {
-                            canSnooze = false
-                            return@RingingScreen
-                        }
-
-                        snoozePrefs.edit { putInt(usedKey(id), used + 1) }
-                        val nextUsed = used + 1
-                        if (nextUsed >= maxSnoozeCount) {
-                            canSnooze = false
-                        }
-
+            NextUpTheme {
+                RingingScreen(
+                    title = title,
+                    body = body,
+                    showSnooze = canSnooze,
+                    snoozeMinutes = snoozeInterval,
+                    onDismiss = {
                         stopService(
                             Intent(this, AlarmPlayerService::class.java)
                                 .putExtra(AlarmReceiver.EXTRA_ALARM_ID, id)
                         )
 
-                        val a = alarm ?: return@RingingScreen
-                        val trigger = System.currentTimeMillis() + snoozeInterval * 60_000L
+                        snoozePrefs.edit {
+                            remove(instanceKey(id))
+                            remove(usedKey(id))
+                        }
 
-                        scheduler.cancel(id)
-                        scheduler.schedule(id, trigger, a)
+                        lifecycleScope.launch {
+                            runCatching { dismissAlarm(id) }
+                                .onFailure { e ->
+                                    Log.e(
+                                        "AlarmFlow",
+                                        "Dismiss usecase failed id=$id: ${e.message}",
+                                        e
+                                    )
+                                }
 
-                        finish()
-                    } finally {
-                        isSnoozing = false
+                            setReadyToBlock(this@AlarmRingingActivity, timeProvider, 10)
+                            finish()
+                        }
+                    },
+
+                    onSnooze = {
+                        if (isSnoozing) return@RingingScreen
+                        isSnoozing = true
+                        try {
+                            val used = snoozePrefs.getInt(usedKey(id), 0)
+                            if (used >= maxSnoozeCount) {
+                                canSnooze = false
+                                return@RingingScreen
+                            }
+
+                            snoozePrefs.edit { putInt(usedKey(id), used + 1) }
+                            val nextUsed = used + 1
+                            if (nextUsed >= maxSnoozeCount) {
+                                canSnooze = false
+                            }
+
+                            stopService(
+                                Intent(this, AlarmPlayerService::class.java)
+                                    .putExtra(AlarmReceiver.EXTRA_ALARM_ID, id)
+                            )
+
+                            val a = alarm ?: return@RingingScreen
+                            val trigger = System.currentTimeMillis() + snoozeInterval * 60_000L
+
+                            scheduler.cancel(id)
+                            scheduler.schedule(id, trigger, a)
+
+                            finish()
+                        } finally {
+                            isSnoozing = false
+                        }
                     }
-                }
-            )
+                )
+            }
         }
     }
 }

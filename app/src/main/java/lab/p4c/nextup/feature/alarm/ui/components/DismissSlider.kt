@@ -18,6 +18,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -28,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import lab.p4c.nextup.app.ui.theme.NextUpThemeTokens
 
 @Composable
 fun DismissSlider(onComplete: () -> Unit) {
@@ -51,18 +54,22 @@ fun SlideToAct(
     onComplete: () -> Unit,
     height: Dp = 60.dp,
     knobSize: Dp = 44.dp,
-    cornerRadius: Dp = 999.dp, // pill
-    threshold: Float = 0.92f,  // 완료 임계치
+    cornerRadius: Dp = 999.dp,
+    threshold: Float = 0.92f,
     enabled: Boolean = true,
-    trackColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
-    labelColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onPrimary,
-    knobColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surface,
-    knobIconTint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary
+    trackColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    labelColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    knobColor: Color = MaterialTheme.colorScheme.onPrimary,
+    knobIconTint: Color = MaterialTheme.colorScheme.surface,
+    focusRingColor: Color = NextUpThemeTokens.colors.focusRing,
+    outlineColor: Color = MaterialTheme.colorScheme.outline
 ) {
     val haptic = LocalHapticFeedback.current
+    val density = LocalDensity.current
     val progress = remember { Animatable(0f) } // 0f..1f
     var fired by remember { mutableStateOf(false) }
     var thresholdBuzzed by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     BoxWithConstraints(
         modifier = modifier
@@ -70,18 +77,15 @@ fun SlideToAct(
             .fillMaxWidth()
             .clip(RoundedCornerShape(cornerRadius))
             .background(trackColor)
-            .semantics {
-                role = Role.Button
-            },
+            .semantics { role = Role.Button },
         contentAlignment = Alignment.CenterStart
     ) {
         val maxW = constraints.maxWidth.toFloat()
-        val hPx = with(LocalDensity.current) { height.toPx() }
-        val knobPx = with(LocalDensity.current) { knobSize.toPx() }
+        val hPx = with(density) { height.toPx() }
+        val knobPx = with(density) { knobSize.toPx() }
         val paddingPx = (hPx - knobPx) / 2f
         val travelPx = (maxW - knobPx - 2 * paddingPx).coerceAtLeast(0f)
 
-        // 가운데 라벨
         Text(
             text = text,
             color = labelColor.copy(alpha = if (enabled) 1f else 0.5f),
@@ -89,11 +93,7 @@ fun SlideToAct(
             modifier = Modifier.align(Alignment.Center)
         )
 
-        // 손잡이 위치
         val x = paddingPx + progress.value * travelPx
-
-        // 손잡이
-        val scope = rememberCoroutineScope()
 
         Box(
             modifier = Modifier
@@ -102,12 +102,18 @@ fun SlideToAct(
                 .offset(x = Dp(x / LocalDensity.current.density))
                 .clip(CircleShape)
                 .background(knobColor)
+                .drawBehind {
+                    // 간단한 포커스 링(진행 임계치 근접 시 살짝 강조)
+                    if (enabled && !fired && progress.value >= 0.85f) {
+                        drawCircle(color = focusRingColor.copy(alpha = 0.35f))
+                    }
+                }
                 .draggable(
                     enabled = enabled && !fired,
                     orientation = Orientation.Horizontal,
                     state = rememberDraggableState { delta ->
                         val new = (progress.value + delta / travelPx).coerceIn(0f, 1f)
-                        scope.launch { progress.snapTo(new) }   // ← 여기에 launch 추가!
+                        scope.launch { progress.snapTo(new) }
                         if (!thresholdBuzzed && new >= threshold) {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             thresholdBuzzed = true
