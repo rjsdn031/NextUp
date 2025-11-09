@@ -16,6 +16,8 @@
 
     <application
         android:name="lab.p4c.nextup.app.NextUpApp"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="NextUp"
         android:theme="@style/Theme.NextUp">
         <activity
