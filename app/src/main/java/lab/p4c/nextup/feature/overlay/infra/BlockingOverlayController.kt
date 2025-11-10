@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
-import android.speech.SpeechRecognizer
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -15,6 +14,7 @@ import java.util.concurrent.atomic.AtomicReference
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import lab.p4c.nextup.app.ui.theme.NextUpTheme
 import lab.p4c.nextup.feature.overlay.ui.BlockingOverlayView
 import lab.p4c.nextup.feature.overlay.ui.UnlockPhase
 
@@ -82,22 +82,22 @@ object BlockingOverlayController {
 
             // onBind를 통해 Compose <-> Controller 양방향 바인딩
             setContent {
-                BlockingOverlayView(
-                    onDismiss = { hide(appCtx) },
-                    onStartListening = { startSession(appCtx, targetPhrase, onUnlocked) },
-                    onStopListening = { stopSession() },
-                    onConfirm = { hide(context); onUnlocked() },
-                    onBind = { setTarget, setPhase, setPartial ->
-                        setTargetRef.set(setTarget)
-                        setPartialRef.set(setPartial)
-                        setPhaseRef.set { phase ->
-                            postMain { setPhase(phase) }
-                        }
+                NextUpTheme {
+                    BlockingOverlayView(
+                        onDismiss = { hide(appCtx) },
+                        onStartListening = { startSession(appCtx, targetPhrase, onUnlocked) },
+                        onStopListening = { stopSession() },
+                        onConfirm = { hide(context); onUnlocked() },
+                        onBind = { setTarget, setPhase, setPartial ->
+                            setTargetRef.set(setTarget)
+                            setPartialRef.set(setPartial)
+                            setPhaseRef.set { phase -> postMain { setPhase(phase) } }
 
-                        setTarget(targetPhrase)
-                        setPhase(UnlockPhase.Idle)
-                    }
-                )
+                            setTarget(targetPhrase)
+                            setPhase(UnlockPhase.Idle)
+                        }
+                    )
+                }
             }
         }
 
