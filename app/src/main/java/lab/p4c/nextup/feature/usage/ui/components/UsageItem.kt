@@ -20,8 +20,12 @@ fun UsageRowItem(
     row: AppUsageRow,
     onClick: () -> Unit
 ) {
+    val c = MaterialTheme.colorScheme
+
     Surface(
-        tonalElevation = 2.dp,
+        color = c.surface,
+        contentColor = c.onSurface,
+        tonalElevation = 0.dp,
         shape = MaterialTheme.shapes.medium,
         modifier = Modifier
             .fillMaxWidth()
@@ -32,16 +36,20 @@ fun UsageRowItem(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(Modifier.weight(1f)) {
-                Text(row.packageName, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    row.packageName,
+                    style = MaterialTheme.typography.titleMedium
+                )
                 Text(
                     "총 사용 시간: ${formatDuration(row.totalMillis)}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline
+                    color = c.onSurfaceVariant
                 )
             }
         }
     }
 }
+
 
 private fun formatDuration(millis: Long): String {
     val totalSec = TimeUnit.MILLISECONDS.toSeconds(millis)

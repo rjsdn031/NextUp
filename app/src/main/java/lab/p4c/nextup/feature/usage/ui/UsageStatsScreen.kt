@@ -1,5 +1,6 @@
 package lab.p4c.nextup.feature.usage.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,6 +15,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import lab.p4c.nextup.app.ui.theme.NextUpThemeTokens
 import lab.p4c.nextup.feature.usage.infra.UsageStatsService
 import lab.p4c.nextup.feature.usage.ui.components.PermissionCard
 import lab.p4c.nextup.feature.usage.ui.components.UsageRowItem
@@ -29,6 +31,8 @@ fun UsageStatsScreen(
     val ui by vm.state.collectAsState()
 
     val ctx = LocalContext.current
+    val c = MaterialTheme.colorScheme
+    val x = NextUpThemeTokens.colors
 
     var hasPermission by remember { mutableStateOf(UsageStatsService.hasPermission(ctx)) }
 
@@ -45,35 +49,57 @@ fun UsageStatsScreen(
         onDispose { owner.lifecycle.removeObserver(obs) }
     }
 
-    // 세션이 바뀔 때마다 공유 VM에도 저장
     LaunchedEffect(ui.sessionsByApp) {
         sharedVm.setSessions(ui.sessionsByApp)
     }
 
     Scaffold(
-        topBar = { CenterAlignedTopAppBar(title = { Text("앱별 총 사용 시간") }) }
+        containerColor = c.background,
+        contentColor = c.onBackground,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        "앱별 총 사용 시간",
+                        color = c.onBackground
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = c.background,
+                    titleContentColor = c.onBackground,
+                    navigationIconContentColor = c.onBackground
+                )
+            )
+        }
     ) { inner ->
+
         Box(
             modifier = modifier
                 .fillMaxSize()
+                .background(c.background)
                 .padding(inner)
         ) {
+
             when {
                 !hasPermission -> PermissionCard(
                     modifier = Modifier.align(Alignment.Center),
                     onOpenSettings = { UsageStatsService.requestPermission(ctx) }
                 )
 
-                ui.isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                ui.isLoading -> CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = c.primary        // Tangerine 적용
+                )
 
                 ui.error != null -> Text(
                     text = ui.error!!,
-                    color = MaterialTheme.colorScheme.error,
+                    color = c.error,
                     modifier = Modifier.align(Alignment.Center)
                 )
 
                 ui.rows.isEmpty() -> Text(
                     text = "앱 사용 기록이 없습니다.",
+                    color = x.textMuted,
                     modifier = Modifier.align(Alignment.Center)
                 )
 
