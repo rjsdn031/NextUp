@@ -1,4 +1,3 @@
-// ui/screen/usage/UsageDetailScreen.kt
 package lab.p4c.nextup.feature.usage.ui
 
 import androidx.compose.foundation.layout.*
@@ -14,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import lab.p4c.nextup.feature.usage.ui.model.UsageSession
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId

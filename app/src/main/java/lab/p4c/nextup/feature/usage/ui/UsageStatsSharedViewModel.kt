@@ -5,9 +5,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import lab.p4c.nextup.feature.usage.ui.model.UsageSession
 
 @HiltViewModel
 class UsageStatsSharedViewModel @Inject constructor() : ViewModel() {
+
     private val _sessionsByApp = MutableStateFlow<Map<String, List<UsageSession>>>(emptyMap())
     val sessionsByApp: StateFlow<Map<String, List<UsageSession>>> = _sessionsByApp
 
