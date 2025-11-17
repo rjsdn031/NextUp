@@ -1,6 +1,7 @@
-package lab.p4c.nextup.feature.overlay.ui
+package lab.p4c.nextup.feature.overlay.ui.util
 
 import androidx.compose.runtime.Composable
+import lab.p4c.nextup.feature.overlay.ui.UnlockPhase
 
 @Composable
 fun phaseText(phase: UnlockPhase, errno: Int? = null): String = when (phase) {
