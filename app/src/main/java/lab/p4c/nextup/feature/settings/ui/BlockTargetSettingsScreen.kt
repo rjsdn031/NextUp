@@ -125,7 +125,7 @@ private fun BlockTargetItem(
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val bitmap = remember(item.icon) {
+        val bitmap = remember(item.packageName) {
             item.icon?.toBitmap()
         }
 

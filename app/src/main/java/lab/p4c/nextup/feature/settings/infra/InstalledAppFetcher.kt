@@ -27,7 +27,7 @@ class InstalledAppFetcher @Inject constructor(
                     icon = runCatching { pm.getApplicationIcon(appInfo) }.getOrNull()
                 )
             }
-            .filter { it.packageName.isNotBlank() }  // 안정성 필터
+            .filter { it.packageName.isNotBlank() }
             .sortedBy { it.appName.lowercase() }
     }
 }

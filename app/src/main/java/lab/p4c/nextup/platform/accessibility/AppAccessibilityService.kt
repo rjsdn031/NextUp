@@ -6,73 +6,75 @@ import android.view.accessibility.AccessibilityEvent
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.*
-import lab.p4c.nextup.feature.overlay.infra.BlockGate
-import lab.p4c.nextup.feature.overlay.infra.BlockedAppsStore
-import lab.p4c.nextup.feature.overlay.infra.BlockingOverlayController
+import lab.p4c.nextup.core.domain.blocking.usecase.ShouldBlockApp
 import lab.p4c.nextup.core.domain.overlay.usecase.GetActiveBlockingTarget
+import lab.p4c.nextup.feature.blocking.infra.BlockGate
+import lab.p4c.nextup.feature.overlay.infra.BlockingOverlayController
 
 @AndroidEntryPoint
 class AppAccessibilityService : AccessibilityService() {
 
     @Inject
+    lateinit var shouldBlockApp: ShouldBlockApp
+
+    @Inject
     lateinit var getActiveBlockingTarget: GetActiveBlockingTarget
+
+    @Inject
+    lateinit var blockGate: BlockGate
 
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.Main.immediate + serviceJob)
 
     private var lastShowMillis = 0L
-    private var blockedApps: Set<String> = emptySet()
-
-    override fun onServiceConnected() {
-        super.onServiceConnected()
-        blockedApps = BlockedAppsStore.get(this)
-        Log.d(TAG, "onServiceConnected: blocked=$blockedApps")
-    }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
         val pkg = event.packageName?.toString() ?: return
 
         val type = event.eventType
-        val interesting = type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-                type == AccessibilityEvent.TYPE_WINDOWS_CHANGED ||
-                type == AccessibilityEvent.TYPE_VIEW_FOCUSED
+        val interesting =
+            type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+                    type == AccessibilityEvent.TYPE_WINDOWS_CHANGED ||
+                    type == AccessibilityEvent.TYPE_VIEW_FOCUSED
+
         if (!interesting) return
 
         val now = System.currentTimeMillis()
 
-        val disabled = BlockGate.isDisabled(this)
-        val isFromBlockedApp = blockedApps.contains(pkg)
-        val isFromSystemUI = pkg.startsWith("com.android.systemui")
-        val isFromSelf = pkg.startsWith(packageName)
+        serviceScope.launch {
+            val shouldBlock = shouldBlockApp(this@AppAccessibilityService, pkg)
 
-        val shouldBlock = !disabled && isFromBlockedApp
+            if (shouldBlock) {
+                val shownRecently = now - lastShowMillis < 1500
 
-        if (shouldBlock) {
-            if (!BlockingOverlayController.isShowing() || now - lastShowMillis > 1500) {
-                serviceScope.launch {
+                if (!BlockingOverlayController.isShowing() || !shownRecently) {
                     val phrase = getActiveBlockingTarget()
+
                     val shown = BlockingOverlayController.show(
                         context = this@AppAccessibilityService,
                         targetPhrase = phrase,
                         onUnlocked = {
-                            BlockGate.disableUntilNextAlarm(this@AppAccessibilityService)
-                            Log.d(
-                                TAG,
-                                "Overlay unlocked for $pkg — blocking disabled until next alarm"
-                            )
+                            blockGate.isDisabled()
+                            Log.d(TAG, "Unlocked — blocking disabled until next alarm")
                         }
                     )
+
                     if (shown) lastShowMillis = now
                 }
-            }
-        } else {
-            if (!isFromSystemUI && !isFromSelf && BlockingOverlayController.isShowing()) {
-                BlockingOverlayController.hide(this)
-                Log.d(TAG, "Overlay hidden by pkg=$pkg")
+            } else {
+                if (!isSystemUI(pkg) && !isSelf(pkg) && BlockingOverlayController.isShowing()) {
+                    BlockingOverlayController.hide(this@AppAccessibilityService)
+                }
             }
         }
     }
+
+    private fun isSystemUI(pkg: String) =
+        pkg.startsWith("com.android.systemui")
+
+    private fun isSelf(pkg: String) =
+        pkg.startsWith(packageName)
 
     override fun onInterrupt() = Unit
 

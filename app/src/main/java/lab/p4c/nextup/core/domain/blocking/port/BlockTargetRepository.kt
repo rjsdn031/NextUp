@@ -1,4 +1,4 @@
-package lab.p4c.nextup.core.domain.overlay.port
+package lab.p4c.nextup.core.domain.blocking.port
 
 import kotlinx.coroutines.flow.Flow
 

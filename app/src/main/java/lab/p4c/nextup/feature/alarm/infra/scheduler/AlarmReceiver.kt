@@ -4,9 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
+import dagger.hilt.EntryPoints
 import lab.p4c.nextup.feature.alarm.infra.player.AlarmPlayerService
 import lab.p4c.nextup.feature.alarm.ui.ringing.AlarmRingingActivity
-import lab.p4c.nextup.feature.overlay.infra.BlockGate
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -14,8 +14,13 @@ class AlarmReceiver : BroadcastReceiver() {
         val id = intent.getIntExtra(EXTRA_ALARM_ID, -1)
         if (id < 0) return
 
-        BlockGate.rearmForNextAlarm(context)
+        val entryPoint = EntryPoints.get(
+            context.applicationContext,
+            AlarmReceiverEntryPoint::class.java
+        )
+        val gate = entryPoint.blockGate()
 
+        gate.rearmForNextAlarm()
         ContextCompat.startForegroundService(
             context,
             Intent(context, AlarmPlayerService::class.java)

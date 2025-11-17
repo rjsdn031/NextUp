@@ -6,7 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import lab.p4c.nextup.core.domain.overlay.port.BlockTargetRepository
+import lab.p4c.nextup.core.domain.blocking.port.BlockTargetRepository
 import lab.p4c.nextup.feature.settings.infra.InstalledAppFetcher
 import lab.p4c.nextup.feature.settings.ui.model.BlockTargetItemUi
 
