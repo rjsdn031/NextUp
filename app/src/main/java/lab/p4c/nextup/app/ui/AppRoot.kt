@@ -14,6 +14,7 @@ import lab.p4c.nextup.feature.alarm.ui.list.AlarmListScreen
 import lab.p4c.nextup.feature.alarm.ui.add.AddAlarmScreen
 import lab.p4c.nextup.feature.alarm.ui.edit.EditAlarmScreen
 import lab.p4c.nextup.feature.settings.ui.AlarmSettingsScreen
+import lab.p4c.nextup.feature.settings.ui.BlockTargetSettingsRoute
 import lab.p4c.nextup.feature.survey.ui.SurveyScreen
 import lab.p4c.nextup.feature.survey.ui.SurveyScreenViewModel
 import lab.p4c.nextup.feature.usage.ui.UsageDetailRoute
@@ -22,6 +23,7 @@ import lab.p4c.nextup.feature.usage.ui.UsageStatsSharedViewModel
 
 private object Routes {
     const val SETTINGS = "settings"
+    const val TARGET_SETTINGS = "blockTargets"
     const val ALARMLIST = "alarm/list"
     const val ADD = "add"
     const val EDIT = "edit/{id}"
@@ -54,6 +56,9 @@ fun AppRoot() {
         }
         composable(Routes.SETTINGS) {
             AlarmSettingsScreen(navController)
+        }
+        composable(Routes.TARGET_SETTINGS) {
+            BlockTargetSettingsRoute(onBack = { navController.popBackStack() })
         }
         composable(
             route = Routes.EDIT,
