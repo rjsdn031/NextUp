@@ -31,14 +31,18 @@ object BlockingOverlayController {
     private var stt: SpeechUnlockSession? = null
 
 
-
     fun isShowing(): Boolean = overlayRef.get()?.get() != null
 
     /**
      * @param targetPhrase 따라 말할 문장(숫자 포함 권장)
      * @param onUnlocked 성공 시 호출(차단 해제 후 후속 처리)
      */
-    fun show(context: Context, targetPhrase: String, onUnlocked: () -> Unit): Boolean {
+    fun show(
+        context: Context,
+        appLabel: String,
+        targetPhrase: String,
+        onUnlocked: () -> Unit
+    ): Boolean {
         if (isShowing()) return true
         val appCtx = context.applicationContext
         val wm = appCtx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -56,6 +60,7 @@ object BlockingOverlayController {
             PixelFormat.TRANSLUCENT
         ).apply { gravity = Gravity.TOP or Gravity.START }
 
+        val title = "${appLabel}를 계속 이용하려면\n아래 문장을 또박또박 따라 말하세요"
         val owner = OverlayLifecycleOwner()
         val view = ComposeView(appCtx).apply {
             addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
@@ -84,6 +89,7 @@ object BlockingOverlayController {
             setContent {
                 NextUpTheme {
                     BlockingOverlayView(
+                        title = title,
                         onDismiss = { hide(appCtx) },
                         onStartListening = { startSession(appCtx, targetPhrase, onUnlocked) },
                         onStopListening = { stopSession() },

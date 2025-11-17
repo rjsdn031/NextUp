@@ -31,6 +31,7 @@ class AppAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
         val pkg = event.packageName?.toString() ?: return
+        val appLabel = getAppLabel(pkg)
 
         val type = event.eventType
         val interesting =
@@ -55,6 +56,7 @@ class AppAccessibilityService : AccessibilityService() {
                     val phrase = getActiveBlockingTarget()
 
                     val shown = BlockingOverlayController.show(
+                        appLabel = appLabel,
                         context = this@AppAccessibilityService,
                         targetPhrase = phrase,
                         onUnlocked = {
@@ -89,6 +91,15 @@ class AppAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun getAppLabel(pkg: String): String {
+        val pm = packageManager
+        return try {
+            val appInfo = pm.getApplicationInfo(pkg, 0)
+            pm.getApplicationLabel(appInfo).toString()
+        } catch (e: Exception) {
+            pkg
+        }
+    }
     companion object {
         private const val TAG = "AppA11y"
     }

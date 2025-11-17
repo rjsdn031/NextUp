@@ -18,6 +18,7 @@ import lab.p4c.nextup.feature.overlay.ui.components.OverlayPhaseText
 
 @Composable
 fun BlockingOverlayView(
+    title: String,
     onDismiss: () -> Unit,
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
@@ -33,7 +34,7 @@ fun BlockingOverlayView(
     val x = NextUpThemeTokens.colors
     val t = MaterialTheme.typography
 
-    var title by remember { mutableStateOf("YOUTUBE를 계속 이용하려면\n아래 문장을 또박또박 따라 말하세요") }
+//    var title by remember { mutableStateOf("YOUTUBE를 계속 이용하려면\n아래 문장을 또박또박 따라 말하세요") }
     var target by remember { mutableStateOf("문장을 불러오는 중…") }
     var phase by remember { mutableStateOf(UnlockPhase.Idle) }
     var partial by remember { mutableStateOf("") }
