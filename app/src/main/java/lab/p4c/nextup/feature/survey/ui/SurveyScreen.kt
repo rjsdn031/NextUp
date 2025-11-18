@@ -40,8 +40,10 @@ fun SurveyScreen(
         ) {
             when (step) {
                 1 -> QuestionCard(
-                    question = "오늘 얼마나 생산적이라고 느꼈나요?",
-                    options = listOf("0", "1", "2", "3", "4"),
+                    question = "오늘 얼마나 생산적이라고 느꼈나요?\n" +
+                            "(1: 전혀 생산적이지 않았다, 2: 다소 생산적이지 않았다, 3: 그저 그렇다," +
+                            "4: 대체로 생산적이었다, 5: 매우 생산적이었다)",
+                    options = listOf("1", "2", "3", "4", "5"),
                     selected = form.productivityScore,
                     onSelect = viewModel::onProductivityScore
                 )
@@ -51,8 +53,10 @@ fun SurveyScreen(
                     onChange = viewModel::onReason
                 )
                 3 -> QuestionCard(
-                    question = "오늘 하고 싶은 목표를 달성했나요?",
-                    options = listOf("0", "1", "2", "3", "4"),
+                    question = "오늘 하고 싶은 목표를 달성했나요?\n" +
+                            "(1: 전혀 달성하지 못했다, 2: 일부만 달성했다, 3: 절반 정도 달성했다," +
+                            "4: 대부분 달성했다, 5: 모두 달성했다)",
+                    options = listOf("1", "2", "3", "4", "5"),
                     selected = form.goalAchievement,
                     onSelect = viewModel::onGoalAchievement
                 )
