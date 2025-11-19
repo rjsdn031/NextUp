@@ -13,6 +13,7 @@ import lab.p4c.nextup.core.domain.overlay.usecase.UpdateTodayTargetFromSurvey
 import lab.p4c.nextup.core.domain.survey.usecase.ScheduleDailySurveyReminder
 import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.core.domain.survey.usecase.SubmitDailySurvey
+import lab.p4c.nextup.core.domain.system.sessionKey
 import java.time.ZoneId
 
 @HiltViewModel
@@ -112,12 +113,9 @@ class SurveyScreenViewModel @Inject constructor(
         if (isSubmitting) return@launch
         isSubmitting = true
         try {
-            val dateKey = timeProvider.now()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate()
-                .toString()
+            val sessionKey = timeProvider.sessionKey()
 
-            when (val r = form.toDomain(dateKey)) {
+            when (val r = form.toDomain(sessionKey)) {
                 is Validation.Ok -> {
                     submitDailySurvey(r.value)
 
