@@ -11,9 +11,9 @@ class ScheduleDailySurveyReminder @Inject constructor(
     private val scheduler: SurveyReminderScheduler,
     private val timeProvider: TimeProvider
 ) {
-    /** 오늘/내일 중 가장 가까운 21:00(저녁 9시)로 예약 */
+    /** 오늘/내일 중 가장 가까운 19:00(저녁 7시)로 예약 */
     operator fun invoke(
-        targetTime: LocalTime = LocalTime.of(21, 0),
+        targetTime: LocalTime = LocalTime.of(19, 0),
         zone: ZoneId = ZoneId.systemDefault(),
         equalIsToday: Boolean = false
     ) {
