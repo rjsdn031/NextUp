@@ -15,6 +15,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import lab.p4c.nextup.app.ui.theme.NextUpThemeTokens
 import lab.p4c.nextup.platform.permission.AccessibilityPermission
 import lab.p4c.nextup.platform.permission.BatteryOptimizationPermission
 import lab.p4c.nextup.platform.permission.ExactAlarmPermission
@@ -153,18 +154,35 @@ fun AlarmSettingsScreen(navController: NavController) {
             }
 
             item {
-                Card {
+                val c = MaterialTheme.colorScheme
+                val x = NextUpThemeTokens.colors
+
+                Card(
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor = c.surface,
+                        contentColor = c.onSurface
+                    )
+                ) {
                     ListItem(
                         headlineContent = { Text("오프라인 음성(한국어)") },
-                        supportingContent = { Text("오프라인 한국어 데이터 설치/관리") },
+                        supportingContent = {
+                            Text(
+                                text = "오프라인 한국어 데이터 설치/관리",
+                                color = x.textSecondary
+                            )
+                        },
                         trailingContent = {
-                            Button(onClick = { SpeechSettingsIntents.openOfflineSpeechSettings(ctx) }) {
-                                Text("설정 열기")
+                            Button(
+                                onClick = { SpeechSettingsIntents.openOfflineSpeechSettings(ctx) }
+                            ) {
+                                Text("설정")
                             }
                         }
                     )
                 }
             }
+
 
             item {
                 Card(
@@ -191,13 +209,37 @@ private fun PermissionCard(
     deniedText: String,
     onClick: () -> Unit
 ) {
-    Card {
+    val c = MaterialTheme.colorScheme
+    val x = NextUpThemeTokens.colors
+
+    val statusColor = when {
+        granted -> x.textMuted
+        else -> x.primaryMuted
+    }
+
+    Card(
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(
+            containerColor = c.surface,
+            contentColor = c.onSurface
+        )
+    ) {
         ListItem(
             headlineContent = { Text(title) },
-            supportingContent = { Text(if (granted) grantedText else deniedText) },
+            supportingContent = {
+                Text(
+                    text = if (granted) grantedText else deniedText,
+                    color = statusColor
+                )
+            },
             trailingContent = {
-                Button(enabled = !granted, onClick = onClick) { Text("설정 열기") }
+                if (!granted) {
+                    Button(onClick = onClick) {
+                        Text("설정")
+                    }
+                }
             }
         )
     }
 }
+
