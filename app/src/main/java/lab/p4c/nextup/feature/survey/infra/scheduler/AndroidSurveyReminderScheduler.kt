@@ -34,6 +34,7 @@ class AndroidSurveyReminderScheduler @Inject constructor(
                 triggerAtMillis,
                 firePendingIntent() // extras 없어도 동일 identity
             )
+            Log.d(TAG, "Scheduling survey reminder at $zdt (${triggerAtMillis})")
         } catch (se: SecurityException) {
             Log.w(TAG, "Exact alarm permission not granted.", se)
         }
@@ -41,6 +42,7 @@ class AndroidSurveyReminderScheduler @Inject constructor(
 
     override fun cancel() {
         alarmMgr.cancel(firePendingIntent())
+        Log.d(TAG, "Cancelling all scheduled survey reminders.")
     }
 
     private fun firePendingIntent(): PendingIntent {
