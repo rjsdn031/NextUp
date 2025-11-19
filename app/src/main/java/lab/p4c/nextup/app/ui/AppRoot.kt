@@ -68,7 +68,7 @@ fun AppRoot() {
             EditAlarmScreen(alarmId = id, navController = navController)
         }
 
-        // ✅ 설문: 딥링크로 진입 가능
+        // 설문: 딥링크로 진입 가능
         composable(
             route = Routes.SURVEY,
             deepLinks = listOf(
@@ -88,7 +88,7 @@ fun AppRoot() {
             // val source = entry.arguments?.getString("source") // 필요 시 분석용
 
             SurveyScreen(
-                viewModel = vm,
+                vm = vm,
                 onComplete = {
                     // 완료 이동: 1) 완료 화면으로
                     // navController.navigate(Routes.SURVEY_COMPLETE) {
@@ -109,7 +109,7 @@ fun AppRoot() {
             // CompleteScreen(onDone = { navController.navigate(Routes.ALARMLIST) { popUpTo(0) } })
         }
 
-        // ✅ usage 서브그래프: 리스트/상세가 같은 부모 entry에 스코프된 VM 공유
+        // usage 서브그래프: 리스트/상세가 같은 부모 entry에 스코프된 VM 공유
         navigation(
             route = Routes.USAGEGRAPH,
             startDestination = Routes.USAGELIST
