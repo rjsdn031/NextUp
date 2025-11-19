@@ -13,9 +13,12 @@ data class AlarmEntity(
     val skipHolidays: Boolean = true,
     val enabled: Boolean = true,
 
-    val assetAudioPath: String = "assets/sounds/test_sound.mp3",
+    val soundType: String, // "asset" | "system" | "custom"
+    val soundValue: String, // resName OR uri
+
+//    val assetAudioPath: String = "assets/sounds/test_sound.mp3",
     val alarmSoundEnabled: Boolean = true,
-    val ringtoneName: String = "Classic Bell",
+//    val ringtoneName: String = "Classic Bell",
     val volume: Double = 1.0,
     val fadeDuration: Int = 0,
     val name: String = "",

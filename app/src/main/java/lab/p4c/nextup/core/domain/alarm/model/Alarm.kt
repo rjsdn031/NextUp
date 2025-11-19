@@ -15,9 +15,8 @@ import java.time.DayOfWeek
  * @property skipHolidays If true, alarm does not ring on public holidays.
  * @property enabled Whether the alarm is currently active.
  *
- * @property assetAudioPath Path to the alarm sound asset within the app bundle.
+ * @property sound AlarmSound: Name or Url
  * @property alarmSoundEnabled Whether the alarm sound is enabled.
- * @property ringtoneName Human-readable name of the selected ringtone.
  * @property volume Alarm volume (0.0–1.0).
  * @property fadeDuration Duration of fade-in effect in seconds. 0 = disabled.
  *
@@ -40,9 +39,10 @@ data class Alarm(
     val skipHolidays: Boolean = true,
     val enabled: Boolean = true,
 
-    val assetAudioPath: String = "assets/sounds/test_sound.mp3",
+    val sound: AlarmSound = AlarmSound.Asset(resName = "test_sound"),
+//    val assetAudioPath: String = "assets/sounds/test_sound.mp3",
+//    val ringtoneName: String = "Classic Bell",
     val alarmSoundEnabled: Boolean = true,
-    val ringtoneName: String = "Classic Bell",
     val volume: Double = 1.0,
     val fadeDuration: Int = 0,
     val name: String = "",

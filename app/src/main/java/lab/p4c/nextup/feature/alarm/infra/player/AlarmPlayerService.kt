@@ -23,8 +23,10 @@ import javax.inject.Inject
 import kotlinx.coroutines.*
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
+import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
 import lab.p4c.nextup.feature.alarm.ui.ringing.AlarmRingingActivity
+import androidx.core.net.toUri
 
 @AndroidEntryPoint
 class AlarmPlayerService : Service() {
@@ -97,40 +99,57 @@ class AlarmPlayerService : Service() {
         }
 
         // 사운드 (알람음 비활성화면 스킵)
-        if (alarm.alarmSoundEnabled) {
-            try {
-                Log.d("AlarmPlayer", "SoundPlay Start")
-                val pathInAssets = alarm.assetAudioPath.removePrefix("assets/")
-                val afd = assets.openFd(pathInAssets)
-//                val afd = assets.openFd("sounds/test_sounds.mp3")
+        if (!alarm.alarmSoundEnabled) return
 
-                val target = alarm.volume.toFloat().coerceIn(0f, 1f)
-                val durationMs = (alarm.fadeDuration * 1000L).coerceAtLeast(0)
+        val targetVolume = alarm.volume.toFloat().coerceIn(0f, 1f)
+        val durationMs = (alarm.fadeDuration * 1000L).coerceAtLeast(0L)
 
-                player = MediaPlayer().apply {
-                    setAudioAttributes(createAlarmAudioAttributes())
-                    setWakeMode(this@AlarmPlayerService, PARTIAL_WAKE_LOCK)
-                    setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-                    isLooping = alarm.loopAudio
-                    setVolume(1f, 1f)
+        try {
+            player = MediaPlayer().apply {
+                setAudioAttributes(createAlarmAudioAttributes())
+                setWakeMode(this@AlarmPlayerService, PARTIAL_WAKE_LOCK)
+                isLooping = alarm.loopAudio
 
-                    setOnPreparedListener {
-                        if (sessionId != currentSessionId) return@setOnPreparedListener
-                        start()
-                        startFadeIn(sessionId, target, durationMs)
+                when (val s = alarm.sound) {
+                    is AlarmSound.Asset -> {
+                        val resId = resources.getIdentifier(s.resName, "raw", packageName)
+                        if (resId == 0) {
+                            Log.e("AlarmPlayer", "Invalid asset resName=${s.resName}")
+                            return
+                        }
+                        val uri = "android.resource://$packageName/$resId".toUri()
+                        setDataSource(this@AlarmPlayerService, uri)
                     }
 
-                    setOnErrorListener { _, what, extra ->
-                        Log.e("AlarmPlayer", "MediaPlayer error what=$what extra=$extra")
-                        true
+                    is AlarmSound.System -> {
+                        val uri = s.uri.toUri()    // content://media/...
+                        setDataSource(this@AlarmPlayerService, uri)
                     }
 
-                    prepareAsync()
+                    is AlarmSound.Custom -> {
+                        val uri = s.uri.toUri()    // SAF로 선택한 파일
+                        setDataSource(this@AlarmPlayerService, uri)
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e("AlarmPlayer", "Failed to play asset ${alarm.assetAudioPath}", e)
-                // 에셋 문제 등으로 실패해도 서비스는 계속 유지(진동/풀스크린 화면)
+
+                setVolume(0f, 0f)
+
+                setOnPreparedListener {
+                    if (sessionId != currentSessionId) return@setOnPreparedListener
+                    start()
+                    startFadeIn(sessionId, targetVolume, durationMs)
+                }
+
+                setOnErrorListener { _, what, extra ->
+                    Log.e("AlarmPlayer", "MediaPlayer error what=$what extra=$extra")
+                    true
+                }
+
+                prepareAsync()
             }
+
+        } catch (e: Exception) {
+            Log.e("AlarmPlayer", "Sound playback failed", e)
         }
     }
 
