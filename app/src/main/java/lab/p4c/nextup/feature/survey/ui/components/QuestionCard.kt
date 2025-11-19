@@ -1,27 +1,28 @@
 package lab.p4c.nextup.feature.survey.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun QuestionCard(
     question: String,
-    desc: String,
+    desc: String = "",
     options: List<String>,
     selected: Int?,
     onSelect: (Int) -> Unit,
@@ -31,35 +32,58 @@ fun QuestionCard(
     val t = MaterialTheme.typography
 
     Column(modifier = Modifier.alpha(if (enabled) 1f else 0.35f)) {
-        Text(question, style = t.titleLarge)
-        Spacer(Modifier.height(6.dp))
-        Text(desc, style = t.bodyMedium, color = c.onSurface.copy(alpha = 0.75f))
+
+        Text(question, style = t.titleMedium)
+//        Spacer(Modifier.height(6.dp))
+//        Text(desc, style = t.bodySmall, color = c.onSurface.copy(alpha = 0.75f))
         Spacer(Modifier.height(16.dp))
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             options.forEachIndexed { index, label ->
-                OutlinedButton(
-                    onClick = { if (enabled) onSelect(index) },
-                    enabled = enabled,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor =
-                            if (selected == index && enabled)
-                                c.primaryContainer
-                            else Color.Transparent,
-                        contentColor =
-                            if (selected == index && enabled)
-                                c.onPrimaryContainer
-                            else c.onSurface
-                    ),
-                    modifier = Modifier.weight(1f)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .then(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp)
+                        ),
+                    horizontalArrangement = Arrangement.Start
                 ) {
-                    Text(label, style = t.titleSmall)
+
+                    androidx.compose.foundation.Canvas(
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .size(20.dp)
+                            .clickable(enabled) { onSelect(index) }
+                    ) {
+                        drawCircle(
+                            color = c.onSurface.copy(alpha = if (enabled) 0.7f else 0.45f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+                        )
+
+                        if (selected == index) {
+                            drawCircle(
+                                color = c.primary,
+                                radius = size.minDimension / 3
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.width(12.dp))
+
+                    Text(
+                        text = label,
+                        style = t.bodyLarge,
+                        color = c.onSurface,
+                        modifier = Modifier.clickable(enabled) { onSelect(index) }
+                    )
                 }
             }
         }
+
         Spacer(Modifier.height(16.dp))
     }
 }
@@ -100,7 +124,7 @@ fun QuestionCardText(
             Spacer(Modifier.height(12.dp))
 
             when {
-                showSubmit && onSubmit  != null -> {
+                showSubmit && onSubmit != null -> {
                     Button(
                         onClick = onSubmit,
                         enabled = enabledSubmit,

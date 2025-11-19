@@ -70,8 +70,7 @@ fun SurveyScreen(
 
                     QuestionCard(
                         question = "오늘 얼마나 생산적이라고 느꼈나요?",
-                        desc = "(1: 전혀 생산적이지 않았다, 2: 다소 생산적이지 않았다, 3: 그저 그렇다, 4: 대체로 생산적이었다, 5: 매우 생산적이었다)",
-                        options = listOf("1", "2", "3", "4", "5"),
+                        options = listOf("전혀 생산적이지 않았다", "다소 생산적이지 않았다", "그저 그렇다", "대체로 생산적이었다", "생산적이었다"),
                         selected = form.productivityScore,
                         onSelect = vm::onProductivityScore,
                         enabled = true
@@ -88,8 +87,7 @@ fun SurveyScreen(
 
                     QuestionCard(
                         question = "오늘 하고 싶은 목표를 달성했나요?",
-                        desc = "(1: 전혀 달성하지 못했다, 2: 일부만 달성했다, 3: 절반 정도 달성했다, 4: 대부분 달성했다, 5: 모두 달성했다)",
-                        options = listOf("1", "2", "3", "4", "5"),
+                        options = listOf("전혀 달성하지 못했다", "일부만 달성했다", "절반 정도 달성했다", "대부분 달성했다", "모두 달성했다"),
                         selected = form.goalAchievement,
                         enabled = step >= 3,
                         onSelect = vm::onGoalAchievement
