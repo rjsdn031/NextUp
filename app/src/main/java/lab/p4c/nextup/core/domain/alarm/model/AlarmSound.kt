@@ -19,3 +19,9 @@ sealed class AlarmSound {
      */
     data class Custom(val uri: String) : AlarmSound()
 }
+
+fun AlarmSound.toTitle(): String = when (this) {
+    is AlarmSound.Asset -> resName
+    is AlarmSound.System -> uri
+    is AlarmSound.Custom -> uri
+}

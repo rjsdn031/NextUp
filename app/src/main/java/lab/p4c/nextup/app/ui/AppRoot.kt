@@ -10,9 +10,11 @@ import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.navDeepLink
+import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
 import lab.p4c.nextup.feature.alarm.ui.list.AlarmListScreen
 import lab.p4c.nextup.feature.alarm.ui.add.AddAlarmScreen
 import lab.p4c.nextup.feature.alarm.ui.edit.EditAlarmScreen
+import lab.p4c.nextup.feature.alarm.ui.picker.AlarmSoundPickerRoute
 import lab.p4c.nextup.feature.settings.ui.AlarmSettingsScreen
 import lab.p4c.nextup.feature.settings.ui.BlockTargetSettingsRoute
 import lab.p4c.nextup.feature.survey.ui.SurveyScreen
@@ -26,6 +28,7 @@ private object Routes {
     const val TARGET_SETTINGS = "blockTargets"
     const val ALARMLIST = "alarm/list"
     const val ADD = "add"
+    const val SOUND_PICKER = "alarm/sound-picker"
     const val EDIT = "edit/{id}"
     fun edit(id: Int) = "edit/$id"
 
@@ -53,6 +56,33 @@ fun AppRoot() {
         }
         composable(Routes.ADD) {
             AddAlarmScreen(navController = navController)
+        }
+        composable(Routes.SOUND_PICKER) {
+            AlarmSoundPickerRoute(
+                onSelect = { sound, title ->
+                    val prev = navController.previousBackStackEntry ?: return@AlarmSoundPickerRoute
+                    val handle = prev.savedStateHandle
+
+                    when (sound) {
+                        is AlarmSound.Asset -> {
+                            handle["selectedSoundType"] = "asset"
+                            handle["selectedSoundValue"] = sound.resName
+                        }
+                        is AlarmSound.System -> {
+                            handle["selectedSoundType"] = "system"
+                            handle["selectedSoundValue"] = sound.uri
+                        }
+                        is AlarmSound.Custom -> {
+                            handle["selectedSoundType"] = "custom"
+                            handle["selectedSoundValue"] = sound.uri
+                        }
+                    }
+
+                    handle["selectedSoundTitle"] = title
+
+                    navController.popBackStack()
+                }
+            )
         }
         composable(Routes.SETTINGS) {
             AlarmSettingsScreen(navController)

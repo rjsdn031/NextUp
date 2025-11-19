@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmNameField
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmOptionsView
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmTimePicker
@@ -24,6 +25,36 @@ fun AddAlarmScreen(
     val ui by vm.ui.collectAsStateWithLifecycle()
     val c = MaterialTheme.colorScheme
     val t = MaterialTheme.typography
+
+    val savedState = navController.currentBackStackEntry?.savedStateHandle
+
+    val typeFlow = savedState?.getStateFlow<String?>("selectedSoundType", null)
+    val valueFlow = savedState?.getStateFlow<String?>("selectedSoundValue", null)
+    val titleFlow = savedState?.getStateFlow<String?>("selectedSoundTitle", null)
+
+    val pickedType by typeFlow?.collectAsState() ?: remember { mutableStateOf(null) }
+    val pickedValue by valueFlow?.collectAsState() ?: remember { mutableStateOf(null) }
+    val pickedTitle by titleFlow?.collectAsState() ?: remember { mutableStateOf(null) }
+
+    LaunchedEffect(pickedType, pickedValue) {
+        val type = pickedType
+        val value = pickedValue
+        val title = pickedTitle ?: ""
+
+        if (type != null && value != null) {
+            val sound = when (type) {
+                "asset" -> AlarmSound.Asset(value)
+                "system" -> AlarmSound.System(value)
+                "custom" -> AlarmSound.Custom(value)
+                else -> return@LaunchedEffect
+            }
+            vm.selectSound(title, sound)
+
+            savedState?.remove<String>("selectedSoundType")
+            savedState?.remove<String>("selectedSoundValue")
+            savedState?.remove<String>("selectedSoundTitle")
+        }
+    }
 
     Scaffold(
         containerColor = c.background,
@@ -130,8 +161,7 @@ fun AddAlarmScreen(
                         selectedRingtoneName = ui.ringtoneName,
                         onAlarmSoundToggle = vm::toggleAlarmSound,
                         onSelectSound = {
-                            // 실제 사운드 선택 연결(샘플 값)
-                            vm.selectSound("Classic Bell", "assets/sounds/test_sound.mp3")
+                            navController.navigate("alarm/sound-picker")
                         },
                         isPreviewing = ui.isPreviewing,
                         onTogglePreview = vm::togglePreview,

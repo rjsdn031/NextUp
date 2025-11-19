@@ -37,3 +37,5 @@ out/
 
 # Keep Room schemas under version control
 !app/schemas/**
+
+*.json

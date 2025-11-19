@@ -12,6 +12,7 @@ import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
 import lab.p4c.nextup.core.common.time.indicesToDays
+import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
 import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
 import java.time.ZoneId
 
@@ -23,8 +24,8 @@ data class AddAlarmUiState(
     val skipHolidays: Boolean = true,
 
     val alarmSoundEnabled: Boolean = true,
-    val ringtoneName: String = "Classic Bell",
-    val ringtonePath: String = "assets/sounds/test_sound.mp3",
+    val ringtoneName: String = "Test Alarm",
+    val sound: AlarmSound = AlarmSound.Asset("test_sound"),
 
     val vibration: Boolean = true,
     val volume: Float = 1f,                      // 0..1
@@ -84,8 +85,12 @@ class AddAlarmViewModel @Inject constructor(
         )
     }
 
-    fun selectSound(name: String, path: String) {
-        _ui.value = _ui.value.copy(ringtoneName = name, ringtonePath = path)
+    fun selectSound(name: String, sound: AlarmSound) {
+        _ui.value = _ui.value.copy(
+            ringtoneName = name,
+            sound = sound,
+            isPreviewing = false
+        )
     }
 
     fun toggleVibration(b: Boolean) {
@@ -114,7 +119,7 @@ class AddAlarmViewModel @Inject constructor(
 
     fun togglePreview() {
         val s = _ui.value
-        if (!s.alarmSoundEnabled || s.ringtonePath.isBlank()) return
+        if (!s.alarmSoundEnabled) return
         _ui.value = s.copy(isPreviewing = !s.isPreviewing)
     }
 
@@ -136,9 +141,10 @@ class AddAlarmViewModel @Inject constructor(
                 skipHolidays = s.skipHolidays,
                 enabled = true,
 
-                assetAudioPath = s.ringtonePath,
+                sound = s.sound,
+//                assetAudioPath = s.ringtonePath,
                 alarmSoundEnabled = s.alarmSoundEnabled,
-                ringtoneName = s.ringtoneName,
+//                ringtoneName = s.ringtoneName,
                 volume = s.volume.toDouble(),
                 fadeDuration = s.fadeSeconds,
                 name = s.label,
@@ -153,9 +159,11 @@ class AddAlarmViewModel @Inject constructor(
             )
             upsert(alarm)
             onDone(true)
+
         } catch (e: Exception) {
             _ui.value = _ui.value.copy(errorMessage = "알람 저장 실패: ${e.message}")
             onDone(false)
+
         } finally {
             _ui.value = _ui.value.copy(isBusy = false)
         }
@@ -175,9 +183,10 @@ class AddAlarmViewModel @Inject constructor(
             skipHolidays = s.skipHolidays,
             enabled = true,
 
-            assetAudioPath = s.ringtonePath,
+            sound = s.sound,
+//            assetAudioPath = s.ringtonePath,
             alarmSoundEnabled = s.alarmSoundEnabled,
-            ringtoneName = s.ringtoneName,
+//            ringtoneName = s.ringtoneName,
             volume = s.volume.toDouble(),
             fadeDuration = s.fadeSeconds,
             name = s.label,

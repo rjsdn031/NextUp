@@ -14,6 +14,8 @@ import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
 import lab.p4c.nextup.core.domain.alarm.usecase.DeleteAlarmAndCancel
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
 import lab.p4c.nextup.core.common.time.indicesToDays
+import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
+import lab.p4c.nextup.core.domain.alarm.model.toTitle
 import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
 import lab.p4c.nextup.core.domain.system.TimeProvider
 import java.time.ZoneId
@@ -31,8 +33,8 @@ data class EditAlarmUiState(
     val skipHolidays: Boolean = true,
 
     val alarmSoundEnabled: Boolean = true,
-    val ringtoneName: String = "Classic Bell",
-    val ringtonePath: String = "assets/sounds/test_sound.mp3",
+    val ringtoneName: String = "Test Alarm",
+    val sound: AlarmSound = AlarmSound.Asset("test_sound"),
 
     val vibration: Boolean = true,
     val volume: Float = 1f,                       // 0..1
@@ -63,8 +65,12 @@ class EditAlarmViewModel @Inject constructor(
     val ui = _ui.asStateFlow()
 
     private var baseline: String? = null
+    private var hasLoaded = false
 
     fun load(alarmId: Int) = viewModelScope.launch {
+        if (hasLoaded) return@launch
+        hasLoaded = true
+
         _ui.value = _ui.value.copy(isBusy = true)
         try {
             val a: Alarm? = repo.getById(alarmId)
@@ -80,31 +86,71 @@ class EditAlarmViewModel @Inject constructor(
         }
     }
 
-    fun updateTime(h: Int, m: Int) { _ui.value = _ui.value.copy(hour = h, minute = m); recalcNextTrigger() }
-    fun updateLabel(s: String) { _ui.value = _ui.value.copy(label = s) }
-    fun updateDays(days: List<Int>) { _ui.value = _ui.value.copy(repeatDays = days); recalcNextTrigger() }
-    fun toggleSkipHolidays(b: Boolean) { _ui.value = _ui.value.copy(skipHolidays = b); recalcNextTrigger() }
+    fun updateTime(h: Int, m: Int) {
+        _ui.value = _ui.value.copy(hour = h, minute = m); recalcNextTrigger()
+    }
+
+    fun updateLabel(s: String) {
+        _ui.value = _ui.value.copy(label = s)
+    }
+
+    fun updateDays(days: List<Int>) {
+        _ui.value = _ui.value.copy(repeatDays = days); recalcNextTrigger()
+    }
+
+    fun toggleSkipHolidays(b: Boolean) {
+        _ui.value = _ui.value.copy(skipHolidays = b); recalcNextTrigger()
+    }
 
     fun toggleAlarmSound(enabled: Boolean) {
         val s = _ui.value
-        _ui.value = s.copy(alarmSoundEnabled = enabled, isPreviewing = if (!enabled) false else s.isPreviewing)
+        _ui.value = s.copy(
+            alarmSoundEnabled = enabled,
+            isPreviewing = if (!enabled) false else s.isPreviewing
+        )
     }
-    fun selectSound(name: String, path: String) { _ui.value = _ui.value.copy(ringtoneName = name, ringtonePath = path) }
-    fun toggleVibration(b: Boolean) { _ui.value = _ui.value.copy(vibration = b) }
-    fun updateVolume(v: Float) { _ui.value = _ui.value.copy(volume = v.coerceIn(0f, 1f)) }
-    fun toggleFade(on: Boolean) { _ui.value = _ui.value.copy(fadeSeconds = if (on) 30 else 0) }
-    fun toggleLoop(b: Boolean) { _ui.value = _ui.value.copy(loop = b) }
 
-    fun toggleSnoozeEnabled(b: Boolean) { _ui.value = _ui.value.copy(snoozeEnabled = b) }
-    fun selectSnooze(interval: Int, count: Int) { _ui.value = _ui.value.copy(snoozeInterval = interval, maxSnoozeCount = count) }
+    fun selectSound(name: String, sound: AlarmSound) {
+        _ui.value = _ui.value.copy(
+            ringtoneName = name,
+            sound = sound,
+            isPreviewing = false
+        )
+    }
+
+    fun toggleVibration(b: Boolean) {
+        _ui.value = _ui.value.copy(vibration = b)
+    }
+
+    fun updateVolume(v: Float) {
+        _ui.value = _ui.value.copy(volume = v.coerceIn(0f, 1f))
+    }
+
+    fun toggleFade(on: Boolean) {
+        _ui.value = _ui.value.copy(fadeSeconds = if (on) 30 else 0)
+    }
+
+    fun toggleLoop(b: Boolean) {
+        _ui.value = _ui.value.copy(loop = b)
+    }
+
+    fun toggleSnoozeEnabled(b: Boolean) {
+        _ui.value = _ui.value.copy(snoozeEnabled = b)
+    }
+
+    fun selectSnooze(interval: Int, count: Int) {
+        _ui.value = _ui.value.copy(snoozeInterval = interval, maxSnoozeCount = count)
+    }
 
     fun togglePreview() {
         val s = _ui.value
-        if (!s.alarmSoundEnabled || s.ringtonePath.isBlank()) return
+        if (!s.alarmSoundEnabled) return
         _ui.value = s.copy(isPreviewing = !s.isPreviewing)
     }
 
-    fun consumeError() { _ui.value = _ui.value.copy(errorMessage = null) }
+    fun consumeError() {
+        _ui.value = _ui.value.copy(errorMessage = null)
+    }
 
     /* ----- 저장/삭제 ----- */
     fun save(onDone: (Boolean) -> Unit) = viewModelScope.launch {
@@ -146,7 +192,7 @@ class EditAlarmViewModel @Inject constructor(
     private fun snapshotValue(s: EditAlarmUiState) = listOf(
         s.hour, s.minute, s.label.trim(),
         s.repeatDays.joinToString(","), s.skipHolidays,
-        s.alarmSoundEnabled, s.ringtoneName, s.ringtonePath,
+        s.alarmSoundEnabled, s.ringtoneName, s.sound,
         s.vibration, s.volume, s.fadeSeconds, s.loop,
         s.snoozeEnabled, s.snoozeInterval, s.maxSnoozeCount
     ).joinToString("|")
@@ -177,9 +223,10 @@ class EditAlarmViewModel @Inject constructor(
         repeatDays = a.days.daysToIndices(),
         skipHolidays = a.skipHolidays,
 
+        sound = a.sound,
         alarmSoundEnabled = a.alarmSoundEnabled,
-        ringtoneName = a.ringtoneName,
-        ringtonePath = a.assetAudioPath,
+        ringtoneName = a.sound.toTitle(),
+//        ringtonePath = a.assetAudioPath,
 
         vibration = a.vibration,
         volume = a.volume.toFloat(),
@@ -199,9 +246,11 @@ class EditAlarmViewModel @Inject constructor(
         days = s.repeatDays.indicesToDays(),
         skipHolidays = s.skipHolidays,
         enabled = true,
-        assetAudioPath = s.ringtonePath,
+
+        sound = s.sound,
+//        assetAudioPath = s.ringtonePath,
         alarmSoundEnabled = s.alarmSoundEnabled,
-        ringtoneName = s.ringtoneName,
+//        ringtoneName = s.ringtoneName,
         volume = s.volume.toDouble(),
         fadeDuration = s.fadeSeconds,
         name = s.label,

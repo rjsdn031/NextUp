@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import lab.p4c.nextup.feature.alarm.data.local.dao.AlarmDao
 import lab.p4c.nextup.feature.alarm.data.local.entity.AlarmEntity
 
-@Database(entities = [AlarmEntity::class], version = 1)
+@Database(entities = [AlarmEntity::class], version = 3)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
 }
