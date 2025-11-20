@@ -9,6 +9,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.IBinder
@@ -27,6 +28,7 @@ import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
 import lab.p4c.nextup.feature.alarm.ui.ringing.AlarmRingingActivity
 import androidx.core.net.toUri
+import kotlin.getValue
 
 @AndroidEntryPoint
 class AlarmPlayerService : Service() {
@@ -34,6 +36,8 @@ class AlarmPlayerService : Service() {
     @Inject lateinit var repo: AlarmRepository
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    private var originalAlarmVolume: Int? = null
     private var player: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private var fadeJob: Job? = null
@@ -53,12 +57,27 @@ class AlarmPlayerService : Service() {
         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
         .build()
 
+    private fun boostAlarmVolume() {
+        val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+        val current = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+        originalAlarmVolume = current
+        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, max, 0)
+    }
+
+    private fun restoreAlarmVolume() {
+        originalAlarmVolume?.let {
+            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, it, 0)
+        }
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         fadeJob?.cancel()
         player?.stop(); player?.release(); player = null
         vibrator?.cancel()
 
         currentSessionId++
+
+        boostAlarmVolume()
         val sessionId = currentSessionId
 
         val id = intent?.getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1) ?: -1
@@ -85,6 +104,7 @@ class AlarmPlayerService : Service() {
         fadeJob?.cancel()
         player?.stop(); player?.release(); player = null
         vibrator?.cancel()
+        restoreAlarmVolume()
         scope.cancel()
         stopForeground(STOP_FOREGROUND_REMOVE)
         super.onDestroy()
