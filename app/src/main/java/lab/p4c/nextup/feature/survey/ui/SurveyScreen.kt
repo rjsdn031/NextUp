@@ -70,7 +70,7 @@ fun SurveyScreen(
 
                     QuestionCard(
                         question = "오늘 얼마나 생산적이라고 느꼈나요?",
-                        options = listOf("전혀 생산적이지 않았다", "다소 생산적이지 않았다", "그저 그렇다", "대체로 생산적이었다", "생산적이었다"),
+                        options = listOf("전혀 생산적이지 않았다", "다소 생산적이지 않았다", "그저 그렇다", "대체로 생산적이었다", "매우 생산적이었다"),
                         selected = form.productivityScore,
                         onSelect = vm::onProductivityScore,
                         enabled = true
