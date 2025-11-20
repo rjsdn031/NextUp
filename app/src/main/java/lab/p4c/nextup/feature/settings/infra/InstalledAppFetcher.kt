@@ -9,7 +9,7 @@ import lab.p4c.nextup.feature.settings.ui.model.InstalledAppInfo
 
 @Singleton
 class InstalledAppFetcher @Inject constructor(
-    @param:ApplicationContext private val context: Context
+    @param:ApplicationContext val context: Context
 ) {
 
     fun fetchInstalledApps(): List<InstalledAppInfo> {

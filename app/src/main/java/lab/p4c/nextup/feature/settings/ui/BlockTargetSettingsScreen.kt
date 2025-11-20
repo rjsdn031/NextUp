@@ -117,6 +117,7 @@ private fun BlockTargetItem(
     onToggle: () -> Unit
 ) {
     val c = MaterialTheme.colorScheme
+    val t = MaterialTheme.typography
 
     Row(
         modifier = Modifier
@@ -145,11 +146,33 @@ private fun BlockTargetItem(
 
         Spacer(Modifier.width(16.dp))
 
-        Text(
-            text = item.appName,
-            modifier = Modifier.weight(1f),
-            color = c.onBackground
-        )
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = item.appName,
+                color = c.onBackground,
+                style = t.bodyLarge
+            )
+
+            val second = item.usageMillis / 1000
+            val minutes = second / 60
+            val rem = second % 60
+
+            val desc = if (minutes > 0) {
+                "24시간 동안 ${minutes}분 사용"
+            } else if (rem > 0) {
+                "24시간 동안 1분 미만 사용"
+            } else {
+                "24시간 동안 사용 기록 없음"
+            }
+
+            Text(
+                text = desc,
+                color = NextUpThemeTokens.colors.textMuted,
+                style = t.bodySmall
+            )
+        }
 
         Switch(
             checked = item.checked,
@@ -157,3 +180,4 @@ private fun BlockTargetItem(
         )
     }
 }
+

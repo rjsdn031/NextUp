@@ -6,5 +6,6 @@ data class BlockTargetItemUi(
     val packageName: String,
     val appName: String,
     val icon: Drawable?,
+    val usageMillis: Long = 0L,
     val checked: Boolean
 )
