@@ -21,26 +21,14 @@ object AccessibilityPermission {
             ctx.contentResolver,
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
         ) ?: return false
-        return enabled.split(':').any { s: String -> s.equals(comp, ignoreCase = true) }
+        return enabled.split(':').any { it.equals(comp, ignoreCase = true) }
     }
 
     // 접근성 설정 열기 (API33+ 상세 페이지, 그 외 일반 설정)
     fun openSettings(ctx: Context) {
-        // 문자열 리터럴 사용: 어떤 compileSdk에서도 Unresolved 안 뜸
-        val actionDetails = "android.settings.ACCESSIBILITY_DETAILS_SETTINGS"
-        val extraComponent = "android.provider.extra.ACCESSIBILITY_COMPONENT_NAME"
-
-        val intent = if (Build.VERSION.SDK_INT >= 33) {
-            Intent(actionDetails).apply {
-                putExtra(
-                    extraComponent,
-                    ComponentName(ctx, AppAccessibilityService::class.java).flattenToString()
-                )
-            }
-        } else {
-            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         ctx.startActivity(intent)
     }
 }
