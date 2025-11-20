@@ -24,6 +24,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.graphics.toArgb
 
 private val NextUpDarkScheme = darkColorScheme(
@@ -104,6 +106,7 @@ fun NextUpTheme(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(scheme.background)
+                    .windowInsetsPadding(WindowInsets.systemBars)
             ) {
 
                 content()
