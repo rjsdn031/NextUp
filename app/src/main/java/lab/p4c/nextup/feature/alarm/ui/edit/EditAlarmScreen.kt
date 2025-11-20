@@ -12,12 +12,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
+import lab.p4c.nextup.feature.alarm.infra.player.AlarmPreviewPlayer
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmNameField
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmOptionsView
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmTimePicker
@@ -67,6 +70,14 @@ fun EditAlarmScreen(
             savedState?.remove<String>("selectedSoundValue")
             savedState?.remove<String>("selectedSoundTitle")
         }
+    }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val preview = remember { AlarmPreviewPlayer(context) }
+
+    DisposableEffect(Unit) {
+        onDispose { preview.stop() }
     }
 
     BackHandler(enabled = true) {
@@ -190,7 +201,13 @@ fun EditAlarmScreen(
                                 navController.navigate("alarm/sound-picker")
                             },
                             isPreviewing = ui.isPreviewing,
-                            onTogglePreview = vm::togglePreview,
+                            onTogglePreview = {
+                                scope.launch {
+                                    if (ui.isPreviewing) preview.stop()
+                                    else preview.play(ui.sound)
+                                    vm.togglePreview()
+                                }
+                            },
 
                             vibrationEnabled = ui.vibration,
                             onVibrationToggle = vm::toggleVibration,
