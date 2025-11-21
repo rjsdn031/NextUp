@@ -69,15 +69,15 @@ fun SurveyScreen(
                 ) {
 
                     QuestionCard(
-                        question = "오늘 얼마나 생산적이라고 느꼈나요?",
-                        options = listOf("전혀 생산적이지 않았다", "다소 생산적이지 않았다", "그저 그렇다", "대체로 생산적이었다", "매우 생산적이었다"),
+                        question = "나는 오늘 생산적인 하루를 보냈다.",
+                        options = listOf("매우 그렇지 않다", "그렇지 않다", "보통이다", "그렇다", "매우 그렇다"),
                         selected = form.productivityScore,
                         onSelect = vm::onProductivityScore,
                         enabled = true
                     )
 
                     QuestionCardText(
-                        question = "왜 그렇게 생각하나요?",
+                        question = "그렇게 생각한 이유를 적어주세요.",
                         text = form.productivityReason,
                         enabled = step >= 2,
                         onChange = vm::onReason,
@@ -86,8 +86,8 @@ fun SurveyScreen(
                     )
 
                     QuestionCard(
-                        question = "오늘 하고 싶은 목표를 달성했나요?",
-                        options = listOf("전혀 달성하지 못했다", "일부만 달성했다", "절반 정도 달성했다", "대부분 달성했다", "모두 달성했다"),
+                        question = "나는 오늘 하고 싶었던 목표를 달성했다.",
+                        options = listOf("매우 그렇지 않다", "그렇지 않다", "보통이다", "그렇다", "매우 그렇다"),
                         selected = form.goalAchievement,
                         enabled = step >= 3,
                         onSelect = vm::onGoalAchievement
