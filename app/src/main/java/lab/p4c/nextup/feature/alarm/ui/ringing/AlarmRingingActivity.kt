@@ -30,6 +30,7 @@ import lab.p4c.nextup.feature.blocking.infra.BlockGate
 import javax.inject.Inject
 
 private const val SNOOZE_PREF = "alarm_snooze"
+const val ACTION_BLOCK_READY_ENDED = "ACTION_BLOCK_READY_ENDED"
 private fun instanceKey(id: Int) = "snooze_instance_$id"
 private fun usedKey(id: Int) = "snooze_used_$id"
 
@@ -123,6 +124,7 @@ class AlarmRingingActivity : ComponentActivity() {
                                 10,
                                 timeProvider.now().toEpochMilli()
                             )
+                            startBlockReadyTimer(10)
                             finish()
                         }
                     },
@@ -161,6 +163,16 @@ class AlarmRingingActivity : ComponentActivity() {
                     }
                 )
             }
+        }
+    }
+
+    private fun startBlockReadyTimer(min: Long) {
+        lifecycleScope.launch {
+            kotlinx.coroutines.delay(min * 60_000L)
+
+            // block-ready가 끝났다는 신호를 서비스에 보냄
+            val intent = Intent(ACTION_BLOCK_READY_ENDED)
+            sendBroadcast(intent)
         }
     }
 }

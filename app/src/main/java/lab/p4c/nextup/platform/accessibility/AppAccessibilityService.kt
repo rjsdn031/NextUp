@@ -1,6 +1,10 @@
 package lab.p4c.nextup.platform.accessibility
 
 import android.accessibilityservice.AccessibilityService
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import dagger.hilt.android.AndroidEntryPoint
@@ -8,6 +12,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.*
 import lab.p4c.nextup.core.domain.blocking.usecase.ShouldBlockApp
 import lab.p4c.nextup.core.domain.overlay.usecase.GetActiveBlockingTarget
+import lab.p4c.nextup.feature.alarm.ui.ringing.ACTION_BLOCK_READY_ENDED
 import lab.p4c.nextup.feature.blocking.infra.BlockGate
 import lab.p4c.nextup.feature.overlay.infra.BlockingOverlayController
 
@@ -26,6 +31,16 @@ class AppAccessibilityService : AccessibilityService() {
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.Main.immediate + serviceJob)
 
+    private val blockReadyEndReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == ACTION_BLOCK_READY_ENDED) {
+                if (BlockingOverlayController.isShowing()) {
+                    BlockingOverlayController.hide(this@AppAccessibilityService)
+                }
+            }
+        }
+    }
+
     private var lastShowMillis = 0L
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -36,7 +51,7 @@ class AppAccessibilityService : AccessibilityService() {
         val type = event.eventType
         val interesting =
             type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-                    type == AccessibilityEvent.TYPE_WINDOWS_CHANGED ||
+//                    type == AccessibilityEvent.TYPE_WINDOWS_CHANGED ||
                     type == AccessibilityEvent.TYPE_VIEW_FOCUSED
 
         if (!interesting) return
@@ -79,13 +94,27 @@ class AppAccessibilityService : AccessibilityService() {
     private fun isSelf(pkg: String) =
         pkg.startsWith(packageName)
 
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+
+        val filter = IntentFilter(ACTION_BLOCK_READY_ENDED)
+        registerReceiver(blockReadyEndReceiver, filter, RECEIVER_NOT_EXPORTED)
+    }
+
     override fun onInterrupt() = Unit
 
     override fun onDestroy() {
         super.onDestroy()
         serviceJob.cancel()
+
         if (BlockingOverlayController.isShowing()) {
             BlockingOverlayController.hide(this)
+        }
+
+        try {
+            unregisterReceiver(blockReadyEndReceiver)
+        } catch (e: Exception) {
+            Log.w(TAG, "Receiver already unregistered or not registered", e)
         }
     }
 
