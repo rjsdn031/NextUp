@@ -1,6 +1,5 @@
 package lab.p4c.nextup.feature.survey.ui.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -18,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
+import lab.p4c.nextup.app.ui.components.ThrottleButton
+import lab.p4c.nextup.app.ui.util.clickableThrottle
 
 @Composable
 fun QuestionCard(
@@ -57,7 +57,7 @@ fun QuestionCard(
                         modifier = Modifier
                             .padding(top = 4.dp)
                             .size(20.dp)
-                            .clickable(enabled) { onSelect(index) }
+                            .clickableThrottle(enabled) { onSelect(index) }
                     ) {
                         drawCircle(
                             color = c.onSurface.copy(alpha = if (enabled) 0.7f else 0.45f),
@@ -78,7 +78,7 @@ fun QuestionCard(
                         text = label,
                         style = t.bodyLarge,
                         color = c.onSurface,
-                        modifier = Modifier.clickable(enabled) { onSelect(index) }
+                        modifier = Modifier.clickableThrottle(enabled) { onSelect(index) }
                     )
                 }
             }
@@ -125,7 +125,7 @@ fun QuestionCardText(
 
             when {
                 showSubmit && onSubmit != null -> {
-                    Button(
+                    ThrottleButton(
                         onClick = onSubmit,
                         enabled = enabledSubmit,
                         modifier = Modifier.fillMaxWidth()
@@ -135,7 +135,7 @@ fun QuestionCardText(
                 }
 
                 showNext && onNext != null -> {
-                    Button(
+                    ThrottleButton(
                         onClick = onNext,
                         enabled = text.isNotBlank(),
                         modifier = Modifier.fillMaxWidth()

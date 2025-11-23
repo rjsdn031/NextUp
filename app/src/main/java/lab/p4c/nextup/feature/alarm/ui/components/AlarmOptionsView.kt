@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import lab.p4c.nextup.app.ui.components.ThrottleIconButton
 
 @Composable
 fun AlarmOptionsView(
@@ -52,7 +53,7 @@ fun AlarmOptionsView(
             },
             trailingContent = {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconButton(
+                    ThrottleIconButton(
                         enabled = alarmSoundEnabled,
                         onClick = onTogglePreview,
                         colors = IconButtonDefaults.iconButtonColors(
@@ -64,7 +65,7 @@ fun AlarmOptionsView(
                             contentDescription = "미리듣기"
                         )
                     }
-                    IconButton(
+                    ThrottleIconButton(
                         enabled = alarmSoundEnabled,
                         onClick = onSelectSound,
                         colors = IconButtonDefaults.iconButtonColors(
@@ -142,7 +143,7 @@ fun AlarmOptionsView(
             },
             trailingContent = {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconButton(
+                    ThrottleIconButton(
                         enabled = snoozeEnabled,
                         onClick = onSelectSnooze,
                         colors = IconButtonDefaults.iconButtonColors(

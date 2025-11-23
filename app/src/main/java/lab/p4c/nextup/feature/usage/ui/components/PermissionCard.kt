@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -14,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import lab.p4c.nextup.app.ui.components.ThrottleButton
 
 @Composable
 fun PermissionCard(
@@ -46,7 +46,7 @@ fun PermissionCard(
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                ThrottleButton(
                     onClick = onOpenSettings,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = scheme.primary,

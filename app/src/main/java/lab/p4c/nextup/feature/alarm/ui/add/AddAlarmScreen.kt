@@ -12,6 +12,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
+import lab.p4c.nextup.app.ui.components.ThrottleButton
+import lab.p4c.nextup.app.ui.components.ThrottleOutlinedButton
 import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
 import lab.p4c.nextup.feature.alarm.infra.player.AlarmPreviewPlayer
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmNameField
@@ -83,12 +85,12 @@ fun AddAlarmScreen(
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedButton(
+                    ThrottleOutlinedButton(
                         modifier = Modifier.weight(1f),
                         onClick = { navController.popBackStack() }
                     ) { Text("취소") }
 
-                    Button(
+                    ThrottleButton(
                         modifier = Modifier.weight(2f),
                         enabled = ui.canSave && !ui.isBusy,
                         onClick = { vm.save { navController.popBackStack() } }

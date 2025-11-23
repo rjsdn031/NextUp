@@ -1,6 +1,5 @@
 package lab.p4c.nextup.feature.usage.ui.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import lab.p4c.nextup.app.ui.util.clickableThrottle
 import lab.p4c.nextup.feature.usage.ui.model.AppUsageRow
 import java.util.concurrent.TimeUnit
 
@@ -29,7 +29,7 @@ fun UsageRowItem(
         shape = MaterialTheme.shapes.medium,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickableThrottle(onClick = onClick)
     ) {
         Row(
             Modifier.padding(horizontal = 16.dp, vertical = 12.dp),

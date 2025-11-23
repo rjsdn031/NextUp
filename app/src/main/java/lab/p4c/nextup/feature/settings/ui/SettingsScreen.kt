@@ -1,7 +1,6 @@
 package lab.p4c.nextup.feature.settings.ui
 
 import android.app.Activity
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -15,7 +14,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import lab.p4c.nextup.app.ui.components.ThrottleIconButton
 import lab.p4c.nextup.app.ui.theme.NextUpThemeTokens
+import lab.p4c.nextup.app.ui.util.clickableThrottle
 import lab.p4c.nextup.platform.permission.AccessibilityPermission
 import lab.p4c.nextup.platform.permission.BatteryOptimizationPermission
 import lab.p4c.nextup.platform.permission.ExactAlarmPermission
@@ -62,7 +63,7 @@ fun AlarmSettingsScreen(navController: NavController) {
             CenterAlignedTopAppBar(
                 title = { Text("설정") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    ThrottleIconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
                     }
                 }
@@ -191,7 +192,7 @@ fun AlarmSettingsScreen(navController: NavController) {
                     ListItem(
                         headlineContent = { Text("차단할 앱 선택") },
                         supportingContent = { Text("오버레이로 차단할 앱을 선택하세요") },
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.clickableThrottle {
                             navController.navigate("blockTargets")
                         }
                     )

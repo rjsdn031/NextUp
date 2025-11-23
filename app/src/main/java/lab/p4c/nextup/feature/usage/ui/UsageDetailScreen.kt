@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import lab.p4c.nextup.app.ui.components.ThrottleIconButton
 import lab.p4c.nextup.feature.usage.ui.model.UsageSession
 import lab.p4c.nextup.app.ui.theme.NextUpThemeTokens
 import java.time.Instant
@@ -66,7 +67,7 @@ fun UsageDetailScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    ThrottleIconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "뒤로",

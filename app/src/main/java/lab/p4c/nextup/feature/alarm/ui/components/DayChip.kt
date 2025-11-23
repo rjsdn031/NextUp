@@ -1,7 +1,6 @@
 package lab.p4c.nextup.feature.alarm.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -15,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import lab.p4c.nextup.app.ui.util.clickableThrottle
 
 @Composable
 fun DayChip(
@@ -35,7 +35,7 @@ fun DayChip(
         ),
         modifier = modifier
             .widthIn(min = 36.dp)
-            .clickable(onClick = onClick)
+            .clickableThrottle(onClick = onClick)
     ) {
         Box(
             modifier = Modifier

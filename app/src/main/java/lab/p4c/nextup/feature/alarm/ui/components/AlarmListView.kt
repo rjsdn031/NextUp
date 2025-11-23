@@ -1,6 +1,5 @@
 package lab.p4c.nextup.feature.alarm.ui.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -10,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import lab.p4c.nextup.app.ui.util.clickableThrottle
 import lab.p4c.nextup.core.common.time.dayOfWeekToKor
 import lab.p4c.nextup.core.common.time.formatTimeOfDay
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
@@ -60,7 +60,7 @@ fun AlarmListView(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onTap(alarm, index) }
+                                .clickableThrottle { onTap(alarm, index) }
                         ) {
                             AlarmTile(
                                 time = timeText,

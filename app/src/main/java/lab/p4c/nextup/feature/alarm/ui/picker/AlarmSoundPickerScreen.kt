@@ -1,6 +1,5 @@
 package lab.p4c.nextup.feature.alarm.ui.picker
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +14,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import lab.p4c.nextup.app.ui.util.clickableThrottle
 import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
 import lab.p4c.nextup.feature.alarm.infra.loader.SystemTone
 
@@ -60,7 +60,7 @@ fun AlarmSoundPickerScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onSelect(item.sound, item.title) },
+                    .clickableThrottle { onSelect(item.sound, item.title) },
                 colors = ListItemDefaults.colors(
                     containerColor = c.surface
                 )
@@ -88,7 +88,7 @@ fun AlarmSoundPickerScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onSelect(tone.sound, tone.title) },
+                    .clickableThrottle { onSelect(tone.sound, tone.title) },
                 colors = ListItemDefaults.colors(
                     containerColor = c.surface
                 )
@@ -116,7 +116,7 @@ fun AlarmSoundPickerScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
+                    .clickableThrottle {
                         // SAF 열기 로직은 다음 단계에서 구현
                         // onSelect(AlarmSound.Custom("content://..."), "사용자 파일")
                     },

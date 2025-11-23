@@ -2,7 +2,6 @@ package lab.p4c.nextup.feature.settings.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +21,8 @@ import lab.p4c.nextup.app.ui.theme.NextUpThemeTokens
 import lab.p4c.nextup.feature.settings.ui.model.BlockTargetItemUi
 import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import lab.p4c.nextup.app.ui.components.ThrottleIconButton
+import lab.p4c.nextup.app.ui.util.clickableThrottle
 
 @Composable
 fun BlockTargetSettingsRoute(
@@ -54,7 +55,7 @@ fun BlockTargetSettingsScreen(
             CenterAlignedTopAppBar(
                 title = { Text("차단할 앱 선택", style = t.titleMedium) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    ThrottleIconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "뒤로"
@@ -122,7 +123,7 @@ private fun BlockTargetItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onToggle() }
+            .clickableThrottle { onToggle() }
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

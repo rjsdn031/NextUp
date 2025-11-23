@@ -1,7 +1,6 @@
 package lab.p4c.nextup.feature.alarm.ui.edit
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -11,14 +10,15 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
+import lab.p4c.nextup.app.ui.components.ThrottleButton
+import lab.p4c.nextup.app.ui.components.ThrottleOutlinedButton
+import lab.p4c.nextup.app.ui.util.clickableThrottle
 import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
 import lab.p4c.nextup.feature.alarm.infra.player.AlarmPreviewPlayer
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmNameField
@@ -99,12 +99,12 @@ fun EditAlarmScreen(
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedButton(
+                    ThrottleOutlinedButton(
                         modifier = Modifier.weight(1f),
                         onClick = { navController.popBackStack() }
                     ) { Text("취소") }
 
-                    Button(
+                    ThrottleButton(
                         modifier = Modifier.weight(2f),
                         enabled = ui.canSave && !ui.isBusy,
                         onClick = { vm.save { navController.popBackStack() } }
@@ -251,7 +251,7 @@ fun EditAlarmScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable(
+                                .clickableThrottle(
                                     enabled = !ui.isBusy,
                                     onClick = { vm.delete { navController.popBackStack() } }
                                 ),
