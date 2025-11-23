@@ -26,6 +26,7 @@ import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.feature.alarm.infra.player.AlarmPlayerService
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AndroidAlarmScheduler
+import lab.p4c.nextup.feature.blocking.infra.BlockGate
 import javax.inject.Inject
 
 private const val SNOOZE_PREF = "alarm_snooze"
@@ -47,6 +48,9 @@ class AlarmRingingActivity : ComponentActivity() {
 
     @Inject
     lateinit var dismissAlarm: DismissAlarm
+
+    @Inject
+    lateinit var blockGate: BlockGate
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -115,15 +119,10 @@ class AlarmRingingActivity : ComponentActivity() {
 
                         lifecycleScope.launch {
                             runCatching { dismissAlarm(id) }
-                                .onFailure { e ->
-                                    Log.e(
-                                        "AlarmFlow",
-                                        "Dismiss usecase failed id=$id: ${e.message}",
-                                        e
-                                    )
-                                }
-
-                            setReadyToBlock(this@AlarmRingingActivity, timeProvider, 10)
+                            blockGate.disableForMinutes(
+                                10,
+                                timeProvider.now().toEpochMilli()
+                            )
                             finish()
                         }
                     },
@@ -164,10 +163,4 @@ class AlarmRingingActivity : ComponentActivity() {
             }
         }
     }
-}
-
-fun setReadyToBlock(context: Context, timeProvider: TimeProvider, min: Long) {
-    val prefs = context.getSharedPreferences("nextup_prefs", Context.MODE_PRIVATE)
-    val until = timeProvider.now().toEpochMilli() + (min * 60_000L)
-    prefs.edit { putLong("blockReadyUntil", until) }
 }

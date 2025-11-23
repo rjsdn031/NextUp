@@ -44,10 +44,7 @@ class AppAccessibilityService : AccessibilityService() {
         val now = System.currentTimeMillis()
 
         serviceScope.launch {
-            val inTargets = shouldBlockApp(pkg)
-            val disabled = blockGate.isDisabled()
-
-            val shouldBlock = inTargets && !disabled
+            val shouldBlock = shouldBlockApp(pkg, now)
 
             if (shouldBlock) {
                 val shownRecently = now - lastShowMillis < 1500
@@ -60,7 +57,8 @@ class AppAccessibilityService : AccessibilityService() {
                         context = this@AppAccessibilityService,
                         targetPhrase = phrase,
                         onUnlocked = {
-                            blockGate.disableUntilNextAlarm()
+                            blockGate.rearmForNextAlarm()
+                            blockGate.clearReady()
                             Log.d(TAG, "Unlocked — blocking disabled until next alarm")
                         }
                     )
