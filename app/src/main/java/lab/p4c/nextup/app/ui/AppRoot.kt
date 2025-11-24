@@ -17,6 +17,7 @@ import lab.p4c.nextup.feature.alarm.ui.edit.EditAlarmScreen
 import lab.p4c.nextup.feature.alarm.ui.picker.AlarmSoundPickerRoute
 import lab.p4c.nextup.feature.settings.ui.AlarmSettingsScreen
 import lab.p4c.nextup.feature.settings.ui.BlockTargetSettingsRoute
+import lab.p4c.nextup.feature.settings.ui.experiment.ExperimentInfoScreen
 import lab.p4c.nextup.feature.survey.ui.SurveyScreen
 import lab.p4c.nextup.feature.survey.ui.SurveyScreenViewModel
 import lab.p4c.nextup.feature.usage.ui.UsageDetailRoute
@@ -26,6 +27,7 @@ import lab.p4c.nextup.feature.usage.ui.UsageStatsSharedViewModel
 private object Routes {
     const val SETTINGS = "settings"
     const val TARGET_SETTINGS = "blockTargets"
+    const val EXPERIMENT_INFO = "experimentInfo"
     const val ALARMLIST = "alarm/list"
     const val ADD = "add"
     const val SOUND_PICKER = "alarm/sound-picker"
@@ -89,6 +91,9 @@ fun AppRoot() {
         }
         composable(Routes.TARGET_SETTINGS) {
             BlockTargetSettingsRoute(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.EXPERIMENT_INFO) {
+            ExperimentInfoScreen(navController)
         }
         composable(
             route = Routes.EDIT,

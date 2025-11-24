@@ -77,6 +77,20 @@ fun AlarmSettingsScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ListItem(
+                        headlineContent = { Text("실험 정보 입력") },
+                        supportingContent = { Text("실험자 이름, 나이, 성별을 입력하세요") },
+                        modifier = Modifier.clickableThrottle {
+                            navController.navigate("experimentInfo")
+                        }
+                    )
+                }
+            }
+
+            item {
                 PermissionCard(
                     title = "정확한 알람",
                     granted = exactGranted,
