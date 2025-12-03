@@ -77,6 +77,7 @@ fun AlarmListScreen(
                 )
             }
         },
+        bottomBar = { SurveyLinkSection({ navController.navigate("survey") }) },
         floatingActionButton = {
             AlarmFAB(onClick = { navController.navigate("add") })
 //            AlarmFAB(onClick = {
@@ -133,7 +134,6 @@ fun AlarmListScreen(
                     }
                 }
             }
-            SurveyLinkSection({ navController.navigate("survey") })
         }
         // Add Delete Update는 List화면에서 조작이 이뤄지지 않는다. 수정 요망
     }
