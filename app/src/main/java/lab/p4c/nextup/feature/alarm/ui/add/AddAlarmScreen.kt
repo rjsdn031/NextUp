@@ -69,6 +69,10 @@ fun AddAlarmScreen(
         onDispose { preview.stop() }
     }
 
+    var labelField by remember(ui.label) {
+        mutableStateOf(TextFieldValue(ui.label))
+    }
+
     Scaffold(
         containerColor = c.background,
         contentColor = c.onBackground,
@@ -93,8 +97,13 @@ fun AddAlarmScreen(
                     ThrottleButton(
                         modifier = Modifier.weight(2f),
                         enabled = ui.canSave && !ui.isBusy,
-                        onClick = { vm.save { navController.popBackStack() } }
-                    ) { Text("저장") }
+                        onClick = {
+                            vm.updateLabel(labelField.text)
+                            vm.save { navController.popBackStack() }
+                        }
+                    ) {
+                        Text("저장")
+                    }
                 }
             }
         }
@@ -163,8 +172,8 @@ fun AddAlarmScreen(
 
                 item {  // Alarm Name
                     AlarmNameField(
-                        value = TextFieldValue(ui.label),
-                        onValueChange = { vm.updateLabel(it.text) }
+                        value = labelField,
+                        onValueChange = { labelField = it }
                     )
                 }
 
