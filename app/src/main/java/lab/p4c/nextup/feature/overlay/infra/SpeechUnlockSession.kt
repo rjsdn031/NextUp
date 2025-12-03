@@ -116,6 +116,8 @@ class SpeechUnlockSession(
                     locked = true
                     isListening = false
                     stopAndDestroy()
+
+                    onPartial(targetPhrase, 1f)
                     onPhase(UnlockPhase.Matched)
                     onSuccess()
                 }
@@ -137,6 +139,7 @@ class SpeechUnlockSession(
             if (isSuccess(best, targetPhrase, sim)) {
                 locked = true
                 stopAndDestroy()
+                onPartial(targetPhrase, 1f)
                 onPhase(UnlockPhase.Matched)
                 onSuccess()
             } else {
@@ -169,41 +172,8 @@ class SpeechUnlockSession(
         override fun onEvent(eventType: Int, params: Bundle?) {}
     }
 
-
-    // ===== 유사도 계산 =====
-    private fun normalize(s: String) = s
-        .lowercase()
-        .replace(Regex("\\p{Punct}"), "")
-        .replace(" ", "")
-        .trim()
-
-    private fun similarity(aRaw: String, bRaw: String): Float {
-        val a = normalize(aRaw)
-        val b = normalize(bRaw)
-        if (a.isEmpty() || b.isEmpty()) return 0f
-        val dist = levenshtein(a, b)
-        val maxLen = max(a.length, b.length).coerceAtLeast(1)
-        return 1f - dist.toFloat() / maxLen.toFloat()
-    }
-
     private fun isSuccess(hyp: String, target: String, sim: Float): Boolean {
         return sim >= 0.80f
     }
 
-    private fun levenshtein(a: String, b: String): Int {
-        val dp = IntArray(b.length + 1) { it }
-        for (i in 1..a.length) {
-            var prev = i - 1
-            dp[0] = i
-            for (j in 1..b.length) {
-                val temp = dp[j]
-                dp[j] = min(
-                    min(dp[j] + 1, dp[j - 1] + 1),
-                    prev + if (a[i - 1] == b[j - 1]) 0 else 1
-                )
-                prev = temp
-            }
-        }
-        return dp[b.length]
-    }
 }
