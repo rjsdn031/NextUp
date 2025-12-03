@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -26,7 +27,8 @@ fun AlarmListView(
     onTap: (Alarm, Int) -> Unit,
     computeNextMillis: (Alarm, ZonedDateTime) -> Long,
     formatNext: (Long) -> String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSurveyClick: () -> Unit = {}
 ) {
     val c = MaterialTheme.colorScheme
 
@@ -51,7 +53,9 @@ fun AlarmListView(
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
             ) {
                 itemsIndexed(alarms, key = { _, a -> a.id }) { index, alarm ->
                     val timeText = formatTimeOfDay(alarm.hour, alarm.minute)
@@ -70,6 +74,41 @@ fun AlarmListView(
                             )
                         }
                 }
+            }
+
+            SurveyLinkSection(onSurveyClick)
+        }
+    }
+}
+
+@Composable
+private fun SurveyLinkSection(
+    onClick: () -> Unit
+) {
+    val c = MaterialTheme.colorScheme
+    val t = MaterialTheme.typography
+
+    Surface(
+        color = c.primary,
+        tonalElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickableThrottle(onClick),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "오늘의 설문 작성하기",
+                    style = t.titleMedium,
+                    color = c.onPrimary
+                )
             }
         }
     }

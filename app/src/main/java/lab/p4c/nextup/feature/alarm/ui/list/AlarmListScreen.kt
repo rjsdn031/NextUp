@@ -122,7 +122,8 @@ fun AlarmListScreen(
             formatNext = vm::formatNext,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding),
+            onSurveyClick = { navController.navigate("survey") }
         )
         // Add Delete Update는 List화면에서 조작이 이뤄지지 않는다. 수정 요망
     }
