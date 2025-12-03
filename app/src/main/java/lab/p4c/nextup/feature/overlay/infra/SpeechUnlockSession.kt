@@ -8,17 +8,19 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.util.Log
 import lab.p4c.nextup.feature.overlay.ui.UnlockPhase
+import lab.p4c.nextup.feature.overlay.ui.util.getSimilarity
 import kotlin.math.max
 import kotlin.math.min
 
 class SpeechUnlockSession(
     private val context: Context,
     private val targetPhrase: String,
-    private val onPhase: (UnlockPhase) -> Unit,         // 상태 표시 ("듣는 중…" 등)
-    private val onPartial: (String, Float) -> Unit, // 부분 인식 + 유사도
+    private val onPhase: (UnlockPhase) -> Unit,
+    private val onPartial: (String, Float) -> Unit,
     private val onSuccess: () -> Unit,
-    private val onErrorUi: (Int) -> Unit            // 에러 코드 전달(로그/UI)
+    private val onErrorUi: (Int) -> Unit
 ) {
     private val main = Handler(Looper.getMainLooper())
 
@@ -30,9 +32,17 @@ class SpeechUnlockSession(
     fun start() {
         if (isDestroyed || isListening || locked) return
         ensureRecognizer()
+        if (recognizer == null) {
+            onPhase(UnlockPhase.ClientErr)
+            return
+        }
+
         isListening = true
         onPhase(UnlockPhase.Listening)
-        recognizer?.startListening(koreanOfflineIntent())
+
+        main.postDelayed({
+            recognizer?.startListening(koreanIntent())
+        }, 150)
     }
 
     fun stop() {
@@ -44,9 +54,13 @@ class SpeechUnlockSession(
 
     private fun ensureRecognizer() {
         if (recognizer == null) {
-            // 일부 기기에서 앱 컨텍스트로 ERROR_CLIENT 빈발 → 가능하면 서비스/액티비티 컨텍스트 권장
-            recognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
-                setRecognitionListener(listener)
+            try {
+                recognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
+                    setRecognitionListener(listener)
+                }
+            } catch (e: Exception) {
+                Log.e("SpeechUnlock", "SpeechRecognizer init fail: ${e.message}")
+                recognizer = null
             }
         }
     }
@@ -60,58 +74,86 @@ class SpeechUnlockSession(
         }
     }
 
-    private fun koreanOfflineIntent() = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+    private fun koreanIntent() = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
         putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR")
         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-        putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+        putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
         putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
     }
 
     private val listener = object : RecognitionListener {
-        override fun onReadyForSpeech(params: Bundle?) { onPhase(UnlockPhase.Listening) }
+
+        override fun onReadyForSpeech(params: Bundle?) {
+            onPhase(UnlockPhase.Listening)
+        }
+
         override fun onBeginningOfSpeech() {}
+
         override fun onRmsChanged(rmsdB: Float) {}
+
         override fun onBufferReceived(buffer: ByteArray?) {}
-        override fun onEndOfSpeech() { onPhase(UnlockPhase.Processing) }
+
+        override fun onEndOfSpeech() {
+            onPhase(UnlockPhase.Processing)
+        }
 
         override fun onPartialResults(partialResults: Bundle?) {
             if (locked) return
+
             val hyp = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 ?.firstOrNull().orEmpty()
-            if (hyp.isNotEmpty()) {
-                val (_, sim) = lab.p4c.nextup.feature.overlay.ui.util.getSimilarity(targetPhrase, hyp)
+            Log.d("SpeechUnlock", "partial hyp=$hyp")
+
+            if (hyp.isNotBlank()) {
+
+                val (_, sim) = getSimilarity(targetPhrase, hyp)
+                Log.d("SpeechUnlock", "partial sim=$sim target=$targetPhrase")
+
                 onPartial(hyp, sim)
+
                 if (isSuccess(hyp, targetPhrase, sim)) {
                     locked = true
                     isListening = false
                     stopAndDestroy()
-                    onSuccess()
                     onPhase(UnlockPhase.Matched)
+                    onSuccess()
                 }
             }
         }
 
         override fun onResults(results: Bundle?) {
             if (locked) return
+
             val best = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 ?.firstOrNull().orEmpty()
-            val (_, sim) = lab.p4c.nextup.feature.overlay.ui.util.getSimilarity(targetPhrase, best)
+            Log.d("SpeechUnlock", "final best=$best")
+
+            val (_, sim) = getSimilarity(targetPhrase, best)
+            Log.d("SpeechUnlock", "final sim=$sim target=$targetPhrase")
+
             isListening = false
+
             if (isSuccess(best, targetPhrase, sim)) {
                 locked = true
                 stopAndDestroy()
-                onSuccess()
                 onPhase(UnlockPhase.Matched)
+                onSuccess()
             } else {
                 onPhase(UnlockPhase.Mismatch)
             }
         }
 
         override fun onError(error: Int) {
+            Log.e("SpeechUnlock", "onError=$error")
+
             if (locked) return
+
             isListening = false
+            locked = false
+
             onErrorUi(error)
+
             val phase = when (error) {
                 SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> UnlockPhase.PermissionErr
                 SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> UnlockPhase.Busy
@@ -120,22 +162,24 @@ class SpeechUnlockSession(
                 else -> UnlockPhase.ClientErr
             }
             onPhase(phase)
-            // Todo: ClientErr일때 확인용 코드 추가
+
             stopAndDestroy()
         }
 
         override fun onEvent(eventType: Int, params: Bundle?) {}
     }
 
-    // ===== 매칭 규칙: 유사도 + 숫자 완전일치 =====
+
+    // ===== 유사도 계산 =====
     private fun normalize(s: String) = s
         .lowercase()
-        .replace(Regex("\\p{Punct}"), " ")
-        .replace(Regex("\\s+"), " ")
+        .replace(Regex("\\p{Punct}"), "")
+        .replace(" ", "")
         .trim()
 
     private fun similarity(aRaw: String, bRaw: String): Float {
-        val a = normalize(aRaw); val b = normalize(bRaw)
+        val a = normalize(aRaw)
+        val b = normalize(bRaw)
         if (a.isEmpty() || b.isEmpty()) return 0f
         val dist = levenshtein(a, b)
         val maxLen = max(a.length, b.length).coerceAtLeast(1)
@@ -143,10 +187,7 @@ class SpeechUnlockSession(
     }
 
     private fun isSuccess(hyp: String, target: String, sim: Float): Boolean {
-        val tDigits = Regex("\\d+").findAll(target).map { it.value }.toList()
-        val hDigits = Regex("\\d+").findAll(hyp).map { it.value }.toList()
-        val digitsOk = tDigits.isEmpty() || tDigits == hDigits
-        return digitsOk && sim >= 0.90f
+        return sim >= 0.80f
     }
 
     private fun levenshtein(a: String, b: String): Int {

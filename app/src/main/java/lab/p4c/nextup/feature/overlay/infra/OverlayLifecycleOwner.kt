@@ -14,8 +14,7 @@ class OverlayLifecycleOwner : LifecycleOwner, SavedStateRegistryOwner, ViewModel
     private val _lifecycle = LifecycleRegistry(this)
     private val _savedState = SavedStateRegistryController.create(this)
     private val _vmStore = ViewModelStore()
-
-    // ⬇⬇⬇ 인터페이스가 요구하는 'val' 프로퍼티로 override
+    
     override val lifecycle: Lifecycle
         get() = _lifecycle
 

@@ -2,52 +2,65 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
-    <uses-permission android:name="android.permission.VIBRATE"/>
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions"/>
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
 
     <application
         android:name="lab.p4c.nextup.app.NextUpApp"
         android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="NextUp"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.NextUp">
         <activity
             android:name=".app.MainActivity"
-            android:screenOrientation="portrait"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
             <intent-filter>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.DEFAULT" />
-            <category android:name="android.intent.category.BROWSABLE" />
-            <data
-                android:scheme="app"
-                android:host="nextup"
-                android:path="/survey" />
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="nextup"
+                    android:path="/survey"
+                    android:scheme="app" />
             </intent-filter>
         </activity>
 
         <activity
             android:name=".feature.alarm.ui.ringing.AlarmRingingActivity"
-            android:screenOrientation="portrait"
-            android:exported="false"
-            android:showOnLockScreen="true"
-            android:turnScreenOn="true"
             android:excludeFromRecents="true"
-            android:theme="@style/Theme.NextUp"/>
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:showOnLockScreen="true"
+            android:theme="@style/Theme.NextUp"
+            android:turnScreenOn="true" />
+
+        <activity
+            android:name=".feature.overlay.ui.OverlayHostActivity"
+            android:taskAffinity="lab.p4c.nextup.overlay"
+            android:excludeFromRecents="true"
+            android:noHistory="true"/>
 
         <service
             android:name=".feature.alarm.infra.player.AlarmPlayerService"
@@ -56,8 +69,8 @@
 
         <service
             android:name=".platform.accessibility.AppAccessibilityService"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="false">
+            android:exported="false"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
@@ -75,15 +88,15 @@
             android:exported="false" />
 
         <!-- 부팅 후 재예약 -->
-<!--        <receiver-->
-<!--            android:name=".feature.survey.infra.scheduler.SurveyBootReceiver"-->
-<!--            android:exported="false">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.BOOT_COMPLETED" />-->
-<!--                <action android:name="android.intent.action.TIME_SET" />-->
-<!--                <action android:name="android.intent.action.TIMEZONE_CHANGED" />-->
-<!--            </intent-filter>-->
-<!--        </receiver>-->
+        <!--        <receiver-->
+        <!--            android:name=".feature.survey.infra.scheduler.SurveyBootReceiver"-->
+        <!--            android:exported="false">-->
+        <!--            <intent-filter>-->
+        <!--                <action android:name="android.intent.action.BOOT_COMPLETED" />-->
+        <!--                <action android:name="android.intent.action.TIME_SET" />-->
+        <!--                <action android:name="android.intent.action.TIMEZONE_CHANGED" />-->
+        <!--            </intent-filter>-->
+        <!--        </receiver>-->
     </application>
 
     <queries>

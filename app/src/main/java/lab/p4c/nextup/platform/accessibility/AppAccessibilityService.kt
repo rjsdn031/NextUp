@@ -12,9 +12,9 @@ import javax.inject.Inject
 import kotlinx.coroutines.*
 import lab.p4c.nextup.core.domain.blocking.usecase.ShouldBlockApp
 import lab.p4c.nextup.core.domain.overlay.usecase.GetActiveBlockingTarget
-import lab.p4c.nextup.feature.alarm.ui.ringing.ACTION_BLOCK_READY_ENDED
 import lab.p4c.nextup.feature.blocking.infra.BlockGate
-import lab.p4c.nextup.feature.overlay.infra.BlockingOverlayController
+import lab.p4c.nextup.feature.overlay.ui.OverlayHostActivity
+import lab.p4c.nextup.feature.overlay.ui.OverlayState
 
 @AndroidEntryPoint
 class AppAccessibilityService : AccessibilityService() {
@@ -31,16 +31,6 @@ class AppAccessibilityService : AccessibilityService() {
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.Main.immediate + serviceJob)
 
-    private val blockReadyEndReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == ACTION_BLOCK_READY_ENDED) {
-                if (BlockingOverlayController.isShowing()) {
-                    BlockingOverlayController.hide(this@AppAccessibilityService)
-                }
-            }
-        }
-    }
-
     private var lastShowMillis = 0L
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -51,7 +41,6 @@ class AppAccessibilityService : AccessibilityService() {
         val type = event.eventType
         val interesting =
             type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-//                    type == AccessibilityEvent.TYPE_WINDOWS_CHANGED ||
                     type == AccessibilityEvent.TYPE_VIEW_FOCUSED
 
         if (!interesting) return
@@ -64,58 +53,52 @@ class AppAccessibilityService : AccessibilityService() {
             if (shouldBlock) {
                 val shownRecently = now - lastShowMillis < 1500
 
-                if (!BlockingOverlayController.isShowing() || !shownRecently) {
+                if (!OverlayState.isRunning || !shownRecently) {
                     val phrase = getActiveBlockingTarget()
 
-                    val shown = BlockingOverlayController.show(
-                        appLabel = appLabel,
-                        context = this@AppAccessibilityService,
-                        targetPhrase = phrase,
-                        onUnlocked = {
-                            blockGate.rearmForNextAlarm()
-                            blockGate.clearReady()
-                            Log.d(TAG, "Unlocked — blocking disabled until next alarm")
-                        }
-                    )
+                    val intent = Intent(
+                        this@AppAccessibilityService,
+                        OverlayHostActivity::class.java
+                    ).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        putExtra("appLabel", appLabel)
+                        putExtra("phrase", phrase)
+                    }
 
-                    if (shown) lastShowMillis = now
+                    startActivity(intent)
+                    lastShowMillis = now
                 }
             } else {
-                if (!isSystemUI(pkg) && !isSelf(pkg) && BlockingOverlayController.isShowing()) {
-                    BlockingOverlayController.hide(this@AppAccessibilityService)
+                // Activity 종료
+            }
+        }
+    }
+
+    private val overlayUnlockedReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "lab.p4c.nextup.OVERLAY_UNLOCKED") {
+                serviceScope.launch {
+                    blockGate.disableUntilNextAlarm()  // 🔥 핵심
+                    blockGate.clearReady()
+                    Log.d(TAG, "Unlocked — blocking disabled until next alarm")
                 }
             }
         }
     }
 
-    private fun isSystemUI(pkg: String) =
-        pkg.startsWith("com.android.systemui")
-
-    private fun isSelf(pkg: String) =
-        pkg.startsWith(packageName)
-
     override fun onServiceConnected() {
         super.onServiceConnected()
-
-        val filter = IntentFilter(ACTION_BLOCK_READY_ENDED)
-        registerReceiver(blockReadyEndReceiver, filter, RECEIVER_NOT_EXPORTED)
+        val filter = IntentFilter("lab.p4c.nextup.OVERLAY_UNLOCKED")
+        registerReceiver(overlayUnlockedReceiver, filter, RECEIVER_NOT_EXPORTED)
     }
 
     override fun onInterrupt() = Unit
 
     override fun onDestroy() {
         super.onDestroy()
-        serviceJob.cancel()
-
-        if (BlockingOverlayController.isShowing()) {
-            BlockingOverlayController.hide(this)
-        }
-
         try {
-            unregisterReceiver(blockReadyEndReceiver)
-        } catch (e: Exception) {
-            Log.w(TAG, "Receiver already unregistered or not registered", e)
-        }
+            unregisterReceiver(overlayUnlockedReceiver)
+        } catch (e: Exception) { }
     }
 
     private fun getAppLabel(pkg: String): String {
@@ -127,6 +110,7 @@ class AppAccessibilityService : AccessibilityService() {
             pkg
         }
     }
+
     companion object {
         private const val TAG = "AppA11y"
     }

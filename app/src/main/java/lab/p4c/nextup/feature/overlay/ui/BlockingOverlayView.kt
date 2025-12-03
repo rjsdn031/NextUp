@@ -34,19 +34,32 @@ fun BlockingOverlayView(
     val x = NextUpThemeTokens.colors
     val t = MaterialTheme.typography
 
-//    var title by remember { mutableStateOf("YOUTUBE를 계속 이용하려면\n아래 문장을 또박또박 따라 말하세요") }
     var target by remember { mutableStateOf("문장을 불러오는 중…") }
     var phase by remember { mutableStateOf(UnlockPhase.Idle) }
     var partial by remember { mutableStateOf("") }
     var similarity by remember { mutableFloatStateOf(0f) }
     var isListening by remember { mutableStateOf(false) }
 
-    val eligible = similarity >= threshold && partial.isNotBlank()
+    val eligible = phase == UnlockPhase.Matched
 
     LaunchedEffect(Unit) {
         onBind(
             { t -> target = t },
-            { p -> phase = p },
+            { p ->
+                phase = p
+
+                isListening = when (p) {
+                    UnlockPhase.Listening -> true
+                    UnlockPhase.Processing -> false
+                    UnlockPhase.Matched -> false
+                    UnlockPhase.Mismatch -> false
+                    UnlockPhase.PermissionErr -> false
+                    UnlockPhase.Timeout -> false
+                    UnlockPhase.Busy -> false
+                    UnlockPhase.ClientErr -> false
+                    UnlockPhase.Idle -> false
+                }
+            },
             { hyp, sim ->
                 partial = hyp
                 similarity = sim.coerceIn(0f, 1f)
@@ -95,8 +108,8 @@ fun BlockingOverlayView(
             isEligible = eligible,
             isListening = isListening,
             onToggleListening = {
-                if (isListening) onStopListening() else onStartListening()
-                isListening = !isListening
+                if (isListening) onStopListening()
+                else onStartListening()
             },
             onConfirm = onConfirm,
             modifier = Modifier
