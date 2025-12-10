@@ -33,7 +33,7 @@ fun QuestionCard(
 
     Column(modifier = Modifier.alpha(if (enabled) 1f else 0.35f)) {
 
-        Text(question, style = t.titleMedium)
+        Text(question, style = t.titleLarge)
 //        Spacer(Modifier.height(6.dp))
 //        Text(desc, style = t.bodySmall, color = c.onSurface.copy(alpha = 0.75f))
         Spacer(Modifier.height(16.dp))
@@ -92,7 +92,7 @@ fun QuestionCard(
 fun QuestionCardText(
     question: String,
     text: String,
-    placeholder: String = "간단히 입력해주세요",
+    placeholder: String = "10자 이상 입력해주세요",
     enabled: Boolean,
     onChange: (String) -> Unit,
     showNext: Boolean = false,

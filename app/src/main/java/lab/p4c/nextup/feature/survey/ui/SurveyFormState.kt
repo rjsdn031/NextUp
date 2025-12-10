@@ -16,6 +16,9 @@ sealed interface SurveyValidationError {
     data object MissingNextGoal : SurveyValidationError
     data object InvalidProductivityScore : SurveyValidationError // 범위 벗어남
     data object InvalidGoalAchievement : SurveyValidationError   // 범위 벗어남
+
+    data object ReasonTooShort : SurveyValidationError
+    data object NextGoalTooShort : SurveyValidationError
 }
 
 // 타입 세이프 검증 결과
@@ -28,17 +31,36 @@ sealed interface Validation<out T> {
 private fun Int.isScoreValid(): Boolean = this in 0..4
 
 fun SurveyFormState.validate(): List<SurveyValidationError> = buildList {
+
+    // 1. 생산성 점수
     when (val s = productivityScore) {
         null -> add(SurveyValidationError.MissingProductivityScore)
         else -> if (!s.isScoreValid()) add(SurveyValidationError.InvalidProductivityScore)
     }
-    if (productivityReason.isBlank()) add(SurveyValidationError.MissingReason)
 
+    // 2. 주관식 이유
+    when {
+        productivityReason.isBlank() ->
+            add(SurveyValidationError.MissingReason)
+
+        productivityReason.trim().length < 10 ->
+            add(SurveyValidationError.ReasonTooShort)
+    }
+
+    // 3. 목표 달성 점수
     when (val g = goalAchievement) {
         null -> add(SurveyValidationError.MissingGoalAchievement)
         else -> if (!g.isScoreValid()) add(SurveyValidationError.InvalidGoalAchievement)
     }
-    if (nextGoal.isBlank()) add(SurveyValidationError.MissingNextGoal)
+
+    // 4. 내일 목표
+    when {
+        nextGoal.isBlank() ->
+            add(SurveyValidationError.MissingNextGoal)
+
+        nextGoal.trim().length < 10 ->
+            add(SurveyValidationError.NextGoalTooShort)
+    }
 }
 
 fun SurveyFormState.toDomain(dateKey: String): Validation<DailySurvey> {
