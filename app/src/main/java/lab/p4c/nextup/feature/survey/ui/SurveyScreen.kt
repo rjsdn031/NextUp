@@ -1,5 +1,7 @@
 package lab.p4c.nextup.feature.survey.ui
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +16,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import lab.p4c.nextup.feature.survey.ui.components.QuestionCard
@@ -34,11 +38,18 @@ fun SurveyScreen(
     val form = vm.form
 
     val scroll = rememberScrollState()
+    val focusManager = LocalFocusManager.current
 
     Surface(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                focusManager.clearFocus()
+            }
+//            .padding(horizontal = 24.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()

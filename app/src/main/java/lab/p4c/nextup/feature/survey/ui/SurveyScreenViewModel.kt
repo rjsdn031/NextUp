@@ -61,28 +61,8 @@ class SurveyScreenViewModel @Inject constructor(
         // 제출은 QuestionCardText 내부 '제출' 버튼에서 onSubmit() 호출.
     }
 
-    // 현재 스텝에서 '다음/제출' 버튼 활성화 여부
-    val canProceed: Boolean
-        get() = when (step) {
-            1 -> form.productivityScore != null && (form.productivityScore ?: -1) in 0..4
-            2 -> form.productivityReason.isNotBlank()
-            3 -> form.goalAchievement != null && (form.goalAchievement ?: -1) in 0..4
-            4 -> form.nextGoal.isNotBlank() && !isSubmitting
-            else -> false
-        }
     val canSubmit: Boolean
-        get() =
-            form.productivityScore != null &&
-                    form.productivityReason.isNotBlank() &&
-                    form.goalAchievement != null &&
-                    form.nextGoal.isNotBlank() &&
-                    !isSubmitting
-
-    fun onPrev() {
-        if (step > 1 && !isSubmitting) {
-            step--
-        }
-    }
+        get() = form.validate().isEmpty() && !isSubmitting
 
     /**
      * 주관식 카드(QuestionCardText)에서 '다음' 버튼이 눌렸을 때 호출.
@@ -102,7 +82,7 @@ class SurveyScreenViewModel @Inject constructor(
         onSuccess: () -> Unit,
         onError: (List<SurveyValidationError>) -> Unit
     ) {
-        if (!canProceed || step != 4) return
+        if (step != 4 || !canSubmit) return
         submit(onSuccess, onError)
     }
 

@@ -31,7 +31,11 @@ fun QuestionCard(
     val c = MaterialTheme.colorScheme
     val t = MaterialTheme.typography
 
-    Column(modifier = Modifier.alpha(if (enabled) 1f else 0.35f)) {
+    Column(
+        modifier = Modifier
+            .alpha(if (enabled) 1f else 0.35f)
+            .padding(horizontal = 24.dp)
+    ) {
 
         Text(question, style = t.titleLarge)
 //        Spacer(Modifier.height(6.dp))
@@ -104,7 +108,9 @@ fun QuestionCardText(
     val t = MaterialTheme.typography
     val c = MaterialTheme.colorScheme
 
-    Column(modifier = Modifier.alpha(if (enabled) 1f else 0.35f)) {
+    Column(modifier = Modifier
+        .alpha(if (enabled) 1f else 0.35f)
+        .padding(horizontal = 24.dp)) {
 
         Text(question, style = t.titleLarge)
         Spacer(Modifier.height(16.dp))
@@ -137,7 +143,7 @@ fun QuestionCardText(
                 showNext && onNext != null -> {
                     ThrottleButton(
                         onClick = onNext,
-                        enabled = text.isNotBlank(),
+                        enabled = (text.isNotBlank() && text.trim().length >= 10),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("다음")
