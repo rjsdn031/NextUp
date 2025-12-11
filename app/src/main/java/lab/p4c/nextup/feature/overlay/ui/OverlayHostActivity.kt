@@ -2,12 +2,20 @@ package lab.p4c.nextup.feature.overlay.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import dagger.hilt.android.AndroidEntryPoint
 import lab.p4c.nextup.app.ui.theme.NextUpTheme
+import lab.p4c.nextup.feature.blocking.infra.BlockGate
 import lab.p4c.nextup.feature.overlay.infra.BlockingOverlayController
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class OverlayHostActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var blockGate: BlockGate
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +47,9 @@ class OverlayHostActivity : ComponentActivity() {
                         BlockingOverlayController.stopSession()
                         val intent = Intent("lab.p4c.nextup.OVERLAY_UNLOCKED")
                         sendBroadcast(intent)
+                        blockGate.disableUntilNextAlarm()
+                        blockGate.clearReady()
+                        Log.d("AppA11y", "Unlocked — blocking disabled until next alarm")
 
                         setResult(RESULT_OK)
                         finish()

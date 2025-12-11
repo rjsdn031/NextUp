@@ -78,7 +78,7 @@ class AppAccessibilityService : AccessibilityService() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == "lab.p4c.nextup.OVERLAY_UNLOCKED") {
                 serviceScope.launch {
-                    blockGate.disableUntilNextAlarm()  // 🔥 핵심
+                    blockGate.disableUntilNextAlarm()
                     blockGate.clearReady()
                     Log.d(TAG, "Unlocked — blocking disabled until next alarm")
                 }
