@@ -76,6 +76,19 @@ fun AddAlarmScreen(
         mutableStateOf(TextFieldValue(ui.label))
     }
 
+    LaunchedEffect(Unit) {
+        vm.events.collect { event ->
+            when (event) {
+                is AddAlarmEvent.Saved -> {
+                    navController.popBackStack()
+                }
+                is AddAlarmEvent.SaveFailed -> {
+                    // Toast.makeText(LocalContext.current, event.message, LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     val focusManager = LocalFocusManager.current
 
     Scaffold(
@@ -112,7 +125,7 @@ fun AddAlarmScreen(
                         enabled = ui.canSave && !ui.isBusy,
                         onClick = {
                             vm.updateLabel(labelField.text)
-                            vm.save { navController.popBackStack() }
+                            vm.save()
                         }
                     ) {
                         Text("저장")

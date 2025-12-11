@@ -24,7 +24,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AlarmListViewModel @Inject constructor(
-    repo: AlarmRepository,
+    private val repo: AlarmRepository,
     private val toggleAlarm: ToggleAlarm,
     private val upsert: UpsertAlarmAndReschedule,
     private val delete: DeleteAlarmAndCancel,
@@ -33,18 +33,20 @@ class AlarmListViewModel @Inject constructor(
     private val scheduleDailySurveyReminder: ScheduleDailySurveyReminder    // reminder test
 ) : ViewModel() {
 
-    val alarms: StateFlow<List<Alarm>> =
-        repo.observe().stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = emptyList()
-        )
+    private val _alarms = MutableStateFlow<List<Alarm>?>(null)
+    val alarms: StateFlow<List<Alarm>?> = _alarms
 
     private val _now = MutableStateFlow(timeProvider.nowLocal().atZone(ZoneId.systemDefault()))
     val now: StateFlow<ZonedDateTime> = _now
 
 
     init {
+        viewModelScope.launch {
+            repo.observe().collect { list ->
+                _alarms.value = list
+            }
+        }
+
         viewModelScope.launch {
             kotlinx.coroutines.flow.flow {
                 while (true) {

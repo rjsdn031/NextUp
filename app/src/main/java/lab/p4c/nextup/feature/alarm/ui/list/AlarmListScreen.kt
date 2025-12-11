@@ -29,6 +29,7 @@ import lab.p4c.nextup.app.time.SystemTimeProvider
 import lab.p4c.nextup.app.ui.util.clickableThrottle
 import lab.p4c.nextup.core.common.time.dayOfWeekToKor
 import lab.p4c.nextup.core.common.time.formatTimeOfDay
+import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmFAB
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmHeader
@@ -47,22 +48,27 @@ fun AlarmListScreen(
     navController: NavController,
     vm: AlarmListViewModel = hiltViewModel()
 ) {
-    val alarms by vm.alarms.collectAsStateWithLifecycle()
+    val alarmsState by vm.alarms.collectAsStateWithLifecycle()
     val now by vm.now.collectAsStateWithLifecycle()
     val ctx = LocalContext.current
 
     val c = MaterialTheme.colorScheme
     val t = MaterialTheme.typography
 
+    val alarms: List<Alarm> = alarmsState ?: emptyList()
+
     var hasNavigatedToAdd by remember { mutableStateOf(false) }
 
-    LaunchedEffect(alarms) {
-        if (alarms.isEmpty() && !hasNavigatedToAdd) {
-            hasNavigatedToAdd = true
-            navController.navigate("add")
-        }
-        if (alarms.isNotEmpty()) {
-            hasNavigatedToAdd = false
+    LaunchedEffect(alarmsState) {
+        val loaded = alarmsState
+        if (loaded != null) {
+            if (loaded.isEmpty() && !hasNavigatedToAdd) {
+                hasNavigatedToAdd = true
+                navController.navigate("add")
+            }
+            if (loaded.isNotEmpty()) {
+                hasNavigatedToAdd = false
+            }
         }
     }
 

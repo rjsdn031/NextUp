@@ -3,8 +3,10 @@ package lab.p4c.nextup.feature.alarm.ui.add
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import lab.p4c.nextup.feature.alarm.ui.util.NextTriggerFormatter
@@ -21,7 +23,7 @@ data class AddAlarmUiState(
     val minute: Int = 0,
     val label: String = "",
     val repeatDays: List<Int> = listOf(0, 1, 2, 3, 4, 5, 6, 7),     // 1=월..7=일
-    val skipHolidays: Boolean = true,
+    val skipHolidays: Boolean = false,
 
     val alarmSoundEnabled: Boolean = true,
     val ringtoneName: String = "기본 알람",
@@ -45,6 +47,11 @@ data class AddAlarmUiState(
         !isBusy && hour in 0..23 && minute in 0..59 && label.length <= 30
 }
 
+sealed interface AddAlarmEvent {
+    data object Saved : AddAlarmEvent
+    data class SaveFailed(val message: String) : AddAlarmEvent
+}
+
 @HiltViewModel
 class AddAlarmViewModel @Inject constructor(
     private val upsert: UpsertAlarmAndReschedule,
@@ -54,6 +61,9 @@ class AddAlarmViewModel @Inject constructor(
 
     private val _ui = MutableStateFlow(AddAlarmUiState())
     val ui = _ui.asStateFlow()
+
+    private val _events = MutableSharedFlow<AddAlarmEvent>()
+    val events = _events.asSharedFlow()
 
     init {
         recalcNextTrigger()
@@ -128,7 +138,7 @@ class AddAlarmViewModel @Inject constructor(
     }
 
     /* ---------- Save ---------- */
-    fun save(onDone: (Boolean) -> Unit) = viewModelScope.launch {
+    fun save() = viewModelScope.launch {
         val s = _ui.value
         if (!s.canSave) return@launch
         _ui.value = s.copy(isBusy = true)
@@ -158,11 +168,12 @@ class AddAlarmViewModel @Inject constructor(
                 maxSnoozeCount = s.maxSnoozeCount
             )
             upsert(alarm)
-            onDone(true)
+            _events.emit(AddAlarmEvent.Saved)
 
         } catch (e: Exception) {
-            _ui.value = _ui.value.copy(errorMessage = "알람 저장 실패: ${e.message}")
-            onDone(false)
+            val msg = "알람 저장 실패: ${e.message}"
+            _ui.value = _ui.value.copy(errorMessage = msg)
+            _events.emit(AddAlarmEvent.SaveFailed(msg))
 
         } finally {
             _ui.value = _ui.value.copy(isBusy = false)
