@@ -20,15 +20,15 @@ data class AddAlarmUiState(
     val hour: Int = 7,
     val minute: Int = 0,
     val label: String = "",
-    val repeatDays: List<Int> = emptyList(),     // 1=월..7=일
+    val repeatDays: List<Int> = listOf(0, 1, 2, 3, 4, 5, 6, 7),     // 1=월..7=일
     val skipHolidays: Boolean = true,
 
     val alarmSoundEnabled: Boolean = true,
-    val ringtoneName: String = "Test Alarm",
+    val ringtoneName: String = "기본 알람",
     val sound: AlarmSound = AlarmSound.Asset("test_sound"),
 
     val vibration: Boolean = true,
-    val volume: Float = 1f,                      // 0..1
+    val volume: Float = 0.8f,                      // 0..1
     val fadeSeconds: Int = 0,
     val loop: Boolean = true,
 

@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.*
 import androidx.compose.material3.MenuDefaults.itemColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,18 @@ fun AlarmListScreen(
 
     val c = MaterialTheme.colorScheme
     val t = MaterialTheme.typography
+
+    var hasNavigatedToAdd by remember { mutableStateOf(false) }
+
+    LaunchedEffect(alarms) {
+        if (alarms.isEmpty() && !hasNavigatedToAdd) {
+            hasNavigatedToAdd = true
+            navController.navigate("add")
+        }
+        if (alarms.isNotEmpty()) {
+            hasNavigatedToAdd = false
+        }
+    }
 
     Scaffold(
         containerColor = c.background,

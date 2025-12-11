@@ -1,11 +1,14 @@
 package lab.p4c.nextup.feature.alarm.ui.add
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -73,7 +76,17 @@ fun AddAlarmScreen(
         mutableStateOf(TextFieldValue(ui.label))
     }
 
+    val focusManager = LocalFocusManager.current
+
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                focusManager.clearFocus()
+            },
         containerColor = c.background,
         contentColor = c.onBackground,
         bottomBar = {
@@ -95,7 +108,7 @@ fun AddAlarmScreen(
                     ) { Text("취소") }
 
                     ThrottleButton(
-                        modifier = Modifier.weight(2f),
+                        modifier = Modifier.weight(1f),
                         enabled = ui.canSave && !ui.isBusy,
                         onClick = {
                             vm.updateLabel(labelField.text)
