@@ -18,7 +18,8 @@ fun AlarmTile(
     time: String,
     days: List<String>,
     enabled: Boolean,
-    onToggle: ((Boolean) -> Unit)?
+    onToggle: ((Boolean) -> Unit)?,
+    fixed: Boolean = false
 ) {
     val c = MaterialTheme.colorScheme
     val t = MaterialTheme.typography
@@ -52,16 +53,20 @@ fun AlarmTile(
                 )
             }
 
-            Switch(
-                checked = enabled,
-                onCheckedChange = onToggle,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = c.onPrimary,
-                    checkedTrackColor = c.primary,
-                    uncheckedThumbColor = c.outline,
-                    uncheckedTrackColor = c.background
+            if (!fixed) {
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = onToggle,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = c.onPrimary,
+                        checkedTrackColor = c.primary,
+                        uncheckedThumbColor = c.outline,
+                        uncheckedTrackColor = c.background
+                    )
                 )
-            )
+            } else {
+                // TODO: Muted된 Primary 색상으로 변경
+            }
         }
     }
 }

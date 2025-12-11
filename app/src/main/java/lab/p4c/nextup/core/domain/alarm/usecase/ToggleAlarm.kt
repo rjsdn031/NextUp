@@ -10,6 +10,9 @@ import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
 import lab.p4c.nextup.feature.alarm.data.mapper.toDomain
 import javax.inject.Inject
 
+
+private const val MANDATORY_ALARM_ID = 1
+
 class ToggleAlarm @Inject constructor(
     private val db: AppDatabase,
     private val dao: AlarmDao,
@@ -17,6 +20,11 @@ class ToggleAlarm @Inject constructor(
     private val nextTrigger: NextTriggerCalculator
 ) {
     suspend operator fun invoke(id: Int, enabled: Boolean) = withContext(Dispatchers.IO) {
+
+        if (id == MANDATORY_ALARM_ID && !enabled) {
+            return@withContext
+        }
+
         var post: () -> Unit = {}
         db.withTransaction {
             dao.updateEnabled(id, enabled)

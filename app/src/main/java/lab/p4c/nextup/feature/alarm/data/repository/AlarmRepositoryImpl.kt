@@ -33,6 +33,9 @@ class AlarmRepositoryImpl @Inject constructor(
     override suspend fun getById(id: Int): Alarm? =
         dao.findByIdOrNull(id)?.toDomain()
 
+    override suspend fun getAll(): List<Alarm> =
+        dao.getAll().map { it.toDomain() }
+
     override suspend fun setEnabled(id: Int, enabled: Boolean): Boolean =
         dao.setEnabled(id, enabled) > 0
 }

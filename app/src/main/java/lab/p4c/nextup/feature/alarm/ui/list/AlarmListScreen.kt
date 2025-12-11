@@ -148,7 +148,8 @@ fun AlarmListScreen(
                             enabled = alarm.enabled,
                             onToggle = { checked ->
                                 vm.onToggle(alarm, checked)
-                            }
+                            },
+                            fixed = (alarm.id == 1)
                         )
                     }
                 }

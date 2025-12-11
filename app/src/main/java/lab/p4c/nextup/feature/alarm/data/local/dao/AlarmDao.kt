@@ -9,6 +9,9 @@ interface AlarmDao {
     @Query("SELECT * FROM alarms ORDER BY hour, minute")
     fun observeAll(): Flow<List<AlarmEntity>>
 
+    @Query("SELECT * FROM alarms ORDER BY hour, minute")
+    suspend fun getAll(): List<AlarmEntity>
+
     @Insert
     suspend fun insert(entity: AlarmEntity): Long
 

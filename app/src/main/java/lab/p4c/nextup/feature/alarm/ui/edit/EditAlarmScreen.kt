@@ -38,6 +38,7 @@ fun EditAlarmScreen(
     val c = MaterialTheme.colorScheme
     val t = MaterialTheme.typography
 
+    val isMandatory = ui.id == 1
 
     LaunchedEffect(alarmId) { vm.load(alarmId) }
 
@@ -109,7 +110,7 @@ fun EditAlarmScreen(
                     ) { Text("취소") }
 
                     ThrottleButton(
-                        modifier = Modifier.weight(2f),
+                        modifier = Modifier.weight(1f),
                         enabled = ui.canSave && !ui.isBusy,
                         onClick = {
                             vm.updateLabel(labelField.text)
@@ -246,28 +247,30 @@ fun EditAlarmScreen(
                             )
                     }
 
-                    item {
-                        ListItem(
-                            headlineContent = {
-                                Text("알람 삭제", color = c.error)
-                            },
-                            leadingContent = {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "삭제",
-                                    tint = c.error
+                    if (!isMandatory) {
+                        item {
+                            ListItem(
+                                headlineContent = {
+                                    Text("알람 삭제", color = c.error)
+                                },
+                                leadingContent = {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "삭제",
+                                        tint = c.error
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickableThrottle(
+                                        enabled = !ui.isBusy,
+                                        onClick = { vm.delete { navController.popBackStack() } }
+                                    ),
+                                colors = ListItemDefaults.colors(
+                                    containerColor = c.surface
                                 )
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickableThrottle(
-                                    enabled = !ui.isBusy,
-                                    onClick = { vm.delete { navController.popBackStack() } }
-                                ),
-                            colors = ListItemDefaults.colors(
-                                containerColor = c.surface
                             )
-                        )
+                        }
                     }
 
                 }

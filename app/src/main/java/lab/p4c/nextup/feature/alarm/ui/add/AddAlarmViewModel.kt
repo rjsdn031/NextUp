@@ -15,6 +15,7 @@ import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
 import lab.p4c.nextup.core.common.time.indicesToDays
 import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
+import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
 import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
 import java.time.ZoneId
 
@@ -41,7 +42,9 @@ data class AddAlarmUiState(
     val isPreviewing: Boolean = false,
     val isBusy: Boolean = false,
     val errorMessage: String? = null,
-    val nextTriggerText: String? = null
+    val nextTriggerText: String? = null,
+
+    val isFirstAlarm: Boolean = false
 ) {
     val canSave: Boolean =
         !isBusy && hour in 0..23 && minute in 0..59 && label.length <= 30
@@ -54,6 +57,7 @@ sealed interface AddAlarmEvent {
 
 @HiltViewModel
 class AddAlarmViewModel @Inject constructor(
+    private val repo: AlarmRepository,
     private val upsert: UpsertAlarmAndReschedule,
     private val timeProvider: TimeProvider,
     private val nextTrigger: NextTriggerCalculator,
@@ -66,7 +70,14 @@ class AddAlarmViewModel @Inject constructor(
     val events = _events.asSharedFlow()
 
     init {
-        recalcNextTrigger()
+        viewModelScope.launch {
+            val existing = repo.getAll()
+            val isFirst = existing.isEmpty()
+
+            _ui.value = _ui.value.copy(isFirstAlarm = isFirst)
+
+            recalcNextTrigger()
+        }
     }
 
     /* ---------- Update ---------- */
@@ -143,8 +154,15 @@ class AddAlarmViewModel @Inject constructor(
         if (!s.canSave) return@launch
         _ui.value = s.copy(isBusy = true)
         try {
+            val existing = repo.getAll()
+            val isFirst = existing.isEmpty()
+
+            val assignedId = if (isFirst) 1 else 0
+            // 1 = mandatory alarm ID
+            // 0 = auto-generate (Room auto ID)
+
             val alarm = Alarm(
-                id = 0, // 신규
+                id = assignedId, // 신규
                 hour = s.hour,
                 minute = s.minute,
                 days = s.repeatDays.indicesToDays(),

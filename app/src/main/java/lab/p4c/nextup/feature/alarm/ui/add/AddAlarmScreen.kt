@@ -115,10 +115,12 @@ fun AddAlarmScreen(
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ThrottleOutlinedButton(
-                        modifier = Modifier.weight(1f),
-                        onClick = { navController.popBackStack() }
-                    ) { Text("취소") }
+                    if (!ui.isFirstAlarm) {
+                        ThrottleOutlinedButton(
+                            modifier = Modifier.weight(1f),
+                            onClick = { navController.popBackStack() }
+                        ) { Text("취소") }
+                    }
 
                     ThrottleButton(
                         modifier = Modifier.weight(1f),
