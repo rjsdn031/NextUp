@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import lab.p4c.nextup.core.common.permission.PermissionChecker
 import lab.p4c.nextup.feature.alarm.ui.util.NextTriggerFormatter
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
@@ -30,6 +31,7 @@ class AlarmListViewModel @Inject constructor(
     private val delete: DeleteAlarmAndCancel,
     private val timeProvider: TimeProvider,
     private val nextTrigger: NextTriggerCalculator,
+    private val permissionChecker: PermissionChecker,
     private val scheduleDailySurveyReminder: ScheduleDailySurveyReminder    // reminder test
 ) : ViewModel() {
 
@@ -76,6 +78,8 @@ class AlarmListViewModel @Inject constructor(
         val nowZdt = timeProvider.nowLocal().atZone(ZoneId.systemDefault())
         return NextTriggerFormatter.formatKor(triggerAtUtcMillis, nowZdt, true)
     }
+
+    fun canOpenAddAlarm(): Boolean = permissionChecker.hasExactAlarm()
 
     // reminder test
     fun scheduleTestSurveyReminder() = viewModelScope.launch {

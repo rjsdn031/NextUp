@@ -10,6 +10,7 @@ import lab.p4c.nextup.app.ui.components.ThrottleFloatingActionButton
 
 /**
  * Add로 화면 이동
+ * @deprecated - AlarmAddTile로 대체
  */
 @Composable
 fun AlarmFAB(

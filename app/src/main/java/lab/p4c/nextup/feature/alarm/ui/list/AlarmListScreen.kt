@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -31,6 +32,7 @@ import lab.p4c.nextup.core.common.time.dayOfWeekToKor
 import lab.p4c.nextup.core.common.time.formatTimeOfDay
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
+import lab.p4c.nextup.feature.alarm.ui.components.AlarmAddTile
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmFAB
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmHeader
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmTile
@@ -53,24 +55,8 @@ fun AlarmListScreen(
     val ctx = LocalContext.current
 
     val c = MaterialTheme.colorScheme
-    val t = MaterialTheme.typography
 
     val alarms: List<Alarm> = alarmsState ?: emptyList()
-
-    var hasNavigatedToAdd by remember { mutableStateOf(false) }
-
-    LaunchedEffect(alarmsState) {
-        val loaded = alarmsState
-        if (loaded != null) {
-            if (loaded.isEmpty() && !hasNavigatedToAdd) {
-                hasNavigatedToAdd = true
-                navController.navigate("add")
-            }
-            if (loaded.isNotEmpty()) {
-                hasNavigatedToAdd = false
-            }
-        }
-    }
 
     Scaffold(
         containerColor = c.background,
@@ -122,7 +108,6 @@ fun AlarmListScreen(
             }
 
             AlarmHeader(now = now, nextAlarmMessage = nextMessage)
-
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -130,28 +115,41 @@ fun AlarmListScreen(
                     .weight(1f)
                     .fillMaxWidth()
             ) {
-                itemsIndexed(alarms, key = { _, a -> a.id }) { index, alarm ->
+                if (alarms.isEmpty()) {
+                    item(key = "add") {
+                        AlarmAddTile(
+                            onClick = {
+                                if (vm.canOpenAddAlarm()) {
+                                    navController.navigate("add")
+                                } else {
+                                    Toast.makeText(ctx, "알람 추가를 위해 ‘정확한 알람’ 권한이 필요합니다", Toast.LENGTH_SHORT).show()
+                                    navController.navigate("settings")
+                                }
+                            }
+                        )
+                    }
+                }
 
+                itemsIndexed(alarms, key = { _, a -> a.id }) { _, alarm ->
                     val timeText = formatTimeOfDay(alarm.hour, alarm.minute)
                     val days = alarm.days.map { dayOfWeekToKor(it) }
 
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickableThrottle { navController.navigate("edit/${alarm.id}") }) {
+                            .clickableThrottle { navController.navigate("edit/${alarm.id}") }
+                    ) {
                         AlarmTile(
                             time = timeText,
                             days = days,
                             enabled = alarm.enabled,
-                            onToggle = { checked ->
-                                vm.onToggle(alarm, checked)
-                            },
+                            onToggle = { checked -> vm.onToggle(alarm, checked) },
                             fixed = (alarm.id == 1),
                             onFixedToggle = {
-                                Toast.makeText(
-                                    ctx, "필수 알람은 해제할 수 없습니다", Toast.LENGTH_SHORT
-                                ).show()
-                            })
+                                Toast.makeText(ctx, "필수 알람은 해제할 수 없습니다", Toast.LENGTH_SHORT)
+                                    .show()
+                            }
+                        )
                     }
                 }
             }
