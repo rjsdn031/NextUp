@@ -98,12 +98,17 @@ class AddAlarmViewModel @Inject constructor(
         _ui.value = _ui.value.copy(skipHolidays = b); recalcNextTrigger()
     }
 
-    fun toggleAlarmSound(enabled: Boolean) {
+    fun toggleAlarmSound(enabled: Boolean): Boolean {
+        if (isMandatoryAlarm() && !enabled) {
+            return false // 거부됨
+        }
+
         val s = _ui.value
         _ui.value = s.copy(
             alarmSoundEnabled = enabled,
             isPreviewing = if (!enabled) false else s.isPreviewing
         )
+        return true
     }
 
     fun selectSound(name: String, sound: AlarmSound) {
@@ -114,12 +119,22 @@ class AddAlarmViewModel @Inject constructor(
         )
     }
 
-    fun toggleVibration(b: Boolean) {
+    fun toggleVibration(b: Boolean): Boolean {
+        if (isMandatoryAlarm() && !b) {
+            return false
+        }
         _ui.value = _ui.value.copy(vibration = b)
+        return true
     }
 
-    fun updateVolume(v: Float) {
-        _ui.value = _ui.value.copy(volume = v.coerceIn(0f, 1f))
+    fun updateVolume(v: Float): Boolean {
+        val min = if (isMandatoryAlarm()) 0.2f else 0f
+        val next = v.coerceIn(min, 1f)
+
+        val rejected = isMandatoryAlarm() && v < min
+
+        _ui.value = _ui.value.copy(volume = next)
+        return !rejected
     }
 
     fun toggleFade(on: Boolean) {
@@ -197,6 +212,8 @@ class AddAlarmViewModel @Inject constructor(
             _ui.value = _ui.value.copy(isBusy = false)
         }
     }
+
+    private fun isMandatoryAlarm(): Boolean = _ui.value.isFirstAlarm
 
     private fun recalcNextTrigger() {
         val s = _ui.value
