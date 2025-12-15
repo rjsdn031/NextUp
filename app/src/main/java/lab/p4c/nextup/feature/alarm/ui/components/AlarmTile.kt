@@ -9,7 +9,6 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -19,7 +18,8 @@ fun AlarmTile(
     days: List<String>,
     enabled: Boolean,
     onToggle: ((Boolean) -> Unit)?,
-    fixed: Boolean = false
+    fixed: Boolean = false,
+    onFixedToggle: (() -> Unit)? = null,
 ) {
     val c = MaterialTheme.colorScheme
     val t = MaterialTheme.typography
@@ -53,20 +53,22 @@ fun AlarmTile(
                 )
             }
 
-            if (!fixed) {
-                Switch(
-                    checked = enabled,
-                    onCheckedChange = onToggle,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = c.onPrimary,
-                        checkedTrackColor = c.primary,
-                        uncheckedThumbColor = c.outline,
-                        uncheckedTrackColor = c.background
-                    )
+            Switch(
+                checked = enabled,
+                onCheckedChange = { next ->
+                    if (fixed) {
+                        onFixedToggle?.invoke()
+                        return@Switch
+                    }
+                    onToggle?.invoke(next)
+                },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = c.onPrimary,
+                    checkedTrackColor = c.primary,
+                    uncheckedThumbColor = c.outline,
+                    uncheckedTrackColor = c.background
                 )
-            } else {
-                // TODO: Muted된 Primary 색상으로 변경
-            }
+            )
         }
     }
 }

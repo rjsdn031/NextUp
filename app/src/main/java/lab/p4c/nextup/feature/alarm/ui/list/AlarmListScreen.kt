@@ -87,9 +87,7 @@ fun AlarmListScreen(
                     onTestSurveyReminder = { zdt ->
                         vm.scheduleTestSurveyReminder()
                         Toast.makeText(
-                            ctx,
-                            "테스트 알림을 예약했습니다: ${zdt.toLocalTime()}",
-                            Toast.LENGTH_SHORT
+                            ctx, "테스트 알림을 예약했습니다: ${zdt.toLocalTime()}", Toast.LENGTH_SHORT
                         ).show()
                     },
                     now = now
@@ -97,8 +95,8 @@ fun AlarmListScreen(
             }
         },
         bottomBar = { SurveyLinkSection({ navController.navigate("survey") }) },
-        floatingActionButton = {
-            AlarmFAB(onClick = { navController.navigate("add") })
+//        floatingActionButton = {
+//            AlarmFAB(onClick = { navController.navigate("add") })
 //            AlarmFAB(onClick = {
 //                val id = alarms.firstOrNull()?.id ?: 1  // 임시 id
 //                ctx.startActivity(
@@ -106,7 +104,7 @@ fun AlarmListScreen(
 //                        .putExtra(AlarmReceiver.EXTRA_ALARM_ID, id)
 //                )
 //            })
-        }
+//        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -114,11 +112,11 @@ fun AlarmListScreen(
                 .padding(padding)
         ) {
             val nextMessage = remember(alarms, now) {
-                val nextMillis = alarms
-                    .asSequence()
-                    .filter { it.enabled }
-                    .map { vm.computeNextMillis(it, now) }
-                    .minOrNull()
+                val nextMillis =
+                    alarms.asSequence()
+                        .filter { it.enabled }
+                        .map { vm.computeNextMillis(it, now) }
+                        .minOrNull()
 
                 nextMillis?.let { vm.formatNext(it) } ?: "설정된 다음 알람이 없습니다"
             }
@@ -140,8 +138,7 @@ fun AlarmListScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickableThrottle { navController.navigate("edit/${alarm.id}") }
-                    ) {
+                            .clickableThrottle { navController.navigate("edit/${alarm.id}") }) {
                         AlarmTile(
                             time = timeText,
                             days = days,
@@ -149,8 +146,12 @@ fun AlarmListScreen(
                             onToggle = { checked ->
                                 vm.onToggle(alarm, checked)
                             },
-                            fixed = (alarm.id == 1)
-                        )
+                            fixed = (alarm.id == 1),
+                            onFixedToggle = {
+                                Toast.makeText(
+                                    ctx, "필수 알람은 해제할 수 없습니다", Toast.LENGTH_SHORT
+                                ).show()
+                            })
                     }
                 }
             }
