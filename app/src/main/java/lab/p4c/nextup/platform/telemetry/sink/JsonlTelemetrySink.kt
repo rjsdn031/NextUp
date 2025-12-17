@@ -10,7 +10,7 @@ import lab.p4c.nextup.core.domain.telemetry.port.TelemetrySink
 
 @Singleton
 class JsonlTelemetrySink @Inject constructor(
-    @param:ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context
 ) : TelemetrySink {
 
     private val lock = Any()

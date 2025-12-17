@@ -4,12 +4,14 @@ import android.util.Log
 import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import lab.p4c.nextup.feature.alarm.data.local.AppDatabase
-import lab.p4c.nextup.feature.alarm.data.local.dao.AlarmDao
-import lab.p4c.nextup.core.domain.alarm.port.AlarmScheduler
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
+import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
+import lab.p4c.nextup.core.domain.alarm.port.AlarmScheduler
 import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
 import lab.p4c.nextup.core.domain.system.TimeProvider
+import lab.p4c.nextup.core.domain.telemetry.service.TelemetryLogger
+import lab.p4c.nextup.feature.alarm.data.local.AppDatabase
+import lab.p4c.nextup.feature.alarm.data.local.dao.AlarmDao
 import lab.p4c.nextup.feature.alarm.data.mapper.toEntity
 import java.time.ZoneId
 import javax.inject.Inject
@@ -20,11 +22,13 @@ class UpsertAlarmAndReschedule @Inject constructor(
     private val scheduler: AlarmScheduler,
     private val nextTrigger: NextTriggerCalculator,
     private val timeProvider: TimeProvider,
+    private val telemetryLogger: TelemetryLogger,
 ) {
     suspend operator fun invoke(alarm: Alarm) = withContext(Dispatchers.IO) {
         var finalId: Int = alarm.id
         var finalModel: Alarm = alarm
         var nextAt: Long? = null
+        var persistedByInsert = false
 
         db.withTransaction {
             val incoming = alarm.toEntity()
@@ -44,11 +48,18 @@ class UpsertAlarmAndReschedule @Inject constructor(
             }
 
             val toSave = if (survivorId == 0) incoming else incoming.copy(id = survivorId)
+
             val persistedId = if (toSave.id == 0) {
+                persistedByInsert = true
                 dao.insert(toSave).toInt()
             } else {
                 val rows = dao.update(toSave)
-                if (rows == 0) dao.insert(toSave).toInt() else toSave.id
+                if (rows == 0) {
+                    persistedByInsert = true
+                    dao.insert(toSave).toInt()
+                } else {
+                    toSave.id
+                }
             }
 
             finalId = persistedId
@@ -62,23 +73,68 @@ class UpsertAlarmAndReschedule @Inject constructor(
                 }
             }
 
-            if (finalModel.enabled) {
+            nextAt = if (finalModel.enabled) {
                 val nowZdt = timeProvider.nowLocal().atZone(ZoneId.systemDefault())
-                nextAt = nextTrigger.computeUtcMillis(finalModel, now = nowZdt)
+                nextTrigger.computeUtcMillis(finalModel, now = nowZdt)
             } else {
-                nextAt = null
+                null
             }
         }
+
+        // AlarmCreated / AlarmUpdated 이벤트 기록
+        val eventName = if (persistedByInsert) "AlarmCreated" else "AlarmUpdated"
+        telemetryLogger.log(
+            eventName = eventName,
+            payload = buildAlarmPayload(
+                alarmId = finalId,
+                alarm = finalModel,
+                timeProvider = timeProvider
+            )
+        )
 
         scheduler.cancel(finalId)
 
         if (finalModel.enabled) {
             val nowUtc = System.currentTimeMillis()
-            if (nextAt == null || nextAt!! <= nowUtc) {
+            val at = nextAt
+            if (at == null || at <= nowUtc) {
                 Log.w("AlarmScheduler", "nextAt in the past or null: id=$finalId nextAt=$nextAt now=$nowUtc")
                 return@withContext
             }
-            scheduler.schedule(finalId, nextAt!!, finalModel)
+            scheduler.schedule(finalId, at, finalModel)
         }
     }
+}
+
+private fun buildAlarmPayload(
+    alarmId: Int,
+    alarm: Alarm,
+    timeProvider: TimeProvider
+): Map<String, String> {
+    val timestampMsUtc = timeProvider.now().toEpochMilli()
+    return mapOf(
+        "AlarmId" to alarmId.toString(),
+        "Time" to timestampMsUtc.toString(),
+        "AlarmName" to alarm.name,
+
+        "SoundType" to alarm.sound.toSoundType(),
+        "SoundName" to alarm.sound.toSoundName(),
+        "Volume" to alarm.volume.toString(),
+
+        "SnoozeEnable" to alarm.snoozeEnabled.toString(),
+        "SnoozeInterval" to alarm.snoozeInterval.toString(),
+        "SnoozeMaxCount" to alarm.maxSnoozeCount.toString()
+    )
+}
+
+private fun AlarmSound.toSoundType(): String = when (this) {
+    is AlarmSound.Asset -> "Asset"
+    is AlarmSound.System -> "System"
+    is AlarmSound.Custom -> "Custom"
+}
+
+private fun AlarmSound.toSoundName(): String = when (this) {
+    is AlarmSound.Asset -> resName
+    is AlarmSound.System -> uri
+    is AlarmSound.Custom -> uri
 }
