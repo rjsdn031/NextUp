@@ -1,5 +1,6 @@
 package lab.p4c.nextup.core.domain.system
 
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -19,4 +20,26 @@ fun TimeProvider.sessionKey(
             now.toLocalDate()
 
     return date.toString() // ex. "2025-11-18"
+}
+
+/**
+ * UTC(ms) 기준으로 DataKey를 산출한다, SessionKey와 동일
+ * 별도 Instant를 사용한다
+ */
+fun dateKeyFromUtcEpochMillis(
+    timestampMsUtc: Long,
+    rolloverHour: Int = 3,
+    zone: ZoneId = ZoneId.systemDefault()
+): String {
+    val localDateTime = Instant.ofEpochMilli(timestampMsUtc)
+        .atZone(zone)
+        .toLocalDateTime()
+
+    val date: LocalDate =
+        if (localDateTime.hour < rolloverHour)
+            localDateTime.toLocalDate().minusDays(1)
+        else
+            localDateTime.toLocalDate()
+
+    return date.toString()
 }
