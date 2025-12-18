@@ -22,7 +22,6 @@ object BlockingOverlayController {
         this.setPhase = setPhase
         this.setPartial = setPartial
 
-        // 초기 상태 설정
         setTarget(targetPhrase)
         setPhase(UnlockPhase.Idle)
     }
@@ -30,7 +29,8 @@ object BlockingOverlayController {
     fun startSession(
         activity: Activity,
         targetPhrase: String,
-        onUnlocked: () -> Unit
+        onUnlocked: () -> Unit,
+        onFailed: (UnlockPhase) -> Unit
     ) {
         stopSession()
 
@@ -39,12 +39,14 @@ object BlockingOverlayController {
             targetPhrase = targetPhrase,
             onPhase = { phase ->
                 setPhase?.invoke(phase)
+                if (phase.isTerminalFailure()) onFailed(phase)
             },
             onPartial = { hyp, sim ->
                 setPartial?.invoke(hyp, sim)
             },
             onSuccess = {
                 setPhase?.invoke(UnlockPhase.Matched)
+                onUnlocked()
             },
             onErrorUi = { code ->
                 Log.e("STT", "SpeechRecognizer error: $code")
@@ -56,4 +58,13 @@ object BlockingOverlayController {
         stt?.stop()
         stt = null
     }
+}
+
+private fun UnlockPhase.isTerminalFailure(): Boolean = when (this) {
+    UnlockPhase.Mismatch,
+    UnlockPhase.Timeout,
+    UnlockPhase.Busy,
+    UnlockPhase.PermissionErr,
+    UnlockPhase.ClientErr -> true
+    else -> false
 }

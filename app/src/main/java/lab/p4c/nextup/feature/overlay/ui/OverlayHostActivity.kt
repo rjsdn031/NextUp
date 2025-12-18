@@ -31,6 +31,9 @@ class OverlayHostActivity : ComponentActivity() {
     private var hiddenLogged = false
     private var timeoutJob: Job? = null
 
+    private var currentAttemptId: String? = null
+    private var attemptFinalized: Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -78,16 +81,72 @@ class OverlayHostActivity : ComponentActivity() {
                         finish()
                     },
                     onStartListening = {
+                        val attemptId = UUID.randomUUID().toString()
+                        currentAttemptId = attemptId
+                        attemptFinalized = false
+
+                        telemetryLogger.log(
+                            eventName = "SpeechUnlockStarted",
+                            payload = mapOf(
+                                "overlaySessionId" to overlaySessionId,
+                                "attemptId" to attemptId
+                            )
+                        )
+
                         BlockingOverlayController.startSession(
                             activity = this,
                             targetPhrase = phrase,
-                            onUnlocked = { }
+                            onUnlocked = {
+                                if (!attemptFinalized) {
+                                    attemptFinalized = true
+                                    telemetryLogger.log(
+                                        eventName = "SpeechUnlockSucceeded",
+                                        payload = mapOf(
+                                            "overlaySessionId" to overlaySessionId,
+                                            "attemptId" to attemptId
+                                        )
+                                    )
+                                }
+                            },
+                            onFailed = { phase ->
+                                if (!attemptFinalized) {
+                                    attemptFinalized = true
+                                    telemetryLogger.log(
+                                        eventName = "SpeechUnlockFailed",
+                                        payload = mapOf(
+                                            "overlaySessionId" to overlaySessionId,
+                                            "attemptId" to attemptId,
+                                            "Reason" to phase.name
+                                        )
+                                    )
+                                }
+                            }
                         )
                     },
                     onStopListening = {
                         BlockingOverlayController.stopSession()
+
+                        val attemptId = currentAttemptId
+                        if (attemptId != null && !attemptFinalized) {
+                            attemptFinalized = true
+                            telemetryLogger.log(
+                                eventName = "SpeechUnlockFailed",
+                                payload = mapOf(
+                                    "overlaySessionId" to overlaySessionId,
+                                    "attemptId" to attemptId,
+                                    "Reason" to UnlockPhase.Idle.name
+                                )
+                            )
+                        }
                     },
                     onConfirm = {
+                        telemetryLogger.log(
+                            eventName = "AppUseClicked",
+                            payload = mapOf(
+                                "overlaySessionId" to overlaySessionId
+                            )
+                        )
+
                         BlockingOverlayController.stopSession()
                         val intent = Intent("lab.p4c.nextup.OVERLAY_UNLOCKED")
                         sendBroadcast(intent)
