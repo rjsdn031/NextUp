@@ -34,6 +34,7 @@ import kotlin.getValue
 class AlarmPlayerService : Service() {
 
     @Inject lateinit var repo: AlarmRepository
+    @Inject lateinit var ringingState: AlarmRingingState
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
@@ -81,6 +82,7 @@ class AlarmPlayerService : Service() {
         val sessionId = currentSessionId
 
         val id = intent?.getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1) ?: -1
+        ringingState.setRinging(true)
 
         startForeground(maxOf(1, id), buildNotification("알람", "일어날 시간입니다!", id))
 
@@ -107,6 +109,7 @@ class AlarmPlayerService : Service() {
         restoreAlarmVolume()
         scope.cancel()
         stopForeground(STOP_FOREGROUND_REMOVE)
+        ringingState.setRinging(false)
         super.onDestroy()
     }
 
