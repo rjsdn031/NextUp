@@ -5,6 +5,7 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import lab.p4c.nextup.core.domain.overlay.port.OverlayVisibility
+import lab.p4c.nextup.core.domain.telemetry.port.AlarmLoggingWindow
 import javax.inject.Singleton
 import lab.p4c.nextup.core.domain.telemetry.port.DateKeyProvider
 import lab.p4c.nextup.core.domain.telemetry.port.EventIdGenerator
@@ -15,6 +16,7 @@ import lab.p4c.nextup.platform.telemetry.id.UuidEventIdGenerator
 import lab.p4c.nextup.platform.telemetry.sink.JsonlTelemetrySink
 import lab.p4c.nextup.platform.telemetry.time.SystemDateKeyProvider
 import lab.p4c.nextup.platform.telemetry.user.LocalUserIdProvider
+import lab.p4c.nextup.platform.telemetry.window.PrefsAlarmLoggingWindow
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -39,4 +41,9 @@ abstract class TelemetryModule {
     @Binds
     @Singleton
     abstract fun bindBlockingUiState(impl: OverlayVisibilityImpl): OverlayVisibility
+
+    @Binds
+    @Singleton
+    abstract fun bindAlarmLoggingWindow(impl: PrefsAlarmLoggingWindow): AlarmLoggingWindow
+
 }

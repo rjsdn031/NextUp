@@ -17,6 +17,7 @@ import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
 import lab.p4c.nextup.core.domain.alarm.usecase.DismissAlarm
 import lab.p4c.nextup.core.domain.system.TimeProvider
+import lab.p4c.nextup.core.domain.telemetry.port.AlarmLoggingWindow
 import lab.p4c.nextup.core.domain.telemetry.service.TelemetryLogger
 import lab.p4c.nextup.feature.alarm.infra.player.AlarmPlayerService
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
@@ -41,6 +42,7 @@ class AlarmRingingActivity : ComponentActivity() {
     @Inject lateinit var dismissAlarm: DismissAlarm
     @Inject lateinit var blockGate: BlockGate
     @Inject lateinit var telemetryLogger: TelemetryLogger
+    @Inject lateinit var alarmLoggingWindow: AlarmLoggingWindow
 
     private var exitHandled = false
 
@@ -88,6 +90,7 @@ class AlarmRingingActivity : ComponentActivity() {
                     val used = snoozePrefs.getInt(usedKey(id), 0)
                     val isSnoozed = used > 0
 
+                    alarmLoggingWindow.markAlarmTriggered(timeProvider.now().toEpochMilli())
                     telemetryLogger.log(
                         eventName = "AlarmTriggered",
                         payload = mapOf(
