@@ -1,6 +1,7 @@
 package lab.p4c.nextup.app.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -39,7 +40,7 @@ private object Routes {
     const val USAGELIST = "usage"                 // 리스트
     const val USAGEDETAIL = "usage/detail/{pkg}"   // 상세
     fun usageDetail(pkg: String) = "usage/detail/$pkg"
-    
+
     const val SURVEY = "survey"
     const val SURVEY_COMPLETE = "survey/complete"
     const val DEEPLINK_SURVEY = "app://nextup/survey" // 알림 URI
@@ -70,10 +71,12 @@ fun AppRoot() {
                             handle["selectedSoundType"] = "asset"
                             handle["selectedSoundValue"] = sound.resName
                         }
+
                         is AlarmSound.System -> {
                             handle["selectedSoundType"] = "system"
                             handle["selectedSoundValue"] = sound.uri
                         }
+
                         is AlarmSound.Custom -> {
                             handle["selectedSoundType"] = "custom"
                             handle["selectedSoundValue"] = sound.uri
@@ -107,29 +110,23 @@ fun AppRoot() {
         composable(
             route = Routes.SURVEY,
             deepLinks = listOf(
-                navDeepLink {
-                    uriPattern = Routes.DEEPLINK_SURVEY + "?source={source}"
-                }
+                navDeepLink { uriPattern = Routes.DEEPLINK_SURVEY + "?source={source}" }
             ),
             arguments = listOf(
                 navArgument("source") {
-                    type = NavType.StringType
-                    defaultValue = ""
-                    nullable = true
+                    type = NavType.StringType; defaultValue = ""; nullable = true
                 }
             )
         ) { entry ->
             val vm: SurveyScreenViewModel = hiltViewModel()
-            // val source = entry.arguments?.getString("source") // 필요 시 분석용
+
+            LaunchedEffect(entry.id) {
+                vm.onEnter()
+            }
 
             SurveyScreen(
                 vm = vm,
                 onComplete = {
-                    // 완료 이동: 1) 완료 화면으로
-                    // navController.navigate(Routes.SURVEY_COMPLETE) {
-                    //     launchSingleTop = true
-                    // }
-                    // 또는 2) 리스트로 복귀 + back stack 정리
                     navController.navigate(Routes.ALARMLIST) {
                         popUpTo(Routes.SURVEY) { inclusive = true }
                         launchSingleTop = true

@@ -14,14 +14,15 @@ import lab.p4c.nextup.core.domain.survey.usecase.ScheduleDailySurveyReminder
 import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.core.domain.survey.usecase.SubmitDailySurvey
 import lab.p4c.nextup.core.domain.system.sessionKey
-import java.time.ZoneId
+import lab.p4c.nextup.core.domain.telemetry.service.TelemetryLogger
 
 @HiltViewModel
 class SurveyScreenViewModel @Inject constructor(
     private val submitDailySurvey: SubmitDailySurvey,
     private val scheduleDailySurveyReminder: ScheduleDailySurveyReminder,
     private val updateTodayTargetFromSurvey: UpdateTodayTargetFromSurvey,
-    private val timeProvider: TimeProvider
+    private val timeProvider: TimeProvider,
+    private val telemetryLogger: TelemetryLogger
 ) : ViewModel() {
 
     var step by mutableIntStateOf(1)
@@ -32,6 +33,23 @@ class SurveyScreenViewModel @Inject constructor(
 
     var isSubmitting by mutableStateOf(false)
         private set
+
+    private var startedLogged by mutableStateOf(false)
+    private var completedLogged by mutableStateOf(false)
+
+    /**
+     * 설문 화면 진입 시 1회 호출 (SurveyStarted)
+     */
+    fun onEnter() {
+        if (startedLogged) return
+        startedLogged = true
+
+        val dateKey = timeProvider.sessionKey()
+        telemetryLogger.log(
+            eventName = "SurveyStarted",
+            payload = mapOf("DateKey" to dateKey)
+        )
+    }
 
     fun onProductivityScore(v: Int) {
         form = form.copy(productivityScore = v)
@@ -69,9 +87,7 @@ class SurveyScreenViewModel @Inject constructor(
      */
     fun onNext() {
         if (isSubmitting) return
-        if (step in 1..3) {
-            step++
-        }
+        if (step in 1..3) step++
     }
 
     /**
@@ -93,17 +109,24 @@ class SurveyScreenViewModel @Inject constructor(
         if (isSubmitting) return@launch
         isSubmitting = true
         try {
-            val sessionKey = timeProvider.sessionKey()
+            val dateKey = timeProvider.sessionKey()
 
-            when (val r = form.toDomain(sessionKey)) {
+            when (val r = form.toDomain(dateKey)) {
                 is Validation.Ok -> {
                     submitDailySurvey(r.value)
+
+                    if (!completedLogged) {
+                        completedLogged = true
+                        telemetryLogger.log(
+                            eventName = "SurveyCompleted",
+                            payload = mapOf("DateKey" to dateKey)
+                        )
+                    }
 
                     if (form.nextGoal.isNotBlank()) {
                         updateTodayTargetFromSurvey(form.nextGoal)
                     }
 
-                    // (유스케이스 기본값 호출)
                     scheduleDailySurveyReminder()
                     onSuccess()
 
