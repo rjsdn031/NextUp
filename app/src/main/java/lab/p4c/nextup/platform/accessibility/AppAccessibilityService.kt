@@ -18,6 +18,7 @@ import lab.p4c.nextup.feature.blocking.infra.BlockGate
 import lab.p4c.nextup.feature.blocking.infra.isBlockingActive
 import lab.p4c.nextup.feature.overlay.ui.OverlayHostActivity
 import lab.p4c.nextup.feature.overlay.ui.OverlayState
+import lab.p4c.nextup.platform.telemetry.device.ChargingTelemetryReceiver
 
 @AndroidEntryPoint
 class AppAccessibilityService : AccessibilityService() {
@@ -33,6 +34,8 @@ class AppAccessibilityService : AccessibilityService() {
 
     @Inject lateinit var telemetryLogger: TelemetryLogger
     @Inject lateinit var alarmLoggingWindow: AlarmLoggingWindow
+
+    private lateinit var chargingReceiver: ChargingTelemetryReceiver
 
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.Main.immediate + serviceJob)
@@ -129,6 +132,18 @@ class AppAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+
+        chargingReceiver = ChargingTelemetryReceiver(
+            telemetryLogger = telemetryLogger,
+        )
+
+        val filter_charge = IntentFilter().apply {
+            addAction(Intent.ACTION_POWER_CONNECTED)
+            addAction(Intent.ACTION_POWER_DISCONNECTED)
+        }
+
+        registerReceiver(chargingReceiver, filter_charge, RECEIVER_NOT_EXPORTED)
+
         val filter = IntentFilter("lab.p4c.nextup.OVERLAY_UNLOCKED")
         registerReceiver(overlayUnlockedReceiver, filter, RECEIVER_NOT_EXPORTED)
     }
@@ -136,10 +151,13 @@ class AppAccessibilityService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     override fun onDestroy() {
-        super.onDestroy()
         try {
+            unregisterReceiver(chargingReceiver)
             unregisterReceiver(overlayUnlockedReceiver)
-        } catch (e: Exception) { }
+        } catch (_: Exception) {}
+
+        serviceJob.cancel()
+        super.onDestroy()
     }
 
     private fun getAppLabel(pkg: String): String {

@@ -97,6 +97,19 @@
         <!--                <action android:name="android.intent.action.TIMEZONE_CHANGED" />-->
         <!--            </intent-filter>-->
         <!--        </receiver>-->
+
+        <receiver
+            android:name="lab.p4c.nextup.platform.telemetry.device.DeviceStateReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.ACTION_SHUTDOWN" />
+                <action android:name="android.intent.action.BATTERY_LOW" />
+                <action android:name="android.intent.action.BATTERY_OKAY" />
+            </intent-filter>
+        </receiver>
     </application>
 
     <queries>
