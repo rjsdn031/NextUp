@@ -31,6 +31,7 @@ class BlockTargetSettingsViewModel @Inject constructor(
     private val repo: BlockTargetRepository,
     private val appFetcher: InstalledAppFetcher,
     private val usageStats: UsageStatsService,
+    private val telemetryLogger: lab.p4c.nextup.core.domain.telemetry.service.TelemetryLogger,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(BlockTargetSettingsUi())
@@ -103,13 +104,36 @@ class BlockTargetSettingsViewModel @Inject constructor(
      * 현재 체크된 항목 저장
      */
     fun save() {
-        val selected = _ui.value.items
+        val uiNow = _ui.value
+
+        val selected = uiNow.items
             .filter { it.checked }
             .map { it.packageName }
             .toSet()
 
+        val before = uiNow.initialSelected
+
+        val added = (selected - before).toList().sorted()
+        val removed = (before - selected).toList().sorted()
+
+        // 변화 없으면 아무것도 안 함
+        if (added.isEmpty() && removed.isEmpty()) return
+
         viewModelScope.launch {
+            // save
             repo.setTargets(selected)
+
+            // logging
+            telemetryLogger.log(
+                eventName = "TargetAppChanged",
+                payload = mapOf(
+                    "AddApps" to added.joinToString(","),
+                    "SubApps" to removed.joinToString(",")
+                )
+            )
+
+            // init hasChanges
+            _ui.update { it.copy(initialSelected = selected) }
         }
     }
 }
