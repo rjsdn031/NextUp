@@ -14,6 +14,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import dagger.hilt.android.EntryPointAccessors
 import lab.p4c.nextup.app.ui.components.ThrottleButton
 import lab.p4c.nextup.app.ui.components.ThrottleIconButton
 import lab.p4c.nextup.app.ui.theme.NextUpThemeTokens
@@ -26,6 +27,7 @@ import lab.p4c.nextup.platform.permission.NotificationPermission
 import lab.p4c.nextup.platform.permission.OverlayPermission
 import lab.p4c.nextup.platform.permission.SpeechSettingsIntents
 import lab.p4c.nextup.platform.permission.UsageAccessPermission
+import lab.p4c.nextup.platform.telemetry.permission.PermissionTelemetryEntryPoint
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +45,15 @@ fun AlarmSettingsScreen(navController: NavController) {
 
     // 설정 갔다가 돌아오면 다시 체크
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    val app = ctx.applicationContext
+    val tracker = remember {
+        EntryPointAccessors.fromApplication(
+            app,
+            PermissionTelemetryEntryPoint::class.java
+        ).permissionChangeTracker()
+    }
+
     DisposableEffect(lifecycleOwner) {
         val obs = LifecycleEventObserver { _, e ->
             if (e == Lifecycle.Event.ON_RESUME) {
@@ -53,6 +64,8 @@ fun AlarmSettingsScreen(navController: NavController) {
                 notifGranted = NotificationPermission.isGranted(ctx)
                 batteryIgnored = BatteryOptimizationPermission.isIgnoring(ctx)
                 micGranted = MicrophonePermission.isGranted(ctx)
+
+                tracker.checkAndLog(source = "APP_FLOW")
             }
         }
         lifecycleOwner.lifecycle.addObserver(obs)
