@@ -15,6 +15,7 @@ import lab.p4c.nextup.feature.alarm.data.local.dao.AlarmDao
 import lab.p4c.nextup.feature.alarm.data.mapper.toEntity
 import java.time.ZoneId
 import javax.inject.Inject
+import kotlin.math.floor
 
 class UpsertAlarmAndReschedule @Inject constructor(
     private val db: AppDatabase,
@@ -81,16 +82,18 @@ class UpsertAlarmAndReschedule @Inject constructor(
             }
         }
 
-        // AlarmCreated / AlarmUpdated 이벤트 기록
-        val eventName = if (persistedByInsert) "AlarmCreated" else "AlarmUpdated"
-        telemetryLogger.log(
-            eventName = eventName,
-            payload = buildAlarmPayload(
-                alarmId = finalId,
-                alarm = finalModel,
-                timeProvider = timeProvider
+        runCatching {
+            // AlarmCreated / AlarmUpdated 이벤트 기록
+            val eventName = if (persistedByInsert) "AlarmCreated" else "AlarmUpdated"
+            telemetryLogger.log(
+                eventName = eventName,
+                payload = buildAlarmPayload(
+                    alarmId = finalId,
+                    alarm = finalModel,
+                    nextTriggerUtcMillis = nextAt
+                )
             )
-        )
+        }.onFailure { Log.w("Telemetry", "Alarm event log failed", it) }
 
         scheduler.cancel(finalId)
 
@@ -98,7 +101,10 @@ class UpsertAlarmAndReschedule @Inject constructor(
             val nowUtc = System.currentTimeMillis()
             val at = nextAt
             if (at == null || at <= nowUtc) {
-                Log.w("AlarmScheduler", "nextAt in the past or null: id=$finalId nextAt=$nextAt now=$nowUtc")
+                Log.w(
+                    "AlarmScheduler",
+                    "nextAt in the past or null: id=$finalId nextAt=$nextAt now=$nowUtc"
+                )
                 return@withContext
             }
             scheduler.schedule(finalId, at, finalModel)
@@ -109,17 +115,23 @@ class UpsertAlarmAndReschedule @Inject constructor(
 private fun buildAlarmPayload(
     alarmId: Int,
     alarm: Alarm,
-    timeProvider: TimeProvider
+    nextTriggerUtcMillis: Long?,
 ): Map<String, String> {
-    val timestampMsUtc = timeProvider.now().toEpochMilli()
+
+    val timeLocal = "%02d:%02d".format(alarm.hour, alarm.minute)
+    val repeatDays = alarm.days.joinToString(",") { it.name }
+
     return mapOf(
         "AlarmId" to alarmId.toString(),
-        "Time" to timestampMsUtc.toString(),
-        "AlarmName" to alarm.name,
 
+        "AlarmTimeLocal" to timeLocal,
+        "RepeatDays" to repeatDays,
+        "NextTriggerUtc" to (nextTriggerUtcMillis?.toString() ?: ""),
+
+        "AlarmName" to alarm.name,
         "SoundType" to alarm.sound.toSoundType(),
         "SoundName" to alarm.sound.toSoundName(),
-        "Volume" to alarm.volume.toString(),
+        "Volume" to (floor(alarm.volume * 100) / 100).toString(),
 
         "SnoozeEnable" to alarm.snoozeEnabled.toString(),
         "SnoozeInterval" to alarm.snoozeInterval.toString(),
