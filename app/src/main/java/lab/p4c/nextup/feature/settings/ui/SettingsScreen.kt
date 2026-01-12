@@ -14,6 +14,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import lab.p4c.nextup.app.ui.components.ThrottleButton
 import lab.p4c.nextup.app.ui.components.ThrottleIconButton
 import lab.p4c.nextup.app.ui.theme.NextUpThemeTokens
 import lab.p4c.nextup.app.ui.util.clickableThrottle
@@ -249,7 +250,7 @@ private fun PermissionCard(
             },
             trailingContent = {
                 if (!granted) {
-                    Button(onClick = onClick) {
+                    ThrottleButton(onClick = onClick) {
                         Text("설정")
                     }
                 }
