@@ -19,6 +19,7 @@ import lab.p4c.nextup.feature.blocking.infra.isBlockingActive
 import lab.p4c.nextup.feature.overlay.ui.OverlayHostActivity
 import lab.p4c.nextup.feature.overlay.ui.OverlayState
 import lab.p4c.nextup.platform.telemetry.device.ChargingTelemetryReceiver
+import lab.p4c.nextup.platform.telemetry.network.NetworkTelemetryRegistrar
 
 @AndroidEntryPoint
 class AppAccessibilityService : AccessibilityService() {
@@ -36,6 +37,8 @@ class AppAccessibilityService : AccessibilityService() {
     @Inject lateinit var alarmLoggingWindow: AlarmLoggingWindow
 
     private lateinit var chargingReceiver: ChargingTelemetryReceiver
+
+    @Inject lateinit var networkTelemetryRegistrar: NetworkTelemetryRegistrar
 
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.Main.immediate + serviceJob)
@@ -133,28 +136,35 @@ class AppAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
 
+        networkTelemetryRegistrar.start()
+
         chargingReceiver = ChargingTelemetryReceiver(
             telemetryLogger = telemetryLogger,
         )
 
-        val filter_charge = IntentFilter().apply {
+        val filterCharge = IntentFilter().apply {
             addAction(Intent.ACTION_POWER_CONNECTED)
             addAction(Intent.ACTION_POWER_DISCONNECTED)
         }
 
-        registerReceiver(chargingReceiver, filter_charge, RECEIVER_NOT_EXPORTED)
-
-        val filter = IntentFilter("lab.p4c.nextup.OVERLAY_UNLOCKED")
-        registerReceiver(overlayUnlockedReceiver, filter, RECEIVER_NOT_EXPORTED)
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(chargingReceiver, filterCharge, RECEIVER_NOT_EXPORTED)
+            registerReceiver(overlayUnlockedReceiver, IntentFilter("lab.p4c.nextup.OVERLAY_UNLOCKED"), RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(chargingReceiver, filterCharge)
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(overlayUnlockedReceiver, IntentFilter("lab.p4c.nextup.OVERLAY_UNLOCKED"))
+        }
     }
 
     override fun onInterrupt() = Unit
 
     override fun onDestroy() {
-        try {
-            unregisterReceiver(chargingReceiver)
-            unregisterReceiver(overlayUnlockedReceiver)
-        } catch (_: Exception) {}
+        runCatching { networkTelemetryRegistrar.stop() }
+
+        runCatching { unregisterReceiver(chargingReceiver) }
+        runCatching { unregisterReceiver(overlayUnlockedReceiver) }
 
         serviceJob.cancel()
         super.onDestroy()
