@@ -189,7 +189,7 @@ fun AlarmSettingsScreen(navController: NavController) {
                             )
                         },
                         trailingContent = {
-                            Button(
+                            ThrottleButton(
                                 onClick = { SpeechSettingsIntents.openOfflineSpeechSettings(ctx) }
                             ) {
                                 Text("설정")
