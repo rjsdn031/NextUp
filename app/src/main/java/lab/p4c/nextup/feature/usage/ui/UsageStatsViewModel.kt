@@ -26,24 +26,16 @@ class UsageStatsViewModel @Inject constructor(
     private val _state = MutableStateFlow(UsageStatsUiState())
     val state: StateFlow<UsageStatsUiState> = _state
 
+    private var lastPersistMs: Long = 0L
+    private val persistCooldownMs = 10 * 60_000L
+
     fun refreshOnResume() {
         viewModelScope.launch {
             val granted = usageStatsService.hasPermission()
-            if (!granted) {
-                _state.update {
-                    it.copy(
-                        hasPermission = false,
-                        dataReady = false,
-                        isLoading = false
-                    )
-                }
-                return@launch
-            }
+            _state.update { it.copy(hasPermission = granted) }
 
-            val ready = usageStatsService.isUsageDataAvailable(Duration.ofHours(24))
-            _state.update { it.copy(hasPermission = true, dataReady = ready) }
-
-            if (ready) load(Duration.ofHours(24)) else _state.update { it.copy(isLoading = false) }
+            if (granted) load(Duration.ofHours(24))
+            else _state.update { it.copy(isLoading = false, dataReady = false) }
         }
     }
 
@@ -58,21 +50,7 @@ class UsageStatsViewModel @Inject constructor(
             val endMs = System.currentTimeMillis()
             val startMs = endMs - duration.toMillis()
 
-            val result = usageStatsService.fetch(range = Duration.ofHours(24))
-
-            if (result.error == null) {
-                val inputs = result.sessionsByApp.values
-                    .flatten()
-                    .map { s ->
-                        UsageSessionInput(
-                            packageName = s.packageName,
-                            startMillis = s.startMillis,
-                            endMillis = s.endMillis
-                        )
-                    }
-
-                usageRepository.saveSessions(inputs)
-            }
+            val result = usageStatsService.fetch(range = duration)
 
             _state.update {
                 it.copy(
@@ -83,6 +61,26 @@ class UsageStatsViewModel @Inject constructor(
                     windowStartMs = startMs,
                     windowEndMs = endMs
                 )
+            }
+
+            if (result.error == null) {
+                val now = System.currentTimeMillis()
+                val shouldPersist = now - lastPersistMs > persistCooldownMs
+                if (!shouldPersist) return@launch
+
+                val inputs = result.sessionsByApp.values.flatten().map { s ->
+                    UsageSessionInput(
+                        packageName = s.packageName,
+                        startMillis = s.startMillis,
+                        endMillis = s.endMillis
+                    )
+                }
+
+                runCatching {
+                    usageRepository.saveSessions(inputs)
+                }.onSuccess {
+                    lastPersistMs = now
+                }
             }
         }
     }
