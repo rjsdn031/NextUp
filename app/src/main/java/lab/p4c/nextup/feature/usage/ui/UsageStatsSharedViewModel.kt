@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import lab.p4c.nextup.feature.usage.ui.model.UsageSession
 
+/** @deprecated */
 @HiltViewModel
 class UsageStatsSharedViewModel @Inject constructor() : ViewModel() {
 
