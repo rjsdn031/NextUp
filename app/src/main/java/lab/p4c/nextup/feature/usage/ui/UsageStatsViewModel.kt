@@ -1,6 +1,5 @@
 package lab.p4c.nextup.feature.usage.ui
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,7 +10,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import lab.p4c.nextup.feature.usage.data.repository.UsageRepository
 import lab.p4c.nextup.feature.usage.data.repository.UsageSessionInput
-import lab.p4c.nextup.feature.usage.infra.DefaultUsageStatsService
 import java.time.Duration
 import lab.p4c.nextup.feature.usage.infra.UsageStatsService
 import lab.p4c.nextup.feature.usage.ui.mapper.toUiRows
@@ -29,20 +27,23 @@ class UsageStatsViewModel @Inject constructor(
     val state: StateFlow<UsageStatsUiState> = _state
 
     fun refreshOnResume() {
-        Log.d("Usage","Refresh")
         viewModelScope.launch {
             val granted = usageStatsService.hasPermission()
             if (!granted) {
-                _state.update { it.copy(hasPermission = false, dataReady = false, isLoading = false) }
+                _state.update {
+                    it.copy(
+                        hasPermission = false,
+                        dataReady = false,
+                        isLoading = false
+                    )
+                }
                 return@launch
             }
 
-            Log.d("Usage","Refresh and Set")
             val ready = usageStatsService.isUsageDataAvailable(Duration.ofHours(24))
             _state.update { it.copy(hasPermission = true, dataReady = ready) }
 
-            Log.d("Usage","Refresh and Ready? = $ready")
-            if (ready) load24h() else _state.update { it.copy(isLoading = false) }
+            if (ready) load(Duration.ofHours(24)) else _state.update { it.copy(isLoading = false) }
         }
     }
 
@@ -50,13 +51,12 @@ class UsageStatsViewModel @Inject constructor(
         usageStatsService.requestPermission()
     }
 
-    fun load24h() {
-        Log.d("Usage","Load Data...")
+    fun load(duration: Duration) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
             val endMs = System.currentTimeMillis()
-            val startMs = endMs - Duration.ofHours(24).toMillis()
+            val startMs = endMs - duration.toMillis()
 
             val result = usageStatsService.fetch(range = Duration.ofHours(24))
 
@@ -73,10 +73,6 @@ class UsageStatsViewModel @Inject constructor(
 
                 usageRepository.saveSessions(inputs)
             }
-
-            Log.d("Usage", "error=${result.error}, apps=${result.summary.size}, sessionsApps=${result.sessionsByApp.size}")
-            val totalSessions = result.sessionsByApp.values.sumOf { it.size }
-            Log.d("Usage", "totalSessions=$totalSessions")
 
             _state.update {
                 it.copy(
