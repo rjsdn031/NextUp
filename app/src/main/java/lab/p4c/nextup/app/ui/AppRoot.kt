@@ -23,7 +23,6 @@ import lab.p4c.nextup.feature.survey.ui.SurveyScreen
 import lab.p4c.nextup.feature.survey.ui.SurveyScreenViewModel
 import lab.p4c.nextup.feature.usage.ui.UsageDetailRoute
 import lab.p4c.nextup.feature.usage.ui.UsageStatsScreen
-import lab.p4c.nextup.feature.usage.ui.UsageStatsSharedViewModel
 
 private object Routes {
     const val SETTINGS = "settings"
@@ -38,8 +37,10 @@ private object Routes {
     // usage 서브그래프
     const val USAGEGRAPH = "usage_graph"
     const val USAGELIST = "usage"                 // 리스트
-    const val USAGEDETAIL = "usage/detail/{pkg}"   // 상세
-    fun usageDetail(pkg: String) = "usage/detail/$pkg"
+    const val USAGEDETAIL = "usage/detail/{pkg}?startMs={startMs}&endMs={endMs}"
+    fun usageDetail(pkg: String, startMs: Long, endMs: Long): String {
+        return "usage/detail/$pkg?startMs=$startMs&endMs=$endMs"
+    }
 
     const val SURVEY = "survey"
     const val SURVEY_COMPLETE = "survey/complete"
@@ -141,35 +142,24 @@ fun AppRoot() {
             // CompleteScreen(onDone = { navController.navigate(Routes.ALARMLIST) { popUpTo(0) } })
         }
 
-        // usage 서브그래프: 리스트/상세가 같은 부모 entry에 스코프된 VM 공유
         navigation(
             route = Routes.USAGEGRAPH,
             startDestination = Routes.USAGELIST
         ) {
-            composable(Routes.USAGELIST) { entry ->
-                val parentEntry = remember(entry) {
-                    navController.getBackStackEntry(Routes.USAGEGRAPH)
-                }
-                val sharedVm: UsageStatsSharedViewModel = hiltViewModel(parentEntry)
-                UsageStatsScreen(
-                    navController = navController,
-                    sharedVm = sharedVm
-                )
+            composable(Routes.USAGELIST) {
+                UsageStatsScreen(navController = navController)
             }
+
             composable(
                 route = Routes.USAGEDETAIL,
-                arguments = listOf(navArgument("pkg") { type = NavType.StringType })
-            ) { entry ->
-                val parentEntry = remember(entry) {
-                    navController.getBackStackEntry(Routes.USAGEGRAPH)
-                }
-                val sharedVm: UsageStatsSharedViewModel = hiltViewModel(parentEntry)
-
-                val pkg = entry.arguments?.getString("pkg") ?: return@composable
+                arguments = listOf(
+                    navArgument("pkg") { type = NavType.StringType },
+                    navArgument("startMs") { type = NavType.StringType },
+                    navArgument("endMs") { type = NavType.StringType }
+                )
+            ) {
                 UsageDetailRoute(
-                    appPackage = pkg,
-                    onBack = { navController.popBackStack() },
-                    sharedVm = sharedVm
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

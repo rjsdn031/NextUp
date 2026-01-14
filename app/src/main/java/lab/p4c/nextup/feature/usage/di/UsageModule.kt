@@ -1,15 +1,18 @@
 package lab.p4c.nextup.feature.usage.di
 
+import dagger.Binds
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import lab.p4c.nextup.feature.usage.infra.DefaultUsageStatsService
 import lab.p4c.nextup.feature.usage.infra.UsageStatsService
 
 @Module
 @InstallIn(SingletonComponent::class)
-object UsageModule {
+abstract class UsageModule {
 
-    @Provides
-    fun provideUsageStatsService(): UsageStatsService = UsageStatsService
+    @Binds
+    abstract fun bindUsageStatsService(
+        impl: DefaultUsageStatsService
+    ): UsageStatsService
 }

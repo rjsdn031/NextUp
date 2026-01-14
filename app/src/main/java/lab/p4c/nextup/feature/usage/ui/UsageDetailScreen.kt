@@ -7,15 +7,15 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import lab.p4c.nextup.app.ui.components.ThrottleIconButton
-import lab.p4c.nextup.feature.usage.ui.model.UsageSession
 import lab.p4c.nextup.app.ui.theme.NextUpThemeTokens
+import lab.p4c.nextup.feature.usage.ui.model.UsageSession
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -24,15 +24,17 @@ import java.util.Locale
 
 @Composable
 fun UsageDetailRoute(
-    appPackage: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    sharedVm: UsageStatsSharedViewModel = hiltViewModel()
+    vm: UsageDetailViewModel = hiltViewModel()
 ) {
-    val sessions = sharedVm.getSessions(appPackage)
+    val ui by vm.state.collectAsState()
+
     UsageDetailScreen(
-        appPackage = appPackage,
-        sessions = sessions,
+        appPackage = ui.sessions.firstOrNull()?.packageName ?: "",
+        sessions = ui.sessions,
+        isLoading = ui.isLoading,
+        error = ui.error,
         onBack = onBack,
         modifier = modifier
     )
@@ -43,6 +45,8 @@ fun UsageDetailRoute(
 fun UsageDetailScreen(
     appPackage: String,
     sessions: List<UsageSession>,
+    isLoading: Boolean,
+    error: String?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -53,6 +57,14 @@ fun UsageDetailScreen(
     val dateFmt = DateTimeFormatter.ofPattern("MM/dd HH:mm", Locale.KOREA)
     val timeFmt = DateTimeFormatter.ofPattern("HH:mm", Locale.KOREA)
 
+    fun formatDuration(millis: Long): String {
+        val totalMinutes = millis / 60_000L
+        if (totalMinutes <= 0) return "< 1분"
+        val hours = totalMinutes / 60
+        val minutes = totalMinutes % 60
+        return if (hours > 0) "${hours}시간 ${minutes}분" else "${minutes}분"
+    }
+
     Scaffold(
         containerColor = c.background,
         contentColor = c.onBackground,
@@ -60,7 +72,7 @@ fun UsageDetailScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        "$appPackage 사용 기록",
+                        "${appPackage.ifBlank { "앱" }} 사용 기록",
                         color = c.onBackground,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -89,25 +101,34 @@ fun UsageDetailScreen(
                 .background(c.background)
                 .padding(inner)
         ) {
-            if (sessions.isEmpty()) {
-                Text(
+            when {
+                isLoading -> CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = c.primary
+                )
+
+                error != null -> Text(
+                    text = error,
+                    color = c.error,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+
+                sessions.isEmpty() -> Text(
                     text = "사용 기록이 없습니다.",
                     color = x.textMuted,
                     modifier = Modifier.align(Alignment.Center)
                 )
-            } else {
-                LazyColumn(
+
+                else -> LazyColumn(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
-                    itemsIndexed(sessions) { idx, s ->
-                        val start = LocalDateTime.ofInstant(
-                            Instant.ofEpochMilli(s.startMillis), zone
-                        )
-                        val end = LocalDateTime.ofInstant(
-                            Instant.ofEpochMilli(s.endMillis), zone
-                        )
-                        val minutes = (s.durationMillis / 60_000L)
+                    itemsIndexed(
+                        items = sessions,
+                        key = { _, s -> "${s.startMillis}-${s.endMillis}" }
+                    ) { idx, s ->
+                        val start = LocalDateTime.ofInstant(Instant.ofEpochMilli(s.startMillis), zone)
+                        val end = LocalDateTime.ofInstant(Instant.ofEpochMilli(s.endMillis), zone)
 
                         ListItem(
                             headlineContent = {
@@ -118,16 +139,11 @@ fun UsageDetailScreen(
                             },
                             supportingContent = {
                                 Text(
-                                    "사용 시간: ${minutes}분",
+                                    "사용 시간: ${formatDuration(s.durationMillis)}",
                                     color = x.textSecondary
                                 )
                             },
-                            leadingContent = {
-                                Text(
-                                    "${idx + 1}",
-                                    color = c.onSurface
-                                )
-                            },
+                            leadingContent = { Text("${idx + 1}", color = c.onSurface) },
                             colors = ListItemDefaults.colors(
                                 containerColor = c.surface,
                                 headlineColor = c.onSurface,
@@ -135,9 +151,7 @@ fun UsageDetailScreen(
                             )
                         )
 
-                        HorizontalDivider(
-                            color = c.outline.copy(alpha = 0.5f)
-                        )
+                        HorizontalDivider(color = c.outline.copy(alpha = 0.5f))
                     }
                 }
             }

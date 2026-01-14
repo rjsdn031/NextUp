@@ -8,7 +8,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -16,7 +15,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import lab.p4c.nextup.app.ui.theme.NextUpThemeTokens
-import lab.p4c.nextup.feature.usage.infra.UsageStatsService
 import lab.p4c.nextup.feature.usage.ui.components.PermissionCard
 import lab.p4c.nextup.feature.usage.ui.components.UsageRowItem
 
@@ -25,32 +23,22 @@ import lab.p4c.nextup.feature.usage.ui.components.UsageRowItem
 fun UsageStatsScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
-    sharedVm: UsageStatsSharedViewModel
+    vm: UsageStatsViewModel = hiltViewModel()
 ) {
-    val vm: UsageStatsViewModel = hiltViewModel()
     val ui by vm.state.collectAsState()
 
-    val ctx = LocalContext.current
     val c = MaterialTheme.colorScheme
     val x = NextUpThemeTokens.colors
-
-    var hasPermission by remember { mutableStateOf(UsageStatsService.hasPermission(ctx)) }
 
     val owner = LocalLifecycleOwner.current
     DisposableEffect(owner) {
         val obs = LifecycleEventObserver { _, e ->
             if (e == Lifecycle.Event.ON_RESUME) {
-                val granted = UsageStatsService.hasPermission(ctx)
-                hasPermission = granted
-                if (granted) vm.load(ctx)
+                vm.refreshOnResume()
             }
         }
         owner.lifecycle.addObserver(obs)
         onDispose { owner.lifecycle.removeObserver(obs) }
-    }
-
-    LaunchedEffect(ui.sessionsByApp) {
-        sharedVm.setSessions(ui.sessionsByApp)
     }
 
     Scaffold(
@@ -58,12 +46,7 @@ fun UsageStatsScreen(
         contentColor = c.onBackground,
         topBar = {
             CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "앱별 총 사용 시간",
-                        color = c.onBackground
-                    )
-                },
+                title = { Text("앱별 총 사용 시간", color = c.onBackground) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = c.background,
                     titleContentColor = c.onBackground,
@@ -72,23 +55,21 @@ fun UsageStatsScreen(
             )
         }
     ) { inner ->
-
         Box(
             modifier = modifier
                 .fillMaxSize()
                 .background(c.background)
                 .padding(inner)
         ) {
-
             when {
-                !hasPermission -> PermissionCard(
+                !ui.hasPermission -> PermissionCard(
                     modifier = Modifier.align(Alignment.Center),
-                    onOpenSettings = { UsageStatsService.requestPermission(ctx) }
+                    onOpenSettings = { vm.openUsageAccessSettings() }
                 )
 
                 ui.isLoading -> CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center),
-                    color = c.primary        // Tangerine 적용
+                    color = c.primary
                 )
 
                 ui.error != null -> Text(
@@ -112,7 +93,11 @@ fun UsageStatsScreen(
                         UsageRowItem(
                             row = row,
                             onClick = {
-                                navController.navigate("usage/detail/${row.packageName}")
+                                val startMs = ui.windowStartMs
+                                val endMs = ui.windowEndMs
+                                navController.navigate(
+                                    "usage/detail/${row.packageName}?startMs=$startMs&endMs=$endMs"
+                                )
                             }
                         )
                     }

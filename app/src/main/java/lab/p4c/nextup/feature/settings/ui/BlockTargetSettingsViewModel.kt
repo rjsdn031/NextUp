@@ -12,6 +12,8 @@ import lab.p4c.nextup.feature.settings.ui.model.BlockTargetItemUi
 import lab.p4c.nextup.feature.usage.infra.UsageStatsService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import lab.p4c.nextup.core.domain.telemetry.service.TelemetryLogger
+import lab.p4c.nextup.feature.usage.infra.DefaultUsageStatsService
 import java.time.Duration
 
 data class BlockTargetSettingsUi(
@@ -31,7 +33,7 @@ class BlockTargetSettingsViewModel @Inject constructor(
     private val repo: BlockTargetRepository,
     private val appFetcher: InstalledAppFetcher,
     private val usageStats: UsageStatsService,
-    private val telemetryLogger: lab.p4c.nextup.core.domain.telemetry.service.TelemetryLogger,
+    private val telemetryLogger: TelemetryLogger,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(BlockTargetSettingsUi())
@@ -57,7 +59,6 @@ class BlockTargetSettingsViewModel @Inject constructor(
             // 3) 최근 24시간 usage 데이터
             val usageResult = withContext(Dispatchers.IO) {
                 usageStats.fetch(
-                    context = appFetcher.context,
                     range = Duration.ofHours(24)
                 )
             }
