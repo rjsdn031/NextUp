@@ -1,5 +1,6 @@
 package lab.p4c.nextup.feature.usage.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -78,6 +79,7 @@ class UsageStatsViewModel @Inject constructor(
 
                 runCatching {
                     usageRepository.saveSessions(inputs)
+                    Log.d("Usage","Session Saved at $now")
                 }.onSuccess {
                     lastPersistMs = now
                 }
