@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.annotation.RequiresApi
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -16,14 +17,6 @@ object UsageDailyPersistScheduler {
     fun scheduleNext3AM(context: Context) {
         val appCtx = context.applicationContext
         val am = appCtx.getSystemService(AlarmManager::class.java)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                !am.canScheduleExactAlarms()
-            } else {
-                // 31 이하는 허용되지 않음
-        }
-
-
         val triggerAtMillis = next3AMMillis()
 
         val pi = PendingIntent.getBroadcast(
@@ -33,11 +26,11 @@ object UsageDailyPersistScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        am.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            triggerAtMillis,
-            pi
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+        } else {
+            // 31 이하는 허용되지 않음
+        }
     }
 
     fun cancel(context: Context) {

@@ -49,6 +49,14 @@ class UsageRepository @Inject constructor(
             )
         }
     }
+
+    suspend fun deleteByDateKey(dateKey: String): Int {
+        return usageDao.deleteByDateKey(dateKey)
+    }
+
+    suspend fun deleteBefore(dateKey: String) {
+        usageDao.deleteBefore(dateKey)
+    }
 }
 
 data class UsageSessionInput(

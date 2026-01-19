@@ -30,4 +30,12 @@ interface UsageDao {
         WHERE dateKey < :dateKey
     """)
     suspend fun deleteBefore(dateKey: String)
+
+    // 추가: 업로드 성공 후 "해당 dateKey" 데이터만 제거
+    @Query("""
+        DELETE FROM usage_session
+        WHERE dateKey = :dateKey
+    """)
+    suspend fun deleteByDateKey(dateKey: String): Int
 }
+

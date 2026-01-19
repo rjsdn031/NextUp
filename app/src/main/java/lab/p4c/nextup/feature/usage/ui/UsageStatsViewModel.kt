@@ -1,6 +1,5 @@
 package lab.p4c.nextup.feature.usage.ui
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -9,8 +8,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import lab.p4c.nextup.feature.usage.data.repository.UsageRepository
-import lab.p4c.nextup.feature.usage.data.repository.UsageSessionInput
 import java.time.Duration
 import lab.p4c.nextup.feature.usage.infra.UsageStatsService
 import lab.p4c.nextup.feature.usage.ui.mapper.toUiRows
@@ -20,15 +17,11 @@ import lab.p4c.nextup.feature.usage.ui.model.UsageSession
 
 @HiltViewModel
 class UsageStatsViewModel @Inject constructor(
-    private val usageStatsService: UsageStatsService,
-    private val usageRepository: UsageRepository,
+    private val usageStatsService: UsageStatsService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(UsageStatsUiState())
     val state: StateFlow<UsageStatsUiState> = _state
-
-    private var lastPersistMs: Long = 0L
-    private val persistCooldownMs = 10 * 60_000L
 
     fun refreshOnResume() {
         viewModelScope.launch {
@@ -62,27 +55,6 @@ class UsageStatsViewModel @Inject constructor(
                     windowStartMs = startMs,
                     windowEndMs = endMs
                 )
-            }
-
-            if (result.error == null) {
-                val now = System.currentTimeMillis()
-                val shouldPersist = now - lastPersistMs > persistCooldownMs
-                if (!shouldPersist) return@launch
-
-                val inputs = result.sessionsByApp.values.flatten().map { s ->
-                    UsageSessionInput(
-                        packageName = s.packageName,
-                        startMillis = s.startMillis,
-                        endMillis = s.endMillis
-                    )
-                }
-
-                runCatching {
-                    usageRepository.saveSessions(inputs)
-                    Log.d("Usage","Session Saved at $now")
-                }.onSuccess {
-                    lastPersistMs = now
-                }
             }
         }
     }
