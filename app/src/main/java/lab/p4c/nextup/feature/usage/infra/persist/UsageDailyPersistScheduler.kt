@@ -11,26 +11,29 @@ import java.time.ZonedDateTime
 
 object UsageDailyPersistScheduler {
 
+    const val EXTRA_END_MS = "extra_end_ms"
     private const val REQ_CODE = 9203
     private const val ACTION_PERSIST_USAGE = "lab.p4c.nextup.action.PERSIST_USAGE_DAILY"
 
     fun scheduleNext3AM(context: Context) {
-        val appCtx = context.applicationContext
-        val am = appCtx.getSystemService(AlarmManager::class.java)
+        val am = context.getSystemService(AlarmManager::class.java)
         val triggerAtMillis = next3AMMillis()
 
+        val intent = Intent(context, UsageDailyPersistReceiver::class.java)
+            .putExtra(EXTRA_END_MS, triggerAtMillis)
+
         val pi = PendingIntent.getBroadcast(
-            appCtx,
+            context,
             REQ_CODE,
-            Intent(appCtx, UsageDailyPersistReceiver::class.java).setAction(ACTION_PERSIST_USAGE),
+            intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
-        } else {
-            // 31 이하는 허용되지 않음
-        }
+        am.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            triggerAtMillis,
+            pi
+        )
     }
 
     fun cancel(context: Context) {

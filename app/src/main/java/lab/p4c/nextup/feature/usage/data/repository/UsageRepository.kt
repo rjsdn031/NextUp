@@ -57,6 +57,10 @@ class UsageRepository @Inject constructor(
     suspend fun deleteBefore(dateKey: String) {
         usageDao.deleteBefore(dateKey)
     }
+
+    suspend fun getEntitiesByDateKey(dateKey: String): List<UsageEntity> {
+        return usageDao.getSessionsByDateKey(dateKey)
+    }
 }
 
 data class UsageSessionInput(

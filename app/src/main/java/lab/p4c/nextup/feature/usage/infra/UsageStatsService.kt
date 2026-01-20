@@ -26,6 +26,5 @@ interface UsageStatsService {
     fun hasPermission(): Boolean
     fun requestPermission()
     suspend fun fetch(range: Duration = Duration.ofHours(24)): Result
-
-    fun isUsageDataAvailable(range: Duration = Duration.ofHours(24)): Boolean
+    suspend fun fetchWindow(startMs: Long, endMs: Long): Result
 }

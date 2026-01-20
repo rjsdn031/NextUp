@@ -34,10 +34,16 @@ class UsageDailyPersistReceiver : BroadcastReceiver() {
                     return@launch
                 }
 
-                val result = usageStatsService.fetch(range = Duration.ofHours(24))
+                val endMs = intent.getLongExtra(UsageDailyPersistScheduler.EXTRA_END_MS, -1L)
+                    .takeIf { it > 0L } ?: System.currentTimeMillis()
+
+                val startMs = endMs - Duration.ofHours(24).toMillis()
+
+                val result = usageStatsService.fetchWindow(startMs, endMs)
+
                 Log.d(
                     "UsagePersist",
-                    "fetch error=${result.error}, apps=${result.summary.size}, sessionsApps=${result.sessionsByApp.size}"
+                    "window=[$startMs,$endMs) error=${result.error}, apps=${result.summary.size}, sessionsApps=${result.sessionsByApp.size}"
                 )
 
                 if (result.error != null) return@launch

@@ -35,119 +35,105 @@ class DefaultUsageStatsService @Inject constructor(
         context.startActivity(intent)
     }
 
-    override suspend fun fetch(range: Duration): UsageStatsService.Result =
-        withContext(Dispatchers.IO) {
-            if (!hasPermission()) {
-                return@withContext UsageStatsService.Result(emptyList(), emptyMap(), "권한 필요")
-            }
-
-            val usm = context.getSystemService(UsageStatsManager::class.java)
-            val endMs = System.currentTimeMillis()
-            val startMs = endMs - range.toMillis()
-
-            val sessionsByApp = linkedMapOf<String, MutableList<UsageStatsService.UsageSession>>()
-            val lastForeground = hashMapOf<String, Long>()
-
-            try {
-                val events = usm.queryEvents(startMs, endMs)
-                    ?: return@withContext UsageStatsService.Result(
-                        emptyList(),
-                        emptyMap(),
-                        "UsageEvents is null"
-                    )
-
-                val e = UsageEvents.Event()
-                while (events.hasNextEvent()) {
-                    events.getNextEvent(e)
-                    val pkg = e.packageName ?: continue
-
-                    val isResume =
-                        (e.eventType == UsageEvents.Event.ACTIVITY_RESUMED) ||
-                                (e.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND)
-
-                    val isPause =
-                        (e.eventType == UsageEvents.Event.ACTIVITY_PAUSED) ||
-                                (e.eventType == UsageEvents.Event.MOVE_TO_BACKGROUND) ||
-                                (e.eventType == UsageEvents.Event.ACTIVITY_STOPPED)
-
-                    when {
-                        isResume -> {
-                            val prev = lastForeground[pkg]
-                            if (prev == null || e.timeStamp > prev) {
-                                lastForeground[pkg] = e.timeStamp
-                            }
-                        }
-
-                        isPause -> {
-                            val start = lastForeground.remove(pkg) ?: continue
-                            if (e.timeStamp >= start) {
-                                sessionsByApp
-                                    .getOrPut(pkg) { mutableListOf() }
-                                    .add(
-                                        UsageStatsService.UsageSession(
-                                            startMillis = start,
-                                            endMillis = e.timeStamp,
-                                            packageName = pkg
-                                        )
-                                    )
-                            }
-                        }
-
-                        else -> Unit
-                    }
-                }
-
-                if (lastForeground.isNotEmpty()) {
-                    lastForeground.forEach { (pkg, start) ->
-                        sessionsByApp
-                            .getOrPut(pkg) { mutableListOf() }
-                            .add(
-                                UsageStatsService.UsageSession(
-                                    startMillis = start,
-                                    endMillis = endMs,
-                                    packageName = pkg
-                                )
-                            )
-                    }
-                }
-
-                val summary = sessionsByApp.map { (pkg, list) ->
-                    UsageStatsService.AppUsageRow(
-                        packageName = pkg,
-                        total = Duration.ofMillis(list.sumOf { it.durationMillis })
-                    )
-                }.sortedByDescending { it.total }
-
-                UsageStatsService.Result(
-                    summary = summary,
-                    sessionsByApp = sessionsByApp.mapValues { it.value.toList() },
-                    error = null
-                )
-            } catch (t: Throwable) {
-                UsageStatsService.Result(
-                    emptyList(),
-                    emptyMap(),
-                    t.message ?: "UsageStats fetch failed"
-                )
-            }
-        }
-
-
-    override fun isUsageDataAvailable(range: Duration): Boolean {
-        if (!hasPermission()) return false
-        val usm = context.getSystemService(UsageStatsManager::class.java)
+    override suspend fun fetch(range: Duration): UsageStatsService.Result {
         val endMs = System.currentTimeMillis()
         val startMs = endMs - range.toMillis()
-
-        val stats = usm.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
-            startMs,
-            endMs
-        )
-        if (!stats.isNullOrEmpty()) return true
-
-        val events = usm.queryEvents(startMs, endMs)
-        val hasEvents = events != null && events.hasNextEvent()
-        return hasEvents
+        return fetchWindow(startMs, endMs)
     }
+
+    override suspend fun fetchWindow(
+        startMs: Long,
+        endMs: Long
+    ): UsageStatsService.Result = withContext(Dispatchers.IO) {
+        if (!hasPermission()) {
+            return@withContext UsageStatsService.Result(emptyList(), emptyMap(), "권한 필요")
+        }
+
+        val usm = context.getSystemService(UsageStatsManager::class.java)
+
+        val sessionsByApp = linkedMapOf<String, MutableList<UsageStatsService.UsageSession>>()
+        val lastForeground = hashMapOf<String, Long>()
+
+        try {
+            val events = usm.queryEvents(startMs, endMs)
+                ?: return@withContext UsageStatsService.Result(
+                    emptyList(),
+                    emptyMap(),
+                    "UsageEvents is null"
+                )
+
+            val e = UsageEvents.Event()
+            while (events.hasNextEvent()) {
+                events.getNextEvent(e)
+                val pkg = e.packageName ?: continue
+
+                val isResume =
+                    (e.eventType == UsageEvents.Event.ACTIVITY_RESUMED) ||
+                            (e.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND)
+
+                val isPause =
+                    (e.eventType == UsageEvents.Event.ACTIVITY_PAUSED) ||
+                            (e.eventType == UsageEvents.Event.MOVE_TO_BACKGROUND)
+
+                when {
+                    isResume -> {
+                        val prev = lastForeground[pkg]
+                        if (prev == null || e.timeStamp > prev) {
+                            lastForeground[pkg] = e.timeStamp
+                        }
+                    }
+
+                    isPause -> {
+                        val start = lastForeground.remove(pkg) ?: continue
+                        if (e.timeStamp >= start) {
+                            sessionsByApp.getOrPut(pkg) { mutableListOf() }
+                                .add(
+                                    UsageStatsService.UsageSession(
+                                        startMillis = start,
+                                        endMillis = e.timeStamp,
+                                        packageName = pkg
+                                    )
+                                )
+                        }
+                    }
+
+                    else -> Unit
+                }
+            }
+
+            // 닫히지 않은 포그라운드 세션 보정 (윈도우 endMs로 닫기)
+            if (lastForeground.isNotEmpty()) {
+                lastForeground.forEach { (pkg, start) ->
+                    sessionsByApp.getOrPut(pkg) { mutableListOf() }
+                        .add(
+                            UsageStatsService.UsageSession(
+                                startMillis = start,
+                                endMillis = endMs,
+                                packageName = pkg
+                            )
+                        )
+                }
+            }
+
+            val summary = sessionsByApp.map { (pkg, list) ->
+                UsageStatsService.AppUsageRow(
+                    packageName = pkg,
+                    total = Duration.ofMillis(list.sumOf { it.durationMillis })
+                )
+            }.sortedByDescending { it.total }
+
+            UsageStatsService.Result(
+                summary = summary,
+                sessionsByApp = sessionsByApp.mapValues { it.value.toList() },
+                error = null
+            )
+        } catch (t: Throwable) {
+            UsageStatsService.Result(
+                emptyList(),
+                emptyMap(),
+                t.message ?: "UsageStats fetch failed"
+            )
+        }
+    }
+
 }
