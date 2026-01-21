@@ -8,6 +8,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import lab.p4c.nextup.core.domain.system.dateKeyFromUtcEpochMillis
 import lab.p4c.nextup.feature.usage.data.repository.UsageRepository
@@ -20,12 +21,20 @@ class UsageDailyPersistReceiver : BroadcastReceiver() {
 
     @Inject lateinit var usageStatsService: UsageStatsService
     @Inject lateinit var usageRepository: UsageRepository
+    @Inject lateinit var uploadQueueRepository: lab.p4c.nextup.feature.uploader.data.repository.UploadQueueRepository
 
     override fun onReceive(context: Context, intent: Intent) {
+        val action = intent.action
+        if (action != UsageDailyPersistScheduler.ACTION_PERSIST_USAGE) {
+            Log.d("UsagePersist", "Ignore: action=$action")
+            return
+        }
+
         val pendingResult = goAsync()
         val appCtx = context.applicationContext
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-        CoroutineScope(Dispatchers.IO).launch {
+        scope.launch {
             try {
                 Log.d("UsagePersist", "Receiver fired")
 
@@ -48,16 +57,31 @@ class UsageDailyPersistReceiver : BroadcastReceiver() {
 
                 if (result.error != null) return@launch
 
-                val inputs = result.sessionsByApp.values.flatten().map { s ->
-                    UsageSessionInput(s.packageName, s.startMillis, s.endMillis)
-                }
-                Log.d("UsagePersist", "inputs=${inputs.size}")
+                val inputs = result.sessionsByApp.values
+                    .flatten()
+                    .map { s -> UsageSessionInput(s.packageName, s.startMillis, s.endMillis) }
 
                 usageRepository.saveSessions(inputs)
-                Log.d("UsagePersist", "Saved to Room")
+                Log.d("UsagePersist", "Saved to Room, inputs=${inputs.size}")
 
-                // TODO: 1) Room에서 targetDateKey 데이터 -> NDJSON(.gz) 생성
-                // TODO: 2) Firebase 업로드 성공 시 usageRepository.deleteByDateKey(targetDateKey)
+                // ✅ enqueue(USAGE)
+                val targetDateKey = dateKeyFromUtcEpochMillis(
+                    endMs - Duration.ofHours(3).toMillis()
+                )
+                val localRef = "$startMs,$endMs"
+
+                uploadQueueRepository.enqueue(
+                    type = lab.p4c.nextup.core.domain.upload.UploadType.USAGE,
+                    dateKey = targetDateKey,
+                    localRef = localRef,
+                    runAtMs = System.currentTimeMillis(),
+                    priority = 10
+                )
+
+                Log.d("UsagePersist", "Enqueued upload: dateKey=$targetDateKey localRef=$localRef")
+
+            } catch (t: Throwable) {
+                Log.e("UsagePersist", "Persist failed", t)
             } finally {
                 UsageDailyPersistScheduler.scheduleNext3AM(appCtx)
                 pendingResult.finish()

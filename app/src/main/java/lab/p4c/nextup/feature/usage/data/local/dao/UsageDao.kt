@@ -44,5 +44,23 @@ interface UsageDao {
     ORDER BY startMillis ASC
 """)
     suspend fun getSessionsByDateKey(dateKey: String): List<UsageEntity>
+
+    @Query("""
+    SELECT * FROM usage_session
+    WHERE startMillis >= :startMs
+      AND startMillis < :endMs
+    ORDER BY startMillis ASC
+""")
+    suspend fun getSessionsByTimeWindow(
+        startMs: Long,
+        endMs: Long
+    ): List<UsageEntity>
+
+    @Query("""
+    DELETE FROM usage_session
+    WHERE startMillis >= :startMs
+      AND startMillis < :endMs
+""")
+    suspend fun deleteByTimeWindow(startMs: Long, endMs: Long): Int
 }
 

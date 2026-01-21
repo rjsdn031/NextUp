@@ -1,25 +1,25 @@
 package lab.p4c.nextup.feature.usage.infra.upload
 
+import org.json.JSONObject
+import javax.inject.Inject
+import javax.inject.Singleton
 import lab.p4c.nextup.feature.usage.data.local.entity.UsageEntity
 
-object UsageNdjsonCodec {
-    /**
-     * 한 줄 = 한 JSON 오브젝트 (NDJSON)
-     */
-    fun toNdjsonLine(e: UsageEntity): String {
-        fun esc(s: String): String =
-            s.replace("\\", "\\\\").replace("\"", "\\\"")
+@Singleton
+class UsageNdjsonCodec @Inject constructor() {
 
-        return buildString {
-            append('{')
-            append("\"id\":\"").append(esc(e.id)).append("\",")
-            append("\"dateKey\":\"").append(esc(e.dateKey)).append("\",")
-            append("\"packageName\":\"").append(esc(e.packageName)).append("\",")
-            append("\"startMillis\":").append(e.startMillis).append(',')
-            append("\"endMillis\":").append(e.endMillis).append(',')
-            append("\"durationMillis\":").append(e.durationMillis).append(',')
-            append("\"createdAtMillis\":").append(e.createdAtMillis)
-            append('}')
-        }
+    /**
+     * NDJSON은 "한 줄 = 한 JSON object"
+     */
+    fun encodeLine(e: UsageEntity): String {
+        val obj = JSONObject()
+            .put("dateKey", e.dateKey)
+            .put("packageName", e.packageName)
+            .put("startMillis", e.startMillis)
+            .put("endMillis", e.endMillis)
+            .put("durationMillis", e.durationMillis)
+            .put("createdAtMillis", e.createdAtMillis)
+
+        return obj.toString()
     }
 }

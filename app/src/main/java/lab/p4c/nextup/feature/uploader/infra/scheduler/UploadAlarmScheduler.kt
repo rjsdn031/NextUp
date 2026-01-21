@@ -1,83 +1,84 @@
-package lab.p4c.nextup.feature.usage.infra.persist
+package lab.p4c.nextup.feature.uploader.infra.scheduler
 
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.annotation.RequiresApi
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
-object UsageDailyPersistScheduler {
+object UploadAlarmScheduler {
 
     const val EXTRA_END_MS = "extra_end_ms"
-    private const val REQ_CODE = 9203
-    const val ACTION_PERSIST_USAGE = "lab.p4c.nextup.action.PERSIST_USAGE_DAILY"
+    private const val REQ_CODE = 9301
+    private const val ACTION_UPLOAD_DAILY = "lab.p4c.nextup.action.UPLOAD_DAILY"
 
     fun scheduleNext3AM(context: Context) {
         val appCtx = context.applicationContext
         val am = appCtx.getSystemService(AlarmManager::class.java)
 
         val triggerAtMillis = next3AMMillis()
+
+        val intent = Intent(appCtx, UploadTriggerReceiver::class.java)
+            .setAction(ACTION_UPLOAD_DAILY)
+            .putExtra(EXTRA_END_MS, triggerAtMillis)
+
         val pi = PendingIntent.getBroadcast(
             appCtx,
             REQ_CODE,
-            buildIntent(appCtx, triggerAtMillis),
+            intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // API 31+에서 exact 권한 없으면 fallback
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!am.canScheduleExactAlarms()) {
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
-                return
-            }
-        }
-
-        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+        am.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            triggerAtMillis,
+            pi
+        )
     }
 
     fun cancel(context: Context) {
         val appCtx = context.applicationContext
         val am = appCtx.getSystemService(AlarmManager::class.java)
 
+        val intent = Intent(appCtx, UploadTriggerReceiver::class.java)
+            .setAction(ACTION_UPLOAD_DAILY)
+
         val pi = PendingIntent.getBroadcast(
             appCtx,
             REQ_CODE,
-            buildIntent(appCtx, 0L), // extras는 매칭에 영향 거의 없게 만드는 게 안전(아래 설명)
+            intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         am.cancel(pi)
     }
 
-    /** 테스트: n초 뒤 한 번 울리기 */
+    /** 디버그 테스트용 */
+    @RequiresApi(Build.VERSION_CODES.S)
     fun scheduleInSecondsForDebug(context: Context, seconds: Long) {
         val appCtx = context.applicationContext
         val am = appCtx.getSystemService(AlarmManager::class.java)
-
         val triggerAt = System.currentTimeMillis() + seconds * 1000L
+
+        val intent = Intent(appCtx, UploadTriggerReceiver::class.java)
+            .setAction(ACTION_UPLOAD_DAILY)
+            .putExtra(EXTRA_END_MS, triggerAt)
+
         val pi = PendingIntent.getBroadcast(
             appCtx,
             REQ_CODE,
-            buildIntent(appCtx, triggerAt),
+            intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!am.canScheduleExactAlarms()) {
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
-                return
-            }
+        if (!am.canScheduleExactAlarms()) {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+            return
         }
         am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
     }
-
-    private fun buildIntent(context: Context, endMs: Long): Intent =
-        Intent(context, UsageDailyPersistReceiver::class.java).apply {
-            action = ACTION_PERSIST_USAGE
-            // endMs는 Receiver가 window를 고정하는 데 쓰므로 넣어줌
-            if (endMs > 0L) putExtra(EXTRA_END_MS, endMs)
-        }
 
     private fun next3AMMillis(zone: ZoneId = ZoneId.systemDefault()): Long {
         val now = ZonedDateTime.now(zone)

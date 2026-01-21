@@ -61,6 +61,14 @@ class UsageRepository @Inject constructor(
     suspend fun getEntitiesByDateKey(dateKey: String): List<UsageEntity> {
         return usageDao.getSessionsByDateKey(dateKey)
     }
+
+    suspend fun getEntitiesByTimeWindow(startMs: Long, endMs: Long): List<UsageEntity> {
+        return usageDao.getSessionsByTimeWindow(startMs, endMs)
+    }
+
+    suspend fun deleteByTimeWindow(startMs: Long, endMs: Long): Int {
+        return usageDao.deleteByTimeWindow(startMs, endMs)
+    }
 }
 
 data class UsageSessionInput(
