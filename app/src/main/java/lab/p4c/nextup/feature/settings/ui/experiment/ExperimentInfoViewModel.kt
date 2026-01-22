@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import lab.p4c.nextup.core.domain.auth.usecase.EnsureAnonymousSignedIn
 import lab.p4c.nextup.core.domain.experiment.model.ExperimentInfo
 import lab.p4c.nextup.core.domain.experiment.port.ExperimentInfoRepository
+import lab.p4c.nextup.core.domain.experiment.usecase.UpsertExperimentInfoRemote
 
 data class ExperimentInfoUiState(
     val isSaving: Boolean = false,
@@ -20,7 +21,8 @@ data class ExperimentInfoUiState(
 @HiltViewModel
 class ExperimentInfoViewModel @Inject constructor(
     private val repo: ExperimentInfoRepository,
-    private val ensureAnonymousSignedIn: EnsureAnonymousSignedIn
+    private val ensureAnonymousSignedIn: EnsureAnonymousSignedIn,
+    private val upsertExperimentInfoRemote: UpsertExperimentInfoRemote
 ) : ViewModel() {
 
     private val _info = MutableStateFlow<ExperimentInfo?>(null)
@@ -51,18 +53,17 @@ class ExperimentInfoViewModel @Inject constructor(
 
                 require(gender.isNotBlank())
 
-                ensureAnonymousSignedIn()
-
-                val newInfo = ExperimentInfo(
+                val info = ExperimentInfo(
                     name = trimmedName,
                     age = parsedAge,
                     gender = gender
                 )
 
-                repo.save(newInfo)
-                _info.value = newInfo
+                repo.save(info)
+                _info.value = info
 
-                // TODO: 실험 정보 Upload
+                val uid = ensureAnonymousSignedIn()
+                upsertExperimentInfoRemote(uid, info)
             }.onFailure { e ->
                 _uiState.update { it.copy(errorMessage = e.message ?: "저장에 실패했어요.") }
             }
