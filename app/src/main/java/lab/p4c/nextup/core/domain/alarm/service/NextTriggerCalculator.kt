@@ -27,7 +27,7 @@ class NextTriggerCalculator @Inject constructor(
         var date = now.toLocalDate()
         val targetTime = LocalTime.of(alarm.hour, alarm.minute)
 
-        val LOOKHEAD = 14
+        val LOOKHEAD = 60
 
         fun at(date: LocalDate) = atZoned(date, targetTime, zone)
         var candidate = at(date)

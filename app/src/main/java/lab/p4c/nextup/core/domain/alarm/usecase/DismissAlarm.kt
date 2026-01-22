@@ -3,10 +3,12 @@ package lab.p4c.nextup.core.domain.alarm.usecase
 import javax.inject.Inject
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
 import lab.p4c.nextup.core.domain.alarm.port.AlarmScheduler
+import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
 
 class DismissAlarm @Inject constructor(
     private val repo: AlarmRepository,
-    private val scheduler: AlarmScheduler
+    private val scheduler: AlarmScheduler,
+    private val nextTriggerCalculator: NextTriggerCalculator
 ) {
     /**
      * 알람이 실제로 울린 뒤 사용자가 Dismiss를 눌렀을 때 호출.
@@ -21,5 +23,9 @@ class DismissAlarm @Inject constructor(
             scheduler.cancel(alarmId)
             return
         }
+
+        val next = nextTriggerCalculator.computeUtcMillis(a)
+
+        scheduler.schedule(alarmId, next, a)
     }
 }
