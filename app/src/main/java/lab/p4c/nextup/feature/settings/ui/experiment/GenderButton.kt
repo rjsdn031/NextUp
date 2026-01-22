@@ -18,18 +18,35 @@ fun GenderButton(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     val c = MaterialTheme.colorScheme
     val x = NextUpThemeTokens.colors
 
+    val backgroundColor = when {
+        selected -> c.primary
+        else -> c.surfaceVariant
+    }
+
+    val contentColor = when {
+        selected -> c.onPrimary
+        else -> x.textSecondary
+    }
 
     Surface(
         modifier = modifier
-            .clickableThrottle(onClick)
+            .then(
+                if (enabled) {
+                    Modifier.clickableThrottle(onClick)
+                } else {
+                    Modifier
+                }
+            )
             .padding(vertical = 4.dp),
         shape = MaterialTheme.shapes.small,
-        color = if (selected) c.primary else c.surfaceVariant
+        color = backgroundColor,
+        tonalElevation = if (enabled) 0.dp else 1.dp
     ) {
         Box(
             modifier = Modifier
@@ -39,7 +56,7 @@ fun GenderButton(
         ) {
             Text(
                 text = text,
-                color = if (selected) c.onPrimary else x.textSecondary
+                color = if (enabled) contentColor else contentColor.copy(alpha = 0.4f)
             )
         }
     }
