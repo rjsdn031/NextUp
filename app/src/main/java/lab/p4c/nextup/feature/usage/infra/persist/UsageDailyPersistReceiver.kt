@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import lab.p4c.nextup.core.domain.system.dateKeyFromUtcEpochMillis
+import lab.p4c.nextup.feature.uploader.infra.scheduler.UploadTriggerReceiver
 import lab.p4c.nextup.feature.usage.data.repository.UsageRepository
 import lab.p4c.nextup.feature.usage.data.repository.UsageSessionInput
 import lab.p4c.nextup.feature.usage.infra.UsageStatsService
@@ -64,7 +65,7 @@ class UsageDailyPersistReceiver : BroadcastReceiver() {
                 usageRepository.saveSessions(inputs)
                 Log.d("UsagePersist", "Saved to Room, inputs=${inputs.size}")
 
-                // ✅ enqueue(USAGE)
+                // enqueue(USAGE)
                 val targetDateKey = dateKeyFromUtcEpochMillis(
                     endMs - Duration.ofHours(3).toMillis()
                 )
@@ -79,6 +80,11 @@ class UsageDailyPersistReceiver : BroadcastReceiver() {
                 )
 
                 Log.d("UsagePersist", "Enqueued upload: dateKey=$targetDateKey localRef=$localRef")
+
+                appCtx.sendBroadcast(
+                    Intent(appCtx, UploadTriggerReceiver::class.java)
+                        .setAction(UploadTriggerReceiver.ACTION_RUN_UPLOADS)
+                )
 
             } catch (t: Throwable) {
                 Log.e("UsagePersist", "Persist failed", t)

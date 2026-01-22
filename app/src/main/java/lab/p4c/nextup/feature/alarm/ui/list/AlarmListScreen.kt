@@ -1,6 +1,7 @@
 package lab.p4c.nextup.feature.alarm.ui.list
 
 import android.content.Intent
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,7 @@ import lab.p4c.nextup.feature.alarm.ui.components.AlarmListMenu
 import lab.p4c.nextup.feature.alarm.ui.components.SurveyLinkSection
 import lab.p4c.nextup.feature.alarm.ui.ringing.AlarmRingingActivity
 import lab.p4c.nextup.feature.survey.infra.scheduler.AndroidSurveyReminderScheduler
+import lab.p4c.nextup.feature.uploader.infra.scheduler.UploadAlarmScheduler.scheduleInSecondsForDebug
 import java.time.Clock
 import java.time.ZoneId
 
@@ -75,6 +77,11 @@ fun AlarmListScreen(
                         Toast.makeText(
                             ctx, "테스트 알림을 예약했습니다: ${zdt.toLocalTime()}", Toast.LENGTH_SHORT
                         ).show()
+                    },
+                    onTestFirebaseUploader = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            scheduleInSecondsForDebug(ctx, 10)
+                        }
                     },
                     now = now
                 )
@@ -122,7 +129,11 @@ fun AlarmListScreen(
                                 if (vm.canOpenAddAlarm()) {
                                     navController.navigate("add")
                                 } else {
-                                    Toast.makeText(ctx, "알람 추가를 위해 ‘정확한 알람’ 권한이 필요합니다", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        ctx,
+                                        "알람 추가를 위해 ‘정확한 알람’ 권한이 필요합니다",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                     navController.navigate("settings")
                                 }
                             }

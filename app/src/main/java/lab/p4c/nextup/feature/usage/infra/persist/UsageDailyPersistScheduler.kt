@@ -75,7 +75,6 @@ object UsageDailyPersistScheduler {
     private fun buildIntent(context: Context, endMs: Long): Intent =
         Intent(context, UsageDailyPersistReceiver::class.java).apply {
             action = ACTION_PERSIST_USAGE
-            // endMs는 Receiver가 window를 고정하는 데 쓰므로 넣어줌
             if (endMs > 0L) putExtra(EXTRA_END_MS, endMs)
         }
 

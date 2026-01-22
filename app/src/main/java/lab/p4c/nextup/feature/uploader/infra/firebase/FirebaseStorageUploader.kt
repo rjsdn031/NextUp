@@ -15,6 +15,8 @@ class FirebaseStorageUploader @Inject constructor(
      * remotePath 예: users/{uid}/usage/dateKey=2026-01-13/usage.ndjson.gz
      */
     suspend fun uploadFile(remotePath: String, file: File): String {
+        require(file.exists()) { "file not found: ${file.absolutePath}" }
+
         val ref = storage.reference.child(remotePath)
         ref.putFile(file.toUri()).await()
         return remotePath

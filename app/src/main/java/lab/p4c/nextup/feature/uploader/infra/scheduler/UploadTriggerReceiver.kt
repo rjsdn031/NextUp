@@ -15,24 +15,35 @@ import lab.p4c.nextup.feature.uploader.infra.runner.UploadRunner
 @AndroidEntryPoint
 class UploadTriggerReceiver : BroadcastReceiver() {
 
-    @Inject lateinit var runner: UploadRunner
+    @Inject lateinit var uploadRunner: UploadRunner
 
     override fun onReceive(context: Context, intent: Intent) {
-        val pending = goAsync()
-        val appCtx = context.applicationContext
+        Log.d("UsagePersist", "onReceive action=${intent.action}")
+        Log.d("UsagePersist", "extras=${intent.extras?.keySet()?.joinToString()}")
+        val action = intent.action
+        if (action != ACTION_RUN_UPLOADS) {
+            Log.d(TAG, "Ignore: action=$action")
+            return
+        }
 
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+        val pendingResult = goAsync()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+        scope.launch {
             try {
-                val endMs = intent.getLongExtra(UploadAlarmScheduler.EXTRA_END_MS, -1L)
-                Log.d("UploadTrigger", "Receiver fired endMs=$endMs action=${intent.action}")
-
-                runner.drain(maxItems = 50)
+                Log.d(TAG, "Trigger received -> drain()")
+                uploadRunner.drain(maxItems = 50)
+                Log.d(TAG, "drain() finished")
             } catch (t: Throwable) {
-                Log.e("UploadTrigger", "drain failed", t)
+                Log.e(TAG, "drain failed", t)
             } finally {
-                UploadAlarmScheduler.scheduleNext3AM(appCtx)
-                pending.finish()
+                pendingResult.finish()
             }
         }
+    }
+
+    companion object {
+        const val ACTION_RUN_UPLOADS = "lab.p4c.nextup.action.RUN_UPLOADS"
+        private const val TAG = "UploadTrigger"
     }
 }

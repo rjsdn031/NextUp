@@ -12,6 +12,7 @@ fun AlarmListMenu(
     onNavigateSettings: () -> Unit,
     onNavigateUsage: () -> Unit,
     onTestSurveyReminder: (ZonedDateTime) -> Unit,
+    onTestFirebaseUploader: () -> Unit,
     now: ZonedDateTime
 ) {
     val c = MaterialTheme.colorScheme
@@ -45,6 +46,15 @@ fun AlarmListMenu(
             onClick = {
                 onDismiss()
                 onTestSurveyReminder(now)
+            },
+            colors = MenuDefaults.itemColors()
+        )
+
+        DropdownMenuItem(
+            text = { Text("사용량 업로드 테스트", style = t.bodyLarge, color = c.onSurface) },
+            onClick = {
+                onDismiss()
+                onTestFirebaseUploader()
             },
             colors = MenuDefaults.itemColors()
         )

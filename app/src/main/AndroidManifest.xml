@@ -92,6 +92,10 @@
             android:name=".feature.usage.infra.persist.UsageDailyPersistReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name=".feature.uploader.infra.scheduler.UploadTriggerReceiver"
+            android:exported="false" />
+
         <!-- 부팅 후 재예약 -->
         <!--        <receiver-->
         <!--            android:name=".feature.survey.infra.scheduler.SurveyBootReceiver"-->
