@@ -15,7 +15,7 @@ import lab.p4c.nextup.feature.overlay.infra.OverlayVisibilityImpl
 import lab.p4c.nextup.platform.telemetry.id.UuidEventIdGenerator
 import lab.p4c.nextup.platform.telemetry.sink.JsonlTelemetrySink
 import lab.p4c.nextup.platform.telemetry.time.SystemDateKeyProvider
-import lab.p4c.nextup.platform.telemetry.user.LocalUserIdProvider
+import lab.p4c.nextup.platform.telemetry.user.FirebaseUserIdProvider
 import lab.p4c.nextup.platform.telemetry.window.PrefsAlarmLoggingWindow
 
 @Module
@@ -32,7 +32,7 @@ abstract class TelemetryModule {
 
     @Binds
     @Singleton
-    abstract fun bindUserIdProvider(impl: LocalUserIdProvider): UserIdProvider
+    abstract fun bindUserIdProvider(impl: FirebaseUserIdProvider): UserIdProvider
 
     @Binds
     @Singleton

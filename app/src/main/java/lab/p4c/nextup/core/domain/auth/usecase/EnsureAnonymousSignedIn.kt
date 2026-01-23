@@ -7,6 +7,6 @@ class EnsureAnonymousSignedIn @Inject constructor(
     private val auth: AuthClient
 ) {
     suspend operator fun invoke(): String {
-        return auth.currentUidOrNull() ?: auth.signInAnonymously()
+        return auth.currentUidOrNull() ?: auth.ensureSignedIn()
     }
 }

@@ -83,7 +83,7 @@ class UsageDailyPersistReceiver : BroadcastReceiver() {
 
                 appCtx.sendBroadcast(
                     Intent(appCtx, UploadTriggerReceiver::class.java)
-                        .setAction(UploadTriggerReceiver.ACTION_RUN_UPLOADS)
+                        .setAction(UploadTriggerReceiver.UPLOAD_DAILY)
                 )
 
             } catch (t: Throwable) {

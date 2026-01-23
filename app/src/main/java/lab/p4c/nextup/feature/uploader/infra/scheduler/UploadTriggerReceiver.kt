@@ -10,18 +10,20 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import lab.p4c.nextup.core.domain.auth.port.AuthClient
 import lab.p4c.nextup.feature.uploader.infra.runner.UploadRunner
 
 @AndroidEntryPoint
 class UploadTriggerReceiver : BroadcastReceiver() {
 
     @Inject lateinit var uploadRunner: UploadRunner
+    @Inject lateinit var authClient: AuthClient
 
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d("UsagePersist", "onReceive action=${intent.action}")
-        Log.d("UsagePersist", "extras=${intent.extras?.keySet()?.joinToString()}")
+        Log.d(TAG, "onReceive action=${intent.action}")
+        Log.d(TAG, "extras=${intent.extras?.keySet()?.joinToString()}")
         val action = intent.action
-        if (action != ACTION_RUN_UPLOADS) {
+        if (action != UPLOAD_DAILY) {
             Log.d(TAG, "Ignore: action=$action")
             return
         }
@@ -31,6 +33,8 @@ class UploadTriggerReceiver : BroadcastReceiver() {
 
         scope.launch {
             try {
+                authClient.ensureSignedIn()
+
                 Log.d(TAG, "Trigger received -> drain()")
                 uploadRunner.drain(maxItems = 50)
                 Log.d(TAG, "drain() finished")
@@ -43,7 +47,7 @@ class UploadTriggerReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_RUN_UPLOADS = "lab.p4c.nextup.action.RUN_UPLOADS"
+        const val UPLOAD_DAILY = "lab.p4c.nextup.action.UPLOAD_DAILY"
         private const val TAG = "UploadTrigger"
     }
 }

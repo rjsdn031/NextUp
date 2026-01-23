@@ -22,7 +22,7 @@ object UploadAlarmScheduler {
         val triggerAtMillis = next3AMMillis()
 
         val intent = Intent(appCtx, UploadTriggerReceiver::class.java)
-            .setAction(ACTION_UPLOAD_DAILY)
+            .setAction(UploadTriggerReceiver.UPLOAD_DAILY)
             .putExtra(EXTRA_END_MS, triggerAtMillis)
 
         val pi = PendingIntent.getBroadcast(
