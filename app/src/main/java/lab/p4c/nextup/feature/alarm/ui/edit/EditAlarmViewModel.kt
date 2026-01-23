@@ -86,6 +86,8 @@ class EditAlarmViewModel @Inject constructor(
         }
     }
 
+    private fun isMandatoryAlarm(): Boolean = _ui.value.id == 1
+
     fun updateTime(h: Int, m: Int) {
         _ui.value = _ui.value.copy(hour = h, minute = m); recalcNextTrigger()
     }
@@ -94,20 +96,30 @@ class EditAlarmViewModel @Inject constructor(
         _ui.value = _ui.value.copy(label = s)
     }
 
-    fun updateDays(days: List<Int>) {
-        _ui.value = _ui.value.copy(repeatDays = days); recalcNextTrigger()
+    fun updateDays(days: List<Int>): Boolean {
+        if (isMandatoryAlarm()) return false
+        _ui.value = _ui.value.copy(repeatDays = days)
+        recalcNextTrigger()
+        return true
     }
 
-    fun toggleSkipHolidays(b: Boolean) {
-        _ui.value = _ui.value.copy(skipHolidays = b); recalcNextTrigger()
+
+    fun toggleSkipHolidays(b: Boolean): Boolean {
+        if (isMandatoryAlarm()) return false
+        _ui.value = _ui.value.copy(skipHolidays = b)
+        recalcNextTrigger()
+        return true
     }
 
-    fun toggleAlarmSound(enabled: Boolean) {
+    fun toggleAlarmSound(enabled: Boolean): Boolean {
+        if (isMandatoryAlarm() && !enabled) return false
+
         val s = _ui.value
         _ui.value = s.copy(
             alarmSoundEnabled = enabled,
             isPreviewing = if (!enabled) false else s.isPreviewing
         )
+        return true
     }
 
     fun selectSound(name: String, sound: AlarmSound) {
@@ -118,12 +130,19 @@ class EditAlarmViewModel @Inject constructor(
         )
     }
 
-    fun toggleVibration(b: Boolean) {
+    fun toggleVibration(b: Boolean): Boolean {
+        if (isMandatoryAlarm() && !b) return false
         _ui.value = _ui.value.copy(vibration = b)
+        return true
     }
 
-    fun updateVolume(v: Float) {
-        _ui.value = _ui.value.copy(volume = v.coerceIn(0f, 1f))
+    fun updateVolume(v: Float): Boolean {
+        val min = if (isMandatoryAlarm()) 0.2f else 0f
+        val next = v.coerceIn(min, 1f)
+
+        val rejected = isMandatoryAlarm() && v < min
+        _ui.value = _ui.value.copy(volume = next)
+        return !rejected
     }
 
     fun toggleFade(on: Boolean) {
@@ -160,9 +179,17 @@ class EditAlarmViewModel @Inject constructor(
 
         _ui.value = s.copy(isBusy = true)
         try {
-            val domain = mapUiToDomain(s.copy(id = id))
-            upsert(domain)                         // ← 유즈케이스 호출(저장 + 재스케줄)
-            baseline = snapshotValue(s.copy(id = id))
+            val fixed = if (id == 1) {
+                s.copy(
+                    alarmSoundEnabled = true,
+                    vibration = true,
+                    volume = s.volume.coerceIn(0.2f, 1f),
+                )
+            } else s
+
+            val domain = mapUiToDomain(fixed.copy(id = id))
+            upsert(domain)
+            baseline = snapshotValue(fixed.copy(id = id))
             onDone(true)
         } catch (e: Exception) {
             _ui.value = _ui.value.copy(errorMessage = "알람 저장 실패: ${e.message}")

@@ -1,5 +1,6 @@
 package lab.p4c.nextup.feature.alarm.ui.edit
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -164,34 +165,53 @@ fun EditAlarmScreen(
                     item {
                         DaySelector(
                             selectedDays = ui.repeatDays,
-                            onChange = vm::updateDays
+                            onChange = { days ->
+                                if (isMandatory) {
+                                    Toast.makeText(
+                                        context,
+                                        "필수 알람은 요일을 변경할 수 없습니다",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } else {
+                                    vm.updateDays(days)
+                                }
+                            }
                         )
                     }
 
-                    item {
-                        ListItem(
-                            headlineContent = { Text("공휴일엔 알람 끄기") },
-                            supportingContent = {
-                                Text(if (ui.skipHolidays) "사용" else "사용 안 함")
-                            },
-                            trailingContent = {
-                                Switch(
-                                    checked = ui.skipHolidays,
-                                    onCheckedChange = vm::toggleSkipHolidays,
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = c.onPrimary,
-                                        checkedTrackColor = c.primary,
-                                        uncheckedThumbColor = c.outline,
-                                        uncheckedTrackColor = c.background
+                    if (!isMandatory) {
+                        item {
+                            ListItem(
+                                headlineContent = { Text("공휴일엔 알람 끄기") },
+                                supportingContent = { Text(if (ui.skipHolidays) "사용" else "사용 안 함") },
+                                trailingContent = {
+                                    Switch(
+                                        checked = ui.skipHolidays,
+                                        onCheckedChange = { checked ->
+                                            val ok = vm.toggleSkipHolidays(checked)
+                                            if (!ok) {
+                                                Toast.makeText(
+                                                    context,
+                                                    "필수 알람은 공휴일 설정을 변경할 수 없습니다",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = c.onPrimary,
+                                            checkedTrackColor = c.primary,
+                                            uncheckedThumbColor = c.outline,
+                                            uncheckedTrackColor = c.background
+                                        )
                                     )
+                                },
+                                colors = ListItemDefaults.colors(
+                                    containerColor = c.surface,
+                                    headlineColor = c.onSurface,
+                                    supportingColor = c.onSurfaceVariant
                                 )
-                            },
-                            colors = ListItemDefaults.colors(
-                                containerColor = c.surface,
-                                headlineColor = c.onSurface,
-                                supportingColor = c.onSurfaceVariant
                             )
-                        )
+                        }
                     }
 
                     item {
@@ -206,10 +226,17 @@ fun EditAlarmScreen(
                         AlarmOptionsView(
                             alarmSoundEnabled = ui.alarmSoundEnabled,
                             selectedRingtoneName = ui.ringtoneName,
-                            onAlarmSoundToggle = vm::toggleAlarmSound,
-                            onSelectSound = {
-                                navController.navigate("alarm/sound-picker")
+                            onAlarmSoundToggle = { enabled ->
+                                val ok = vm.toggleAlarmSound(enabled)
+                                if (!ok) {
+                                    Toast.makeText(
+                                        context,
+                                        "필수 알람은 알람음을 끌 수 없습니다",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
                             },
+                            onSelectSound = { navController.navigate("alarm/sound-picker") },
                             isPreviewing = ui.isPreviewing,
                             onTogglePreview = {
                                 scope.launch {
@@ -220,7 +247,16 @@ fun EditAlarmScreen(
                             },
 
                             vibrationEnabled = ui.vibration,
-                            onVibrationToggle = vm::toggleVibration,
+                            onVibrationToggle = { enabled ->
+                                val ok = vm.toggleVibration(enabled)
+                                if (!ok) {
+                                    Toast.makeText(
+                                        context,
+                                        "필수 알람은 진동을 끌 수 없습니다",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
 
                             // 스누즈 관련
                             snoozeLabel = "매 ${ui.snoozeInterval}분, 최대 ${ui.maxSnoozeCount}회",
@@ -239,12 +275,20 @@ fun EditAlarmScreen(
 
                             // 사운드 부가 옵션
                             volume = ui.volume,
-                            onSelectVolume = vm::updateVolume,
+                            onSelectVolume = { v ->
+                                val ok = vm.updateVolume(v)
+                                if (!ok) {
+                                    Toast.makeText(
+                                        context,
+                                        "필수 알람은 볼륨을 20% 미만으로 설정할 수 없습니다",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
 
                             snoozeEnabled = ui.snoozeEnabled,
                             onToggleSnooze = vm::toggleSnoozeEnabled,
-
-                            )
+                        )
                     }
 
                     if (!isMandatory) {
