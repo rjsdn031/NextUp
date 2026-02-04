@@ -5,6 +5,7 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
+import lab.p4c.nextup.feature.telemetry.infra.upload.TelemetryUploadHandler
 import lab.p4c.nextup.feature.uploader.infra.runner.UploadHandler
 import lab.p4c.nextup.feature.usage.infra.upload.UsageUploadHandler
 import javax.inject.Singleton
@@ -18,5 +19,11 @@ abstract class UploadModule {
     @Singleton
     abstract fun bindUsageUploadHandler(impl: UsageUploadHandler): UploadHandler
 
-    // SurveyUploadHandler, TelemetryUploadHandler 만들면 똑같이 @IntoSet 추가
+    @Binds
+    @IntoSet
+    abstract fun bindTelemetryUploadHandler(
+        impl: TelemetryUploadHandler
+    ): UploadHandler
+
+    // SurveyUploadHandler 만들면 똑같이 @IntoSet 추가
 }

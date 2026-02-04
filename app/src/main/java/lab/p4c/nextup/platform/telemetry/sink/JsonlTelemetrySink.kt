@@ -18,11 +18,14 @@ class JsonlTelemetrySink @Inject constructor(
     override fun write(record: TelemetryRecord) {
         val line = toJsonLine(record)
         synchronized(lock) {
-            file().appendText(line + "\n")
+            fileFor(record.dateKey).appendText(line + "\n")
         }
     }
 
-    private fun file(): File = File(context.filesDir, FILE_NAME)
+    private fun fileFor(dateKey: String): File {
+        val dir = File(context.filesDir, DIR_NAME).apply { mkdirs() }
+        return File(dir, "telemetry_$dateKey.jsonl")
+    }
 
     private fun toJsonLine(r: TelemetryRecord): String {
         val payloadJson = r.payload.entries.joinToString(
@@ -50,6 +53,6 @@ class JsonlTelemetrySink @Inject constructor(
             .replace("\t", "\\t")
 
     private companion object {
-        private const val FILE_NAME = "telemetry.jsonl"
+        private const val DIR_NAME = "telemetry"
     }
 }

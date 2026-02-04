@@ -17,5 +17,8 @@ class UploadPaths @Inject constructor(
     }
 
     // fun survey(dateKey: String): String = ...
-    // fun telemetry(dateKey: String): String = ...
+    fun telemetry(dateKey: String): String {
+        val u = uid()
+        return "users/$u/telemetry/dateKey=$dateKey/telemetry.jsonl.gz"
+    }
 }

@@ -81,7 +81,7 @@
         </service>
 
         <receiver
-            android:name="lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver"
+            android:name=".feature.alarm.infra.scheduler.AlarmReceiver"
             android:exported="false" />
 
         <receiver
@@ -90,6 +90,10 @@
 
         <receiver
             android:name=".feature.usage.infra.persist.UsageDailyPersistReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".feature.telemetry.infra.persist.TelemetryDailyEnqueueReceiver"
             android:exported="false" />
 
         <receiver
