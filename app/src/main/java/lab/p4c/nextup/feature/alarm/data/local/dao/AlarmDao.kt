@@ -44,4 +44,7 @@ interface AlarmDao {
 
     @Query("DELETE FROM alarms WHERE id IN (:ids)")
     suspend fun deleteByIds(ids: List<Int>)
+
+    @Query("SELECT * FROM alarms WHERE enabled = 1")
+    fun findEnabledAll(): List<AlarmEntity>
 }
