@@ -16,7 +16,11 @@ class UploadPaths @Inject constructor(
         return "users/$u/usage/dateKey=$dateKey/usage_$dateKey.ndjson.gz"
     }
 
-    // fun survey(dateKey: String): String = ...
+    fun survey(dateKey: String): String {
+        val u = uid()
+        return "users/$u/survey/dateKey=$dateKey/survey.jsonl.gz"
+    }
+
     fun telemetry(dateKey: String): String {
         val u = uid()
         return "users/$u/telemetry/dateKey=$dateKey/telemetry.jsonl.gz"
