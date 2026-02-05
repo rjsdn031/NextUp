@@ -85,7 +85,7 @@ fun SurveyScreen(
                         QuestionCardText(
                             question = "어제 설문을 하지 못한 이유가 무엇인가요?",
                             text = form.missedYesterdayReason,
-                            placeholder = "5자 이상 적어주세요",
+                            placeholder = "10자 이상 적어주세요",
                             enabled = step >= 1,
                             onChange = vm::onMissedYesterdayReason,
                             showNext = (step == 1),

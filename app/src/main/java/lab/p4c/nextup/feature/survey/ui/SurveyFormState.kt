@@ -54,7 +54,7 @@ fun SurveyFormState.validate(needsMissedReason: Boolean): List<SurveyValidationE
     if (needsMissedReason) {
         when {
             missedYesterdayReason.isBlank() -> add(SurveyValidationError.MissingMissedYesterdayReason)
-            missedYesterdayReason.trim().length < 5 -> add(SurveyValidationError.MissedYesterdayReasonTooShort)
+            missedYesterdayReason.trim().length < 10 -> add(SurveyValidationError.MissedYesterdayReasonTooShort)
         }
     }
 
