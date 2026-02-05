@@ -153,3 +153,60 @@ fun QuestionCardText(
         }
     }
 }
+
+@Composable
+fun QuestionCardTimeRange(
+    question: String,
+    startTime: String,
+    endTime: String,
+    enabled: Boolean,
+    onStartChange: (String) -> Unit,
+    onEndChange: (String) -> Unit,
+    showNext: Boolean = false,
+    onNext: (() -> Unit)? = null
+) {
+    val t = MaterialTheme.typography
+
+    Column(
+        modifier = Modifier
+            .alpha(if (enabled) 1f else 0.35f)
+            .padding(horizontal = 24.dp)
+    ) {
+        Text(question, style = t.titleLarge)
+        Spacer(Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedTextField(
+                value = startTime,
+                onValueChange = { if (enabled) onStartChange(it) },
+                enabled = enabled,
+                singleLine = true,
+                placeholder = { Text("시작 (HH:mm)") },
+                modifier = Modifier.weight(1f)
+            )
+
+            OutlinedTextField(
+                value = endTime,
+                onValueChange = { if (enabled) onEndChange(it) },
+                enabled = enabled,
+                singleLine = true,
+                placeholder = { Text("끝 (HH:mm)") },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        if (enabled && showNext && onNext != null) {
+            Spacer(Modifier.height(12.dp))
+            ThrottleButton(
+                onClick = onNext,
+                enabled = startTime.isNotBlank() && endTime.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("다음")
+            }
+        }
+    }
+}

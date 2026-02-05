@@ -43,3 +43,10 @@ fun dateKeyFromUtcEpochMillis(
 
     return date.toString()
 }
+
+fun TimeProvider.todaySurveyDateKey(): String = sessionKey()
+
+fun TimeProvider.yesterdaySurveyDateKey(): String {
+    val today = LocalDate.parse(sessionKey())
+    return today.minusDays(1).toString()
+}

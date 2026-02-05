@@ -10,10 +10,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 import lab.p4c.nextup.core.domain.overlay.usecase.UpdateTodayTargetFromSurvey
+import lab.p4c.nextup.core.domain.survey.port.SurveyRepository
 import lab.p4c.nextup.core.domain.survey.usecase.ScheduleDailySurveyReminder
 import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.core.domain.survey.usecase.SubmitDailySurvey
-import lab.p4c.nextup.core.domain.system.sessionKey
+import lab.p4c.nextup.core.domain.system.todaySurveyDateKey
+import lab.p4c.nextup.core.domain.system.yesterdaySurveyDateKey
 import lab.p4c.nextup.core.domain.telemetry.service.TelemetryLogger
 
 @HiltViewModel
@@ -22,7 +24,8 @@ class SurveyScreenViewModel @Inject constructor(
     private val scheduleDailySurveyReminder: ScheduleDailySurveyReminder,
     private val updateTodayTargetFromSurvey: UpdateTodayTargetFromSurvey,
     private val timeProvider: TimeProvider,
-    private val telemetryLogger: TelemetryLogger
+    private val telemetryLogger: TelemetryLogger,
+    private val surveyRepository: SurveyRepository
 ) : ViewModel() {
 
     var step by mutableIntStateOf(1)
@@ -37,6 +40,21 @@ class SurveyScreenViewModel @Inject constructor(
     private var startedLogged by mutableStateOf(false)
     private var completedLogged by mutableStateOf(false)
 
+    private object Steps {
+        const val MissedReason = 1
+        const val SleepTime = 2
+        const val SleepQuality = 3
+        const val ProductivityScore = 4
+        const val ProductivityReason = 5
+        const val GoalAchievement = 6
+        const val NextGoal = 7
+    }
+
+    var needsMissedReason by mutableStateOf(false)
+        private set
+
+    private fun todayKey(): String = timeProvider.todaySurveyDateKey()
+    private fun yesterdayKey(): String = timeProvider.yesterdaySurveyDateKey()
     /**
      * 설문 화면 진입 시 1회 호출 (SurveyStarted)
      */
@@ -44,19 +62,38 @@ class SurveyScreenViewModel @Inject constructor(
         if (startedLogged) return
         startedLogged = true
 
-        val dateKey = timeProvider.sessionKey()
         telemetryLogger.log(
             eventName = "SurveyStarted",
-            payload = mapOf("DateKey" to dateKey)
+            payload = mapOf("DateKey" to todayKey())
         )
+
+        viewModelScope.launch {
+            needsMissedReason = surveyRepository.getByDate(yesterdayKey()) == null
+
+            step = if (needsMissedReason) Steps.MissedReason else Steps.SleepTime
+        }
+    }
+
+    fun onMissedYesterdayReason(t: String) {
+        form = form.copy(missedYesterdayReason = t)
+    }
+
+    fun onSleepStartTime(t: String) {
+        form = form.copy(sleepStartTime = t)
+    }
+
+    fun onSleepEndTime(t: String) {
+        form = form.copy(sleepEndTime = t)
+    }
+
+    fun onSleepQualityScore(v: Int) {
+        form = form.copy(sleepQualityScore = v)
+        if (step == Steps.SleepQuality) step = Steps.ProductivityScore
     }
 
     fun onProductivityScore(v: Int) {
         form = form.copy(productivityScore = v)
-        // 객관식 1번: 선택 시 바로 2단계로
-        if (step == 1) {
-            step = 2
-        }
+        if (step == Steps.ProductivityScore) step = Steps.ProductivityReason
     }
 
     fun onReason(t: String) {
@@ -67,10 +104,7 @@ class SurveyScreenViewModel @Inject constructor(
 
     fun onGoalAchievement(v: Int) {
         form = form.copy(goalAchievement = v)
-        // 객관식 3번: 선택 시 바로 4단계로
-        if (step == 3) {
-            step = 4
-        }
+        if (step == Steps.GoalAchievement) step = Steps.NextGoal
     }
 
     fun onNextGoal(t: String) {
@@ -80,25 +114,35 @@ class SurveyScreenViewModel @Inject constructor(
     }
 
     val canSubmit: Boolean
-        get() = form.validate().isEmpty() && !isSubmitting
+        get() = form.validate(needsMissedReason).isEmpty() && !isSubmitting
 
     /**
      * 주관식 카드(QuestionCardText)에서 '다음' 버튼이 눌렸을 때 호출.
      */
     fun onNext() {
         if (isSubmitting) return
-        if (step in 1..3) step++
+        step = nextStep(step)
+    }
+
+    private fun nextStep(current: Int): Int {
+        return when (current) {
+            Steps.MissedReason -> Steps.SleepTime
+            Steps.SleepTime -> Steps.SleepQuality
+            Steps.ProductivityReason -> Steps.GoalAchievement
+            else -> current
+        }
     }
 
     /**
      * 마지막 문항에서 '제출' 버튼이 눌렸을 때 호출.
      * (step == 4 && canProceed)일 때만 submit 실행.
      */
+
     fun onSubmit(
         onSuccess: () -> Unit,
         onError: (List<SurveyValidationError>) -> Unit
     ) {
-        if (step != 4 || !canSubmit) return
+        if (step != Steps.NextGoal || !canSubmit) return
         submit(onSuccess, onError)
     }
 
@@ -109,9 +153,8 @@ class SurveyScreenViewModel @Inject constructor(
         if (isSubmitting) return@launch
         isSubmitting = true
         try {
-            val dateKey = timeProvider.sessionKey()
 
-            when (val r = form.toDomain(dateKey)) {
+            when (val r = form.toDomain(todayKey(), needsMissedReason)) {
                 is Validation.Ok -> {
                     submitDailySurvey(r.value)
 
@@ -119,7 +162,7 @@ class SurveyScreenViewModel @Inject constructor(
                         completedLogged = true
                         telemetryLogger.log(
                             eventName = "SurveyCompleted",
-                            payload = mapOf("DateKey" to dateKey)
+                            payload = mapOf("DateKey" to todayKey())
                         )
                     }
 
@@ -130,8 +173,7 @@ class SurveyScreenViewModel @Inject constructor(
                     scheduleDailySurveyReminder()
                     onSuccess()
 
-                    // 성공 시 초기화
-                    step = 1
+                    step = if (needsMissedReason) Steps.MissedReason else Steps.SleepTime
                     form = SurveyFormState()
                 }
 

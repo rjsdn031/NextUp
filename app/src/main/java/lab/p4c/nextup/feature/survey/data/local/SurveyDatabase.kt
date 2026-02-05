@@ -7,7 +7,7 @@ import lab.p4c.nextup.feature.survey.data.local.entity.SurveyEntity
 
 @Database(
     entities = [SurveyEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class SurveyDatabase : RoomDatabase() {

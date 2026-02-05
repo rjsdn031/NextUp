@@ -24,8 +24,9 @@ object SurveyProvideModule {
 
     @Provides @Singleton
     fun provideSurveyDatabase(@ApplicationContext ctx: Context): SurveyDatabase =
-        Room.databaseBuilder(ctx, SurveyDatabase::class.java, "survey.db").build()
-
+        Room.databaseBuilder(ctx, SurveyDatabase::class.java, "survey.db")
+            .fallbackToDestructiveMigration(false)
+            .build()
     @Provides
     fun provideSurveyDao(db: SurveyDatabase): SurveyDao = db.surveyDao()
 
@@ -36,7 +37,6 @@ object SurveyProvideModule {
     @Provides @Singleton
     fun provideSurveyReminderScheduler(
         @ApplicationContext ctx: Context,
-        timeProvider: TimeProvider
     ): SurveyReminderScheduler =
         AndroidSurveyReminderScheduler(ctx)
 }
