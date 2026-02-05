@@ -38,7 +38,7 @@ class SurveyNotifier(private val context: Context) {
 
         val intent = Intent(Intent.ACTION_VIEW).apply {
             data = "app://nextup/survey?source=notif".toUri()
-            setPackage(context.packageName) // 우리 앱으로만 라우트
+            setPackage(context.packageName)
         }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -49,9 +49,9 @@ class SurveyNotifier(private val context: Context) {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher) // 실제 아이콘로 교체 가능
-            .setContentTitle("하루 설문을 작성해주세요")
-            .setContentText("1분이면 끝납니다.")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("데일리 설문을 작성해주세요")
+            .setContentText("3분이면 충분합니다.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
