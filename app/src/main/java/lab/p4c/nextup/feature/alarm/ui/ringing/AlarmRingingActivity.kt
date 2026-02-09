@@ -1,7 +1,10 @@
 package lab.p4c.nextup.feature.alarm.ui.ringing
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
@@ -45,6 +48,27 @@ class AlarmRingingActivity : ComponentActivity() {
     @Inject lateinit var alarmLoggingWindow: AlarmLoggingWindow
 
     private var exitHandled = false
+    private var timeoutReceiverRegistered = false
+
+    private val timeoutReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Log.i("AlarmRinging", "timeoutReceiver onReceive intent=$intent")
+            if (intent?.action != AlarmPlayerService.ACTION_RING_TIMEOUT) return
+
+            val targetId = intent.getIntExtra(AlarmPlayerService.EXTRA_ALARM_ID, -1)
+            if (targetId <= 0) return
+
+            val currentId = this@AlarmRingingActivity.intent
+                .getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1)
+
+            if (targetId != currentId) return
+
+            if (exitHandled) return
+            exitHandled = true
+
+            handleTimeoutDismiss(targetId, getSharedPreferences(SNOOZE_PREF, MODE_PRIVATE))
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -164,6 +188,35 @@ class AlarmRingingActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+
+        val filter = android.content.IntentFilter(
+            AlarmPlayerService.ACTION_RING_TIMEOUT
+        )
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(
+                timeoutReceiver,
+                filter,
+                RECEIVER_NOT_EXPORTED
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            registerReceiver(timeoutReceiver, filter)
+        }
+
+        timeoutReceiverRegistered = true
+    }
+
+    override fun onStop() {
+        if (timeoutReceiverRegistered) {
+            runCatching { unregisterReceiver(timeoutReceiver) }
+            timeoutReceiverRegistered = false
+        }
+        super.onStop()
+    }
+
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         val id = intent.getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1)
@@ -276,6 +329,27 @@ class AlarmRingingActivity : ComponentActivity() {
             finish()
         } finally {
             setHandling(false)
+        }
+    }
+
+    private fun handleTimeoutDismiss(id: Int, snoozePrefs: android.content.SharedPreferences) {
+        telemetryLogger.log(
+            eventName = "AlarmTimedOut",
+            payload = mapOf("AlarmId" to id.toString())
+        )
+
+        stopPlayer(id)
+
+        snoozePrefs.edit {
+            remove(instanceKey(id))
+            remove(usedKey(id))
+            remove(triggeredLoggedAtKey(id))
+        }
+
+        lifecycleScope.launch {
+            blockGate.disableForMinutes(10, timeProvider.now().toEpochMilli())
+            startBlockReadyTimer(10)
+            finish()
         }
     }
 

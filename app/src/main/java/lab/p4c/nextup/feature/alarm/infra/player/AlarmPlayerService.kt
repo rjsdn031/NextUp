@@ -35,12 +35,14 @@ class AlarmPlayerService : Service() {
 
     @Inject lateinit var repo: AlarmRepository
     @Inject lateinit var ringingState: AlarmRingingState
+    @Inject lateinit var dismissAlarm: lab.p4c.nextup.core.domain.alarm.usecase.DismissAlarm
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    private val audioManager by lazy { getSystemService(AUDIO_SERVICE) as AudioManager }
     private var originalAlarmVolume: Int? = null
     private var player: MediaPlayer? = null
     private var vibrator: Vibrator? = null
+    private var timeoutJob: Job? = null
     private var fadeJob: Job? = null
 
     private var currentSessionId = 0
@@ -72,6 +74,7 @@ class AlarmPlayerService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        cancelRingTimeout()
         fadeJob?.cancel()
         player?.stop(); player?.release(); player = null
         vibrator?.cancel()
@@ -82,9 +85,14 @@ class AlarmPlayerService : Service() {
         val sessionId = currentSessionId
 
         val id = intent?.getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1) ?: -1
+        if (id <= 0) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
         ringingState.setRinging(true)
 
-        startForeground(maxOf(1, id), buildNotification("알람", "일어날 시간입니다!", id))
+        startForeground(id, buildNotification("알람", "일어날 시간입니다!", id))
 
         scope.launch {
             val alarm = withContext(Dispatchers.IO) { repo.getById(id) } ?: run { stopSelf(); return@launch }
@@ -96,6 +104,7 @@ class AlarmPlayerService : Service() {
             )
 
             // 재생 시작
+            startRingTimeout(id)
             startPlayback(alarm, sessionId)
         }
 
@@ -103,6 +112,7 @@ class AlarmPlayerService : Service() {
     }
 
     override fun onDestroy() {
+        cancelRingTimeout()
         fadeJob?.cancel()
         player?.stop(); player?.release(); player = null
         vibrator?.cancel()
@@ -111,6 +121,33 @@ class AlarmPlayerService : Service() {
         stopForeground(STOP_FOREGROUND_REMOVE)
         ringingState.setRinging(false)
         super.onDestroy()
+    }
+
+    private suspend fun onRingTimeout(alarmId: Int) = withContext(NonCancellable) {
+        try {
+            cancelRingTimeout()
+            fadeJob?.cancel()
+
+            Log.i("AlarmPlayer", "TIMEOUT broadcast send id=$alarmId action=$ACTION_RING_TIMEOUT")
+            sendBroadcast(
+                Intent(ACTION_RING_TIMEOUT)
+                    .setPackage(packageName)
+                    .putExtra(EXTRA_ALARM_ID, alarmId)
+            )
+
+            stopAndReleasePlayerSafely()
+            vibrator?.cancel()
+
+            withContext(Dispatchers.IO) {
+                dismissAlarm(alarmId)
+            }
+        } catch (e: Exception) {
+            Log.e("AlarmPlayer", "onRingTimeout failed alarmId=$alarmId", e)
+        } finally {
+            ringingState.setRinging(false)
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
     }
 
     private fun startPlayback(alarm: Alarm, sessionId: Int) {
@@ -174,6 +211,25 @@ class AlarmPlayerService : Service() {
         } catch (e: Exception) {
             Log.e("AlarmPlayer", "Sound playback failed", e)
         }
+    }
+
+    private fun stopAndReleasePlayerSafely() {
+        try { player?.stop() } catch (_: Exception) {}
+        try { player?.release() } catch (_: Exception) {}
+        player = null
+    }
+
+    private fun startRingTimeout(alarmId: Int) {
+        timeoutJob?.cancel()
+        timeoutJob = scope.launch {
+            delay(RING_TIMEOUT_MS)
+            onRingTimeout(alarmId)
+        }
+    }
+
+    private fun cancelRingTimeout() {
+        timeoutJob?.cancel()
+        timeoutJob = null
     }
 
     private fun startFadeIn(sessionId: Int, target: Float, durationMs: Long) {
@@ -251,5 +307,9 @@ class AlarmPlayerService : Service() {
 
     companion object {
         const val CHANNEL_ID = "alarm_channel"
+        const val RING_TIMEOUT_MS = 10 * 60 * 1000L // 10 min
+
+        const val ACTION_RING_TIMEOUT = "lab.p4c.nextup.action.ALARM_RING_TIMEOUT"
+        const val EXTRA_ALARM_ID = "extra_alarm_id"
     }
 }
