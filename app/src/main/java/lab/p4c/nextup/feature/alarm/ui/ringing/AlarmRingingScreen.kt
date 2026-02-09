@@ -8,6 +8,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import lab.p4c.nextup.app.ui.components.ThrottleButton
 import lab.p4c.nextup.app.ui.theme.NextUpThemeTokens
 import lab.p4c.nextup.feature.alarm.ui.components.DismissSlider
 import java.time.LocalDateTime
@@ -27,9 +29,23 @@ fun RingingScreen(
     val t = MaterialTheme.typography
     val x = NextUpThemeTokens.colors
 
-    val now = remember { LocalDateTime.now() }
-    val timeStr = now.format(DateTimeFormatter.ofPattern("a h:mm", Locale.KOREA))
-    val dateStr = now.format(DateTimeFormatter.ofPattern("M월 d일 EEEE", Locale.KOREA))
+    var now by remember { mutableStateOf(LocalDateTime.now()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = LocalDateTime.now()
+            val ms = System.currentTimeMillis()
+            val untilNextSecond = 1_000L - (ms % 1_000L)
+            delay(untilNextSecond)
+        }
+    }
+
+    val timeStr = remember(now) {
+        now.format(DateTimeFormatter.ofPattern("a h:mm", Locale.KOREA))
+    }
+    val dateStr = remember(now) {
+        now.format(DateTimeFormatter.ofPattern("M월 d일 EEEE", Locale.KOREA))
+    }
 
     Box(
         modifier = Modifier
@@ -86,7 +102,7 @@ fun RingingScreen(
         }
 
         if (showSnooze) {
-            Button(
+            ThrottleButton(
                 onClick = onSnooze,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = c.primaryContainer,
