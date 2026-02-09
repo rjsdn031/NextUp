@@ -1,5 +1,8 @@
 package lab.p4c.nextup.feature.alarm.ui.picker
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,6 +16,7 @@ import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import lab.p4c.nextup.app.ui.util.clickableThrottle
 import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
@@ -31,8 +35,24 @@ fun AlarmSoundPickerScreen(
     systemSounds: List<SystemTone>,
     onSelect: (AlarmSound, String) -> Unit,
 ) {
+    val ctx = LocalContext.current
     val c = MaterialTheme.colorScheme
     val t = MaterialTheme.typography
+
+    val pickAudioLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+
+            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            runCatching {
+                ctx.contentResolver.takePersistableUriPermission(uri, flags)
+            }
+
+            val name = UriNameResolver.displayName(ctx, uri) ?: "사용자 파일"
+            onSelect(AlarmSound.Custom(uri.toString()), name)
+        }
+    )
 
     LazyColumn(
         modifier = modifier
@@ -105,6 +125,11 @@ fun AlarmSoundPickerScreen(
         }
 
         item {
+            Spacer(Modifier.height(20.dp))
+            Text("사용자 파일", style = t.titleMedium, color = c.onSurface)
+        }
+
+        item {
             ListItem(
                 headlineContent = { Text("파일에서 선택", style = t.bodyLarge) },
                 leadingContent = {
@@ -117,8 +142,7 @@ fun AlarmSoundPickerScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickableThrottle {
-                        // SAF 열기 로직은 다음 단계에서 구현
-                        // onSelect(AlarmSound.Custom("content://..."), "사용자 파일")
+                        pickAudioLauncher.launch(arrayOf("audio/*"))
                     },
                 colors = ListItemDefaults.colors(
                     containerColor = c.surfaceVariant
