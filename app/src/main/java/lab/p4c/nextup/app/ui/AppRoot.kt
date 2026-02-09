@@ -15,6 +15,7 @@ import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
 import lab.p4c.nextup.feature.alarm.ui.list.AlarmListScreen
 import lab.p4c.nextup.feature.alarm.ui.add.AddAlarmScreen
 import lab.p4c.nextup.feature.alarm.ui.edit.EditAlarmScreen
+import lab.p4c.nextup.feature.alarm.ui.picker.AlarmSnoozePickerRoute
 import lab.p4c.nextup.feature.alarm.ui.picker.AlarmSoundPickerRoute
 import lab.p4c.nextup.feature.settings.ui.AlarmSettingsScreen
 import lab.p4c.nextup.feature.settings.ui.BlockTargetSettingsRoute
@@ -31,6 +32,7 @@ private object Routes {
     const val ALARMLIST = "alarm/list"
     const val ADD = "add"
     const val SOUND_PICKER = "alarm/sound-picker"
+    const val SNOOZE_PICKER = "alarm/snooze-picker"
     const val EDIT = "edit/{id}"
     fun edit(id: Int) = "edit/$id"
 
@@ -89,6 +91,9 @@ fun AppRoot() {
                     navController.popBackStack()
                 }
             )
+        }
+        composable(Routes.SNOOZE_PICKER) {
+            AlarmSnoozePickerRoute(navController)
         }
         composable(Routes.SETTINGS) {
             AlarmSettingsScreen(navController)

@@ -91,6 +91,32 @@ fun EditAlarmScreen(
         mutableStateOf(TextFieldValue(ui.label))
     }
 
+    val snoozeEnabledFlow = savedState?.getStateFlow<Boolean?>("selectedSnoozeEnabled", null)
+    val snoozeIntervalFlow = savedState?.getStateFlow<Int?>("selectedSnoozeInterval", null)
+    val snoozeMaxCountFlow = savedState?.getStateFlow<Int?>("selectedSnoozeMaxCount", null)
+
+    val pickedSnoozeEnabled by snoozeEnabledFlow?.collectAsState() ?: remember { mutableStateOf(null) }
+    val pickedSnoozeInterval by snoozeIntervalFlow?.collectAsState() ?: remember { mutableStateOf(null) }
+    val pickedSnoozeMaxCount by snoozeMaxCountFlow?.collectAsState() ?: remember { mutableStateOf(null) }
+
+    LaunchedEffect(pickedSnoozeEnabled, pickedSnoozeInterval, pickedSnoozeMaxCount) {
+        val enabled = pickedSnoozeEnabled
+        val interval = pickedSnoozeInterval
+        val maxCount = pickedSnoozeMaxCount
+
+        if (enabled != null) {
+            vm.toggleSnoozeEnabled(enabled)
+            savedState?.remove<Boolean>("selectedSnoozeEnabled")
+        }
+
+        // interval/maxCount는 세트로 왔을 때 반영
+        if (interval != null && maxCount != null) {
+            vm.selectSnooze(interval, maxCount)
+            savedState?.remove<Int>("selectedSnoozeInterval")
+            savedState?.remove<Int>("selectedSnoozeMaxCount")
+        }
+    }
+
     Scaffold(
         bottomBar = {
             Surface(
@@ -223,6 +249,9 @@ fun EditAlarmScreen(
 
 
                     item {
+                        val maxCountLabel =
+                            if (ui.maxSnoozeCount == Int.MAX_VALUE) "계속 반복"
+                            else "최대 ${ui.maxSnoozeCount}회"
                         AlarmOptionsView(
                             alarmSoundEnabled = ui.alarmSoundEnabled,
                             selectedRingtoneName = ui.ringtoneName,
@@ -259,18 +288,13 @@ fun EditAlarmScreen(
                             },
 
                             // 스누즈 관련
-                            snoozeLabel = "매 ${ui.snoozeInterval}분, 최대 ${ui.maxSnoozeCount}회",
+                            snoozeLabel = "매 ${ui.snoozeInterval}분, $maxCountLabel",
                             onSelectSnooze = {
-                                val nextInterval = when (ui.snoozeInterval) {
-                                    1 -> 3
-                                    3 -> 5
-                                    5 -> 10
-                                    10 -> 1
-                                    else -> 1
-                                }
-                                val nextCount =
-                                    if (ui.maxSnoozeCount == 3) 5 else if (ui.maxSnoozeCount == 5) 10 else 3
-                                vm.selectSnooze(nextInterval, nextCount)
+                                savedState?.set("snoozeInitialEnabled", ui.snoozeEnabled)
+                                savedState?.set("snoozeInitialInterval", ui.snoozeInterval)
+                                savedState?.set("snoozeInitialMaxCount", ui.maxSnoozeCount)
+
+                                navController.navigate("alarm/snooze-picker")
                             },
 
                             // 사운드 부가 옵션
