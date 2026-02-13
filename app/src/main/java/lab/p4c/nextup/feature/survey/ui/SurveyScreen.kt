@@ -16,11 +16,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import lab.p4c.nextup.feature.survey.ui.components.QuestionCard
 import lab.p4c.nextup.feature.survey.ui.components.QuestionCardText
 import lab.p4c.nextup.feature.survey.ui.components.QuestionCardTimeRange
@@ -41,6 +45,15 @@ fun SurveyScreen(
 
     val scroll = rememberScrollState()
     val focusManager = LocalFocusManager.current
+
+    LaunchedEffect(scroll) {
+        snapshotFlow { scroll.isScrollInProgress }
+            .distinctUntilChanged()
+            .filter { it }
+            .collect {
+                focusManager.clearFocus()
+            }
+    }
 
     Surface(
         modifier = Modifier
