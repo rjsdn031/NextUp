@@ -17,6 +17,23 @@ import java.time.ZoneId
 import javax.inject.Inject
 import kotlin.math.floor
 
+/**
+ * Upserts an [Alarm] and reschedules the next system trigger.
+ *
+ * Contract:
+ * - Persist the alarm configuration.
+ * - If enabled, compute the next trigger instant and schedule it.
+ * - Emit a telemetry event for created/updated alarms.
+ *
+ * TODO(boundary):
+ * - This file currently violates the core module rule (no Android imports, no feature/data dependencies).
+ * - Migrate persistence logic into [AlarmRepository] implementation (feature/data layer).
+ * - Replace android.util.Log with a domain logger port or remove logging side effects from core.
+ *
+ * TODO(refactor):
+ * - Split "deduplication by time+days" into repository layer.
+ * - Move telemetry payload mapping into telemetry module (or a dedicated mapper).
+ */
 class UpsertAlarmAndReschedule @Inject constructor(
     private val db: AppDatabase,
     private val dao: AlarmDao,
