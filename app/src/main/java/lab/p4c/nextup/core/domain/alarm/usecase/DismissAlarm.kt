@@ -1,31 +1,46 @@
 package lab.p4c.nextup.core.domain.alarm.usecase
 
+import java.time.ZoneId
 import javax.inject.Inject
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
 import lab.p4c.nextup.core.domain.alarm.port.AlarmScheduler
 import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
+import lab.p4c.nextup.core.domain.system.TimeProvider
 
+/**
+ * Handles user dismissal of a ringing alarm.
+ *
+ * Contract:
+ * - This use case should be invoked only after the alarm has actually triggered and the user dismissed it.
+ *
+ * Policy:
+ * - One-time alarm ([Alarm.days] is empty): disable it and cancel any scheduled trigger.
+ * - Repeating alarm: keep it enabled and schedule the next occurrence.
+ *
+ * Time contract:
+ * - The next trigger is computed as UTC epoch millis via [NextTriggerCalculator].
+ */
 class DismissAlarm @Inject constructor(
     private val repo: AlarmRepository,
     private val scheduler: AlarmScheduler,
-    private val nextTriggerCalculator: NextTriggerCalculator
+    private val nextTriggerCalculator: NextTriggerCalculator,
+    private val timeProvider: TimeProvider,
 ) {
-    /**
-     * 알람이 실제로 울린 뒤 사용자가 Dismiss를 눌렀을 때 호출.
-     * - 일회성 알람: enabled=false 로 저장
-     * - 반복 알람: 상태 유지, 다음 트리거를 재계산해 스케줄
-     */
     suspend operator fun invoke(alarmId: Int) {
-        val a = repo.getById(alarmId) ?: return
+        val alarm = repo.getById(alarmId) ?: return
 
-        if (a.days.isEmpty()) {
+        // One-time alarm: disable and cancel schedule.
+        if (alarm.days.isEmpty()) {
             repo.setEnabled(alarmId, false)
             scheduler.cancel(alarmId)
             return
         }
 
-        val next = nextTriggerCalculator.computeUtcMillis(a)
+        // Repeating alarm: reschedule to the next occurrence.
+        val nowZdt = timeProvider.nowLocal().atZone(ZoneId.systemDefault())
+        val nextUtcMillis = nextTriggerCalculator.computeUtcMillis(alarm, now = nowZdt)
 
-        scheduler.schedule(alarmId, next, a)
+        scheduler.cancel(alarmId)
+        scheduler.schedule(alarmId, nextUtcMillis, alarm)
     }
 }

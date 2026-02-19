@@ -3,6 +3,8 @@ package lab.p4c.nextup.core.domain.alarm.port
 import kotlinx.coroutines.flow.Flow
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 
+
+
 /**
  * Repository port for persisting and retrieving [Alarm] configurations.
  *
@@ -18,6 +20,10 @@ import lab.p4c.nextup.core.domain.alarm.model.Alarm
  */
 interface AlarmRepository {
 
+    data class UpsertResult(
+        val alarm: Alarm,
+        val created: Boolean
+    )
     /**
      * Observes all alarms as a stream.
      *
@@ -33,11 +39,16 @@ interface AlarmRepository {
     suspend fun getAll(): List<Alarm>
 
     /**
+     * Returns all alarms that are currently enabled.
+     */
+    suspend fun getEnabledAll(): List<Alarm>
+
+    /**
      * Inserts or updates the given [alarm].
      *
      * The persistence identifier is [Alarm.id]. Implementations should treat equal ids as upserts.
      */
-    suspend fun upsert(alarm: Alarm)
+    suspend fun upsert(alarm: Alarm): UpsertResult
 
     /**
      * Deletes an alarm by its identifier.
@@ -60,4 +71,9 @@ interface AlarmRepository {
      * - Consider exposing a more general update API (e.g., update(id) { ... }) if partial updates grow.
      */
     suspend fun setEnabled(id: Int, enabled: Boolean): Boolean
+
+    /**
+     * Sets enabled state and returns the updated alarm, or null if id not found.
+     */
+    suspend fun setEnabledAndGet(id: Int, enabled: Boolean): Alarm?
 }
