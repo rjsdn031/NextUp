@@ -13,6 +13,30 @@ import lab.p4c.nextup.app.ui.components.ThrottleButton
 import lab.p4c.nextup.app.ui.components.ThrottleOutlinedButton
 
 @Composable
+        /**
+         * Bottom navigation bar for the survey flow.
+         *
+         * Displays:
+         * - An optional "Previous" button (outlined style).
+         * - A primary CTA button ("Next" or "Submit").
+         *
+         * Characteristics:
+         * - Uses project-level throttled button components
+         *   ([ThrottleButton], [ThrottleOutlinedButton]).
+         * - Designed to be placed in a Scaffold bottomBar.
+         * - Typically combined with `Modifier.imePadding()` at call site
+         *   so that it remains visible when the software keyboard is shown.
+         *
+         * This component does not contain navigation logic.
+         * It only renders UI based on the state provided by the caller.
+         *
+         * @param showPrev Whether the "Previous" button should be shown.
+         * @param onPrev Callback invoked when the previous button is clicked.
+         * @param primaryText Label for the primary button ("Next" or "Submit").
+         * @param primaryEnabled Whether the primary button is enabled.
+         * @param onPrimary Callback invoked when the primary button is clicked.
+         * @param modifier Optional modifier for layout customization.
+         */
 fun SurveyNavBar(
     showPrev: Boolean,
     onPrev: () -> Unit,

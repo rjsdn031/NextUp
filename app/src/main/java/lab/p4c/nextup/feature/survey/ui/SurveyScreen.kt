@@ -34,6 +34,24 @@ import lab.p4c.nextup.feature.survey.ui.components.QuestionCardText
 import lab.p4c.nextup.feature.survey.ui.components.QuestionCardTimeRange
 import lab.p4c.nextup.feature.survey.ui.components.SurveyNavBar
 
+/**
+ * Composable entry point for the daily survey screen.
+ *
+ * Design principles:
+ * - Single-step (one question per screen) wizard-style flow.
+ * - No automatic step progression; navigation is controlled exclusively
+ *   via the bottom CTA (Previous / Next / Submit).
+ * - Horizontal slide animation is applied when the step changes.
+ * - The bottom navigation bar uses `imePadding()` so that it remains visible
+ *   when the software keyboard is shown.
+ *
+ * This screen is purely state-driven and relies entirely on
+ * [SurveyScreenViewModel] for navigation logic and validation.
+ *
+ * @param vm ViewModel managing survey state and submission logic.
+ * @param onComplete Callback invoked when the survey is successfully submitted.
+ * @param onError Callback invoked when submission fails due to validation errors.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun SurveyScreen(
@@ -108,6 +126,19 @@ fun SurveyScreen(
     }
 }
 
+/**
+ * Renders the content corresponding to the current [SurveyStep].
+ *
+ * - Exhaustive `when` branching ensures compile-time safety
+ *   when steps are added or modified.
+ * - This composable is responsible only for UI rendering.
+ * - All state mutations are delegated to [SurveyScreenViewModel].
+ *
+ * @param step Current survey step.
+ * @param needsMissedReason Whether the "missed yesterday reason" step is required.
+ * @param form Current survey form state.
+ * @param vm ViewModel providing update callbacks.
+ */
 @Composable
 private fun SurveyStepContent(
     step: SurveyStep,

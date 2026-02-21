@@ -30,6 +30,30 @@ import lab.p4c.nextup.app.ui.components.ThrottleOutlinedButton
 import lab.p4c.nextup.app.ui.util.clickableThrottle
 import java.util.Locale
 
+/**
+ * Time range survey component for self-reported sleep.
+ *
+ * Displays two read-only time fields ("Sleep" and "Wake")
+ * and opens a Material3 [TimePicker] dialog when tapped.
+ *
+ * Characteristics:
+ * - Stateless UI component (time values are provided externally).
+ * - Uses read-only [OutlinedTextField] to prevent manual typing.
+ * - Time selection is performed exclusively via dialog.
+ * - Uses project-level throttled buttons for dialog actions.
+ *
+ * Time format:
+ * - UI uses "HH:mm" 24-hour format.
+ * - Validation is handled by the ViewModel layer.
+ *
+ * @param question The question title displayed above the time inputs.
+ * @param startTime Sleep start time in "HH:mm" format.
+ * @param endTime Wake time in "HH:mm" format.
+ * @param enabled Whether interaction is allowed.
+ * @param onStartChange Callback invoked when sleep time changes.
+ * @param onEndChange Callback invoked when wake time changes.
+ * @param modifier Optional modifier for layout customization.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionCardTimeRange(
@@ -102,6 +126,20 @@ fun QuestionCardTimeRange(
     }
 }
 
+/**
+ * Read-only time input field that opens a dialog when tapped.
+ *
+ * The underlying [OutlinedTextField] is marked as read-only
+ * and covered by a full-size clickable overlay to intercept taps.
+ *
+ * This prevents manual editing and ensures controlled time selection.
+ *
+ * @param label Field label.
+ * @param value Current time value in "HH:mm" format.
+ * @param enabled Whether interaction is allowed.
+ * @param onClick Callback triggered when the field is tapped.
+ * @param modifier Optional modifier.
+ */
 @Composable
 private fun ReadOnlyTimeField(
     label: String,
@@ -133,6 +171,17 @@ private fun ReadOnlyTimeField(
     }
 }
 
+/**
+ * Wrapper around Material3 [TimePicker] displayed inside an [AlertDialog].
+ *
+ * Uses project-level throttled buttons for confirm/dismiss actions.
+ *
+ * @param title Dialog title.
+ * @param initialHour Initial hour for the picker.
+ * @param initialMinute Initial minute for the picker.
+ * @param onDismiss Callback when dialog is dismissed.
+ * @param onConfirm Callback when time selection is confirmed.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimePickerDialogCompat(
@@ -165,9 +214,19 @@ private fun TimePickerDialogCompat(
     )
 }
 
+/**
+ * Formats hour and minute into "HH:mm" 24-hour string.
+ */
 private fun formatHHmm(h: Int, m: Int): String =
     String.format(Locale.US, "%02d:%02d", h, m)
 
+/**
+ * Parses a "HH:mm" string into a (hour, minute) pair.
+ *
+ * Returns null if:
+ * - The format is invalid
+ * - The values are out of 24-hour range
+ */
 private fun parseHHmmOrNull(s: String): Pair<Int, Int>? {
     val p = s.trim().split(":")
     if (p.size != 2) return null

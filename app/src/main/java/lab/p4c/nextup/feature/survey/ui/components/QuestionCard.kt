@@ -24,6 +24,24 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import lab.p4c.nextup.app.ui.util.clickableThrottle
 
+/**
+ * Single-choice survey question component.
+ *
+ * Renders a question title and a vertical list of selectable options.
+ *
+ * Characteristics:
+ * - Stateless UI component (selection state is provided externally).
+ * - Uses a custom radio-style indicator rendered via [Canvas].
+ * - Click handling is throttled using project-level `clickableThrottle`.
+ * - Visual state is dimmed when [enabled] is false.
+ *
+ * @param question The question text displayed at the top.
+ * @param options List of selectable option labels.
+ * @param selected Currently selected option index (0-based), or null.
+ * @param onSelect Callback invoked when an option is selected.
+ * @param enabled Whether interaction is allowed.
+ * @param modifier Optional modifier for layout customization.
+ */
 @Composable
 fun QuestionCard(
     question: String,
@@ -81,6 +99,27 @@ fun QuestionCard(
     }
 }
 
+/**
+ * Free-text survey question component.
+ *
+ * Renders a question title and a multi-line [OutlinedTextField].
+ *
+ * Characteristics:
+ * - Stateless UI component (text state is controlled externally).
+ * - IME action is set to [ImeAction.Done].
+ * - Keyboard "Done" clears focus instead of triggering navigation.
+ * - Visual state is dimmed when [enabled] is false.
+ *
+ * This component does NOT perform validation.
+ * Validation is handled at the ViewModel level.
+ *
+ * @param question The question text displayed at the top.
+ * @param text Current text value.
+ * @param placeholder Placeholder text shown when empty.
+ * @param enabled Whether input is allowed.
+ * @param onChange Callback invoked when text changes.
+ * @param modifier Optional modifier for layout customization.
+ */
 @Composable
 fun QuestionCardText(
     question: String,
