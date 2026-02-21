@@ -215,7 +215,7 @@ private fun SurveyStepContent(
                 QuestionCardText(
                     question = "내일 이루고 싶은 목표가 무엇인가요?",
                     text = form.nextGoal,
-                    placeholder = "10자 이상 적어주세요",
+                    placeholder = "간단히 적어주세요",
                     enabled = true,
                     onChange = vm::onNextGoal
                 )

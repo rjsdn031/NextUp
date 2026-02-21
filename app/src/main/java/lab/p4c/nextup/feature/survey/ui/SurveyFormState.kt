@@ -71,9 +71,6 @@ sealed interface SurveyValidationError {
 
     /** Productivity reason does not meet the minimum length requirement. */
     data object ReasonTooShort : SurveyValidationError
-
-    /** Next goal does not meet the minimum length requirement. */
-    data object NextGoalTooShort : SurveyValidationError
 }
 
 /**
@@ -166,9 +163,6 @@ fun SurveyFormState.validate(needsMissedReason: Boolean): List<SurveyValidationE
     when {
         nextGoal.isBlank() ->
             add(SurveyValidationError.MissingNextGoal)
-
-        nextGoal.trim().length < 10 ->
-            add(SurveyValidationError.NextGoalTooShort)
     }
 }
 
