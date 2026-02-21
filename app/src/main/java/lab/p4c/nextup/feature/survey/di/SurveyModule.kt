@@ -9,11 +9,12 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import lab.p4c.nextup.core.domain.survey.port.SurveyReminderScheduler
+import lab.p4c.nextup.core.domain.survey.port.SurveyRemoteStore
 import lab.p4c.nextup.core.domain.survey.port.SurveyRepository
-import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.feature.survey.data.local.SurveyDatabase
 import lab.p4c.nextup.feature.survey.data.local.dao.SurveyDao
 import lab.p4c.nextup.feature.survey.data.repository.SurveyRepositoryImpl
+import lab.p4c.nextup.feature.survey.infra.FirestoreSurveyRemoteStore
 import lab.p4c.nextup.feature.survey.infra.notifier.SurveyNotifier
 import lab.p4c.nextup.feature.survey.infra.scheduler.AndroidSurveyReminderScheduler
 import javax.inject.Singleton
@@ -44,7 +45,12 @@ object SurveyProvideModule {
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class SurveyBindModule {
+
     @Binds
     @Singleton
     abstract fun bindSurveyRepository(impl: SurveyRepositoryImpl): SurveyRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSurveyRemoteStore(impl: FirestoreSurveyRemoteStore): SurveyRemoteStore
 }
