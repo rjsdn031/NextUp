@@ -1,5 +1,6 @@
 package lab.p4c.nextup.feature.survey.ui.components
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,55 +10,46 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import lab.p4c.nextup.app.ui.components.ThrottleButton
 import lab.p4c.nextup.app.ui.util.clickableThrottle
 
 @Composable
 fun QuestionCard(
     question: String,
-    desc: String = "",
     options: List<String>,
     selected: Int?,
     onSelect: (Int) -> Unit,
-    enabled: Boolean
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val c = MaterialTheme.colorScheme
     val t = MaterialTheme.typography
 
     Column(
-        modifier = Modifier
-            .alpha(if (enabled) 1f else 0.35f)
-            .padding(horizontal = 24.dp)
+        modifier = modifier.alpha(if (enabled) 1f else 0.35f)
     ) {
-
-        Text(question, style = t.titleLarge)
-//        Spacer(Modifier.height(6.dp))
-//        Text(desc, style = t.bodySmall, color = c.onSurface.copy(alpha = 0.75f))
+        Text(text = question, style = t.titleLarge)
         Spacer(Modifier.height(16.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             options.forEachIndexed { index, label ->
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .then(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp)
-                        ),
-                    horizontalArrangement = Arrangement.Start
+                        .padding(vertical = 4.dp),
                 ) {
-
-                    androidx.compose.foundation.Canvas(
+                    Canvas(
                         modifier = Modifier
                             .padding(top = 4.dp)
                             .size(20.dp)
@@ -65,9 +57,8 @@ fun QuestionCard(
                     ) {
                         drawCircle(
                             color = c.onSurface.copy(alpha = if (enabled) 0.7f else 0.45f),
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+                            style = Stroke(width = 2.dp.toPx())
                         )
-
                         if (selected == index) {
                             drawCircle(
                                 color = c.primary,
@@ -87,8 +78,6 @@ fun QuestionCard(
                 }
             }
         }
-
-        Spacer(Modifier.height(16.dp))
     }
 }
 
@@ -99,22 +88,13 @@ fun QuestionCardText(
     placeholder: String = "10자 이상 입력해주세요",
     enabled: Boolean,
     onChange: (String) -> Unit,
-    showNext: Boolean = false,
-    showSubmit: Boolean = false,
-    onNext: (() -> Unit)? = null,
-    enabledSubmit: Boolean = false,
-    onSubmit: (() -> Unit)? = null
+    modifier: Modifier = Modifier,
 ) {
     val t = MaterialTheme.typography
-    val c = MaterialTheme.colorScheme
+    val focusManager = LocalFocusManager.current
 
-    Column(
-        modifier = Modifier
-            .alpha(if (enabled) 1f else 0.35f)
-            .padding(horizontal = 24.dp)
-    ) {
-
-        Text(question, style = t.titleLarge)
+    Column(modifier = modifier.alpha(if (enabled) 1f else 0.35f)) {
+        Text(text = question, style = t.titleLarge)
         Spacer(Modifier.height(16.dp))
 
         OutlinedTextField(
@@ -122,37 +102,15 @@ fun QuestionCardText(
             onValueChange = { if (enabled) onChange(it) },
             placeholder = { Text(placeholder) },
             enabled = enabled,
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(
+                onDone = { focusManager.clearFocus() }
+            ),
+            singleLine = false,
+            minLines = 5,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(140.dp)
         )
-
-        // NEXT or SUBMIT
-        if (enabled) {
-            Spacer(Modifier.height(12.dp))
-
-            when {
-                showSubmit && onSubmit != null -> {
-                    ThrottleButton(
-                        onClick = onSubmit,
-                        enabled = enabledSubmit,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("제출")
-                    }
-                }
-
-                showNext && onNext != null -> {
-                    ThrottleButton(
-                        onClick = onNext,
-                        enabled = (text.isNotBlank() && text.trim().length >= 10),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("다음")
-                    }
-                }
-            }
-        }
     }
 }
-

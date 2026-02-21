@@ -1,7 +1,6 @@
 package lab.p4c.nextup.feature.survey.ui
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -12,8 +11,8 @@ import kotlinx.coroutines.launch
 import lab.p4c.nextup.core.domain.overlay.usecase.UpdateTodayTargetFromSurvey
 import lab.p4c.nextup.core.domain.survey.port.SurveyRepository
 import lab.p4c.nextup.core.domain.survey.usecase.ScheduleDailySurveyReminder
-import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.core.domain.survey.usecase.SubmitDailySurvey
+import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.core.domain.system.todaySurveyDateKey
 import lab.p4c.nextup.core.domain.system.yesterdaySurveyDateKey
 import lab.p4c.nextup.core.domain.telemetry.service.TelemetryLogger
@@ -28,7 +27,16 @@ class SurveyScreenViewModel @Inject constructor(
     private val surveyRepository: SurveyRepository
 ) : ViewModel() {
 
-    var step by mutableIntStateOf(1)
+    private val baseFlow = listOf(
+        SurveyStep.SleepTime,
+        SurveyStep.SleepQuality,
+        SurveyStep.ProductivityScore,
+        SurveyStep.ProductivityReason,
+        SurveyStep.GoalAchievement,
+        SurveyStep.NextGoal
+    )
+
+    var step by mutableStateOf(SurveyStep.MissedReason)
         private set
 
     var form by mutableStateOf(SurveyFormState())
@@ -37,27 +45,14 @@ class SurveyScreenViewModel @Inject constructor(
     var isSubmitting by mutableStateOf(false)
         private set
 
-    private var startedLogged by mutableStateOf(false)
-    private var completedLogged by mutableStateOf(false)
-
-    private object Steps {
-        const val MissedReason = 1
-        const val SleepTime = 2
-        const val SleepQuality = 3
-        const val ProductivityScore = 4
-        const val ProductivityReason = 5
-        const val GoalAchievement = 6
-        const val NextGoal = 7
-    }
-
     var needsMissedReason by mutableStateOf(false)
         private set
 
+    private var startedLogged = false
+
     private fun todayKey(): String = timeProvider.todaySurveyDateKey()
     private fun yesterdayKey(): String = timeProvider.yesterdaySurveyDateKey()
-    /**
-     * 설문 화면 진입 시 1회 호출 (SurveyStarted)
-     */
+
     fun onEnter() {
         if (startedLogged) return
         startedLogged = true
@@ -69,8 +64,7 @@ class SurveyScreenViewModel @Inject constructor(
 
         viewModelScope.launch {
             needsMissedReason = surveyRepository.getByDate(yesterdayKey()) == null
-
-            step = if (needsMissedReason) Steps.MissedReason else Steps.SleepTime
+            step = flow().first()
         }
     }
 
@@ -88,61 +82,98 @@ class SurveyScreenViewModel @Inject constructor(
 
     fun onSleepQualityScore(v: Int) {
         form = form.copy(sleepQualityScore = v)
-        if (step == Steps.SleepQuality) step = Steps.ProductivityScore
     }
 
     fun onProductivityScore(v: Int) {
         form = form.copy(productivityScore = v)
-        if (step == Steps.ProductivityScore) step = Steps.ProductivityReason
     }
 
     fun onReason(t: String) {
         form = form.copy(productivityReason = t)
-        // 주관식은 여기서 step을 올리지 않는다.
-        // QuestionCardText 내부 '다음' 버튼에서 onNext()를 호출.
     }
 
     fun onGoalAchievement(v: Int) {
         form = form.copy(goalAchievement = v)
-        if (step == Steps.GoalAchievement) step = Steps.NextGoal
     }
 
     fun onNextGoal(t: String) {
         form = form.copy(nextGoal = t)
-        // 마지막 주관식도 입력만 반영,
-        // 제출은 QuestionCardText 내부 '제출' 버튼에서 onSubmit() 호출.
+    }
+
+    private fun flow(): List<SurveyStep> =
+        if (needsMissedReason) listOf(SurveyStep.MissedReason) + baseFlow else baseFlow
+
+    fun isFirstStep(): Boolean = step == flow().first()
+    fun isLastStep(): Boolean = step == flow().last()
+
+    private fun move(offset: Int) {
+        if (isSubmitting) return
+
+        val f = flow()
+        val idx = f.indexOf(step)
+        if (idx == -1) return
+
+        val newIdx = idx + offset
+        if (newIdx in f.indices) {
+            step = f[newIdx]
+        }
+    }
+
+    fun goPrev() = move(-1)
+
+    fun goNext() {
+        if (!canGoNextCurrent()) return
+        move(1)
+    }
+
+    fun canGoNextCurrent(): Boolean {
+        if (isSubmitting) return false
+        if (isLastStep()) return false
+
+        return when (step) {
+            SurveyStep.MissedReason ->
+                form.missedYesterdayReason.trim().length >= 10
+
+            SurveyStep.SleepTime ->
+                form.sleepStartTime.isTimeHHmm() && form.sleepEndTime.isTimeHHmm()
+
+            SurveyStep.SleepQuality ->
+                form.sleepQualityScore != null
+
+            SurveyStep.ProductivityScore ->
+                form.productivityScore != null
+
+            SurveyStep.ProductivityReason ->
+                form.productivityReason.trim().length >= 10
+
+            SurveyStep.GoalAchievement ->
+                form.goalAchievement != null
+
+            SurveyStep.NextGoal ->
+                false
+        }
     }
 
     val canSubmit: Boolean
         get() = form.validate(needsMissedReason).isEmpty() && !isSubmitting
 
-    /**
-     * 주관식 카드(QuestionCardText)에서 '다음' 버튼이 눌렸을 때 호출.
-     */
-    fun onNext() {
-        if (isSubmitting) return
-        step = nextStep(step)
-    }
+    fun primaryText(): String = if (isLastStep()) "제출" else "다음"
 
-    private fun nextStep(current: Int): Int {
-        return when (current) {
-            Steps.MissedReason -> Steps.SleepTime
-            Steps.SleepTime -> Steps.SleepQuality
-            Steps.ProductivityReason -> Steps.GoalAchievement
-            else -> current
-        }
-    }
+    fun primaryEnabled(): Boolean =
+        if (isLastStep()) canSubmit else canGoNextCurrent()
 
-    /**
-     * 마지막 문항에서 '제출' 버튼이 눌렸을 때 호출.
-     * (step == 4 && canProceed)일 때만 submit 실행.
-     */
+    fun onPrimary(
+        onSuccess: () -> Unit,
+        onError: (List<SurveyValidationError>) -> Unit
+    ) {
+        if (isLastStep()) onSubmit(onSuccess, onError) else goNext()
+    }
 
     fun onSubmit(
         onSuccess: () -> Unit,
         onError: (List<SurveyValidationError>) -> Unit
     ) {
-        if (step != Steps.NextGoal || !canSubmit) return
+        if (!isLastStep() || !canSubmit) return
         submit(onSuccess, onError)
     }
 
@@ -152,19 +183,16 @@ class SurveyScreenViewModel @Inject constructor(
     ) = viewModelScope.launch {
         if (isSubmitting) return@launch
         isSubmitting = true
-        try {
 
+        try {
             when (val r = form.toDomain(todayKey(), needsMissedReason)) {
                 is Validation.Ok -> {
                     submitDailySurvey(r.value)
 
-                    if (!completedLogged) {
-                        completedLogged = true
-                        telemetryLogger.log(
-                            eventName = "SurveyCompleted",
-                            payload = mapOf("DateKey" to todayKey())
-                        )
-                    }
+                    telemetryLogger.log(
+                        eventName = "SurveyCompleted",
+                        payload = mapOf("DateKey" to todayKey())
+                    )
 
                     if (form.nextGoal.isNotBlank()) {
                         updateTodayTargetFromSurvey(form.nextGoal)
@@ -173,7 +201,7 @@ class SurveyScreenViewModel @Inject constructor(
                     scheduleDailySurveyReminder()
                     onSuccess()
 
-                    step = if (needsMissedReason) Steps.MissedReason else Steps.SleepTime
+                    step = flow().first()
                     form = SurveyFormState()
                 }
 

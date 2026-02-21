@@ -43,7 +43,7 @@ sealed interface Validation<out T> {
 // 내부 유틸
 private fun Int.isScoreValid(): Boolean = this in 0..4
 
-private fun String.isTimeHHmm(): Boolean {
+internal fun String.isTimeHHmm(): Boolean {
     val r = Regex("""^([01]\d|2[0-3]):[0-5]\d$""")
     return r.matches(this.trim())
 }

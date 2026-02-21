@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.AlertDialog
@@ -25,7 +24,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import lab.p4c.nextup.app.ui.components.ThrottleButton
 import lab.p4c.nextup.app.ui.components.ThrottleOutlinedButton
@@ -41,8 +39,7 @@ fun QuestionCardTimeRange(
     enabled: Boolean,
     onStartChange: (String) -> Unit,
     onEndChange: (String) -> Unit,
-    showNext: Boolean,
-    onNext: () -> Unit
+    modifier: Modifier = Modifier,
 ) {
     val t = MaterialTheme.typography
 
@@ -52,13 +49,8 @@ fun QuestionCardTimeRange(
     val startInit = parseHHmmOrNull(startTime) ?: (23 to 0)
     val endInit = parseHHmmOrNull(endTime) ?: (7 to 0)
 
-    Column(
-        modifier = Modifier
-            .alpha(if (enabled) 1f else 0.35f)
-            .padding(horizontal = 24.dp)
-    ) {
-        // 질문 여기 있음
-        Text(question, style = t.titleLarge)
+    Column(modifier = modifier) {
+        Text(text = question, style = t.titleLarge)
         Spacer(Modifier.height(16.dp))
 
         Row(
@@ -81,20 +73,6 @@ fun QuestionCardTimeRange(
                 modifier = Modifier.weight(1f)
             )
         }
-
-        // NEXT
-        if (enabled && showNext) {
-            Spacer(Modifier.height(12.dp))
-            ThrottleButton(
-                onClick = onNext,
-                enabled = startTime.isNotBlank() && endTime.isNotBlank(),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("다음")
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
     }
 
     if (showStartPicker) {
