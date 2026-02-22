@@ -2,7 +2,6 @@ package lab.p4c.nextup.core.domain.survey.usecase
 
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.delay

@@ -45,7 +45,6 @@ private object Routes {
     }
 
     const val SURVEY = "survey"
-    const val SURVEY_COMPLETE = "survey/complete"
     const val DEEPLINK_SURVEY = "app://nextup/survey" // 알림 URI
 }
 
@@ -130,21 +129,27 @@ fun AppRoot() {
                 vm.onEnter()
             }
 
-            SurveyScreen(
-                vm = vm,
-                onComplete = {
-                    navController.navigate(Routes.ALARMLIST) {
+            LaunchedEffect(vm.requiresAuth) {
+                if (vm.requiresAuth) {
+                    navController.navigate(Routes.EXPERIMENT_INFO) {
                         popUpTo(Routes.SURVEY) { inclusive = true }
                         launchSingleTop = true
                     }
                 }
-            )
-        }
+            }
 
-        // (선택) 설문 완료 화면
-        composable(Routes.SURVEY_COMPLETE) {
-            // 가벼운 "완료" UI 혹은 토스트/스낵바로 대체 가능
-            // CompleteScreen(onDone = { navController.navigate(Routes.ALARMLIST) { popUpTo(0) } })
+            // uid 없으면 즉시 리다이렉트하므로 SurveyScreen은 렌더링하지 않는다.
+            if (!vm.requiresAuth) {
+                SurveyScreen(
+                    vm = vm,
+                    onComplete = {
+                        navController.navigate(Routes.ALARMLIST) {
+                            popUpTo(Routes.SURVEY) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
         }
 
         navigation(

@@ -16,6 +16,7 @@ import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.core.domain.system.todaySurveyDateKey
 import lab.p4c.nextup.core.domain.system.yesterdaySurveyDateKey
 import lab.p4c.nextup.core.domain.telemetry.service.TelemetryLogger
+import lab.p4c.nextup.platform.telemetry.user.FirebaseUserIdProvider
 
 /**
  * ViewModel for the daily survey screen.
@@ -41,7 +42,8 @@ class SurveyScreenViewModel @Inject constructor(
     private val updateTodayTargetFromSurvey: UpdateTodayTargetFromSurvey,
     private val timeProvider: TimeProvider,
     private val telemetryLogger: TelemetryLogger,
-    private val surveyRepository: SurveyRepository
+    private val surveyRepository: SurveyRepository,
+    private val userIdProvider: FirebaseUserIdProvider,
 ) : ViewModel() {
 
     /**
@@ -73,6 +75,13 @@ class SurveyScreenViewModel @Inject constructor(
 
     private var startedLogged = false
 
+    /**
+     * True when the current session has no valid authenticated uid.
+     * The UI layer should redirect the user to the experiment info screen.
+     */
+    var requiresAuth by mutableStateOf(false)
+        private set
+
     private fun todayKey(): String = timeProvider.todaySurveyDateKey()
     private fun yesterdayKey(): String = timeProvider.yesterdaySurveyDateKey()
 
@@ -84,6 +93,12 @@ class SurveyScreenViewModel @Inject constructor(
      * - Initializes the first step of the dynamic flow.
      */
     fun onEnter() {
+        val uid = userIdProvider.getUserId()?.trim().orEmpty()
+        if (uid.isEmpty()) {
+            requiresAuth = true
+            return
+        }
+
         if (startedLogged) return
         startedLogged = true
 
