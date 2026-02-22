@@ -10,17 +10,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import lab.p4c.nextup.core.domain.survey.port.SurveyRepository
-import lab.p4c.nextup.core.domain.survey.usecase.ScheduleDailySurveyReminder
-import lab.p4c.nextup.core.domain.system.TimeProvider
-import lab.p4c.nextup.core.domain.system.todaySurveyDateKey
+import lab.p4c.nextup.core.domain.survey.usecase.CheckAndRescheduleSurveyReminder
 
 @AndroidEntryPoint
 class SurveyBootReceiver : BroadcastReceiver() {
 
-    @Inject lateinit var scheduleDailySurveyReminder: ScheduleDailySurveyReminder
-    @Inject lateinit var surveyRepository: SurveyRepository
-    @Inject lateinit var timeProvider: TimeProvider
+    @Inject lateinit var checkAndReschedule: CheckAndRescheduleSurveyReminder
 
     override fun onReceive(context: Context, intent: Intent?) {
         val action = intent?.action ?: return
@@ -30,22 +25,14 @@ class SurveyBootReceiver : BroadcastReceiver() {
             action != Intent.ACTION_MY_PACKAGE_REPLACED
         ) return
 
-        Log.d(TAG, "boot event action=$action -> check survey reminder")
+        Log.d(TAG, "boot event action=$action -> checkAndReschedule survey reminder")
 
         val pendingResult = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                val todayKey = timeProvider.todaySurveyDateKey()
-                val existing = surveyRepository.getByDate(todayKey)
-
-                if (existing == null) {
-                    Log.d(TAG, "Survey not completed. Scheduling reminder.")
-                    scheduleDailySurveyReminder(21, 0)
-                } else {
-                    Log.d(TAG, "Survey already completed. Skip scheduling.")
-                }
+                checkAndReschedule()
             } catch (t: Throwable) {
-                Log.e(TAG, "reschedule failed", t)
+                Log.e(TAG, "checkAndReschedule failed", t)
             } finally {
                 pendingResult.finish()
             }

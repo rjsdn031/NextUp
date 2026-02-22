@@ -7,6 +7,7 @@ import android.content.Intent
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import lab.p4c.nextup.core.domain.survey.port.SurveyReminderScheduler
+import lab.p4c.nextup.core.domain.survey.usecase.CheckAndRescheduleSurveyReminder
 import lab.p4c.nextup.platform.permission.ExactAlarmPermission
 import java.time.ZonedDateTime
 import javax.inject.Inject
@@ -46,7 +47,7 @@ class AndroidSurveyReminderScheduler @Inject constructor(
     }
 
     private fun firePendingIntent(): PendingIntent {
-        val intent = Intent(context, SurveyReminderReceiver::class.java)
+        val intent = Intent(context, CheckAndRescheduleSurveyReminder::class.java)
             .setAction(ACTION_SURVEY_REMINDER)
         return PendingIntent.getBroadcast(
             context,

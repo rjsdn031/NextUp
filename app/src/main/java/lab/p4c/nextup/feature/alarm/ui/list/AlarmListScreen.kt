@@ -60,6 +60,8 @@ fun AlarmListScreen(
 
     val alarms: List<Alarm> = alarmsState ?: emptyList()
 
+    val surveyVisible by vm.surveyVisible.collectAsStateWithLifecycle()
+
     val surveyEnabled by vm.surveyEnabled.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
@@ -94,10 +96,12 @@ fun AlarmListScreen(
             }
         },
         bottomBar = {
-            SurveyLinkSection(
-                onClick = { navController.navigate("survey") },
-                enabled = surveyEnabled
-            )
+            if (surveyVisible) {
+                SurveyLinkSection(
+                    onClick = { navController.navigate("survey") },
+                    enabled = surveyEnabled
+                )
+            }
         },
     ) { padding ->
         Column(

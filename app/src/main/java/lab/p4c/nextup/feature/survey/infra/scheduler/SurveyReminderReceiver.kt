@@ -8,6 +8,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import lab.p4c.nextup.core.domain.survey.port.SurveyRepository
 import lab.p4c.nextup.core.domain.survey.usecase.CheckAndRescheduleSurveyReminder
@@ -24,21 +25,25 @@ class SurveyReminderReceiver : BroadcastReceiver() {
     @Inject lateinit var timeProvider: TimeProvider
 
     override fun onReceive(context: Context, intent: Intent?) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val todayKey = timeProvider.todaySurveyDateKey()
-            val existing = surveyRepository.getByDate(todayKey)
+        val pendingResult = goAsync()
 
-            if (existing == null) {
-                val ok = notifier.notifyDailySurvey()
-                if (!ok) Log.w(TAG, "Notifications not permitted; skipped.")
-            } else {
-                Log.d(TAG, "Survey already completed for $todayKey. Skip notification.")
-            }
-
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
+                val todayKey = timeProvider.todaySurveyDateKey()
+                val existing = runCatching { surveyRepository.getByDate(todayKey) }.getOrNull()
+
+                if (existing == null) {
+                    val ok = notifier.notifyDailySurvey()
+                    if (!ok) Log.w(TAG, "Notifications not permitted; skipped.")
+                } else {
+                    Log.d(TAG, "Survey already completed for $todayKey. Skip notification.")
+                }
+
                 checkAndReschedule()
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to reschedule reminder", e)
+            } catch (t: Throwable) {
+                Log.e(TAG, "onReceive failed", t)
+            } finally {
+                pendingResult.finish()
             }
         }
     }
