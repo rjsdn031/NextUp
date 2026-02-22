@@ -34,6 +34,8 @@ class OverlayHostActivity : ComponentActivity() {
     private var currentAttemptId: String? = null
     private var attemptFinalized: Boolean = false
 
+    private var confirmed: Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -140,6 +142,9 @@ class OverlayHostActivity : ComponentActivity() {
                         }
                     },
                     onConfirm = {
+                        if (confirmed) return@BlockingOverlayView
+                        confirmed = true
+
                         telemetryLogger.log(
                             eventName = "AppUseClicked",
                             payload = mapOf(

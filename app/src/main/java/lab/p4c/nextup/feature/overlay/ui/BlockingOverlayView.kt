@@ -1,5 +1,6 @@
 package lab.p4c.nextup.feature.overlay.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +42,13 @@ fun BlockingOverlayView(
     var isListening by remember { mutableStateOf(false) }
 
     val eligible = phase == UnlockPhase.Matched
+    BackHandler(enabled = true) {
+        if (eligible) {
+            onConfirm()
+        } else {
+            // Blocking 상태에서는 뒤로가기 무시
+        }
+    }
 
     LaunchedEffect(Unit) {
         onBind(
