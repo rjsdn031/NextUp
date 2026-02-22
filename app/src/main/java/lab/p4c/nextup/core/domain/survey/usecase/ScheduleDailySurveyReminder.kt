@@ -27,6 +27,7 @@ class ScheduleDailySurveyReminder @Inject constructor(
             else
                 todayTarget.plusDays(1)
 
+        scheduler.cancel()
         scheduler.scheduleAt(next)
     }
 

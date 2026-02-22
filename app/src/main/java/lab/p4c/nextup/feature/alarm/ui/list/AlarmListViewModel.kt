@@ -7,6 +7,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import lab.p4c.nextup.core.common.permission.PermissionChecker
@@ -17,8 +19,10 @@ import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
 import lab.p4c.nextup.core.domain.alarm.usecase.DeleteAlarmAndCancel
 import lab.p4c.nextup.core.domain.alarm.usecase.ToggleAlarm
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
+import lab.p4c.nextup.core.domain.survey.port.SurveyRepository
 import lab.p4c.nextup.core.domain.survey.usecase.ScheduleDailySurveyReminder
 import lab.p4c.nextup.core.domain.system.TimeProvider
+import lab.p4c.nextup.core.domain.system.todaySurveyDateKey
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import javax.inject.Inject
@@ -32,7 +36,8 @@ class AlarmListViewModel @Inject constructor(
     private val timeProvider: TimeProvider,
     private val nextTrigger: NextTriggerCalculator,
     private val permissionChecker: PermissionChecker,
-    private val scheduleDailySurveyReminder: ScheduleDailySurveyReminder    // reminder test
+    private val scheduleDailySurveyReminder: ScheduleDailySurveyReminder,    // reminder test
+    private val surveyRepository: SurveyRepository,
 ) : ViewModel() {
 
     private val _alarms = MutableStateFlow<List<Alarm>?>(null)
@@ -41,6 +46,8 @@ class AlarmListViewModel @Inject constructor(
     private val _now = MutableStateFlow(timeProvider.nowLocal().atZone(ZoneId.systemDefault()))
     val now: StateFlow<ZonedDateTime> = _now
 
+    private val _surveyEnabled = MutableStateFlow(true)
+    val surveyEnabled: StateFlow<Boolean> = _surveyEnabled
 
     init {
         viewModelScope.launch {
@@ -56,6 +63,16 @@ class AlarmListViewModel @Inject constructor(
                     delay(1_000)
                 }
             }.collect { _now.value = it }
+        }
+
+        viewModelScope.launch {
+            now
+                .map { timeProvider.todaySurveyDateKey() } // 03시 rollover 반영됨
+                .distinctUntilChanged()
+                .collect { dateKey ->
+                    val existing = surveyRepository.getByDate(dateKey)
+                    _surveyEnabled.value = (existing == null)
+                }
         }
     }
 
@@ -86,5 +103,11 @@ class AlarmListViewModel @Inject constructor(
         val now = timeProvider.now().atZone(ZoneId.systemDefault())
         val testZdt = now.plusMinutes(1).withSecond(0).withNano(0)
         scheduleDailySurveyReminder(testZdt.toLocalTime())
+    }
+
+    fun refreshSurveyEnabled() = viewModelScope.launch {
+        val key = timeProvider.todaySurveyDateKey()
+        val existing = surveyRepository.getByDate(key)
+        _surveyEnabled.value = (existing == null)
     }
 }

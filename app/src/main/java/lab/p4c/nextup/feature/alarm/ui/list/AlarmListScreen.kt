@@ -60,6 +60,12 @@ fun AlarmListScreen(
 
     val alarms: List<Alarm> = alarmsState ?: emptyList()
 
+    val surveyEnabled by vm.surveyEnabled.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        vm.refreshSurveyEnabled()
+    }
+
     Scaffold(
         containerColor = c.background,
         contentColor = c.onBackground,
@@ -87,17 +93,12 @@ fun AlarmListScreen(
                 )
             }
         },
-        bottomBar = { SurveyLinkSection({ navController.navigate("survey") }) },
-//        floatingActionButton = {
-//            AlarmFAB(onClick = { navController.navigate("add") })
-//            AlarmFAB(onClick = {
-//                val id = alarms.firstOrNull()?.id ?: 1  // 임시 id
-//                ctx.startActivity(
-//                    Intent(ctx, AlarmRingingActivity::class.java)
-//                        .putExtra(AlarmReceiver.EXTRA_ALARM_ID, id)
-//                )
-//            })
-//        }
+        bottomBar = {
+            SurveyLinkSection(
+                onClick = { navController.navigate("survey") },
+                enabled = surveyEnabled
+            )
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -165,6 +166,6 @@ fun AlarmListScreen(
                 }
             }
         }
-        // Add Delete Update는 List화면에서 조작이 이뤄지지 않는다. 수정 요망
+        // TODO: Add Delete Update는 List화면에서 조작이 이뤄지지 않는다. 수정 요망
     }
 }

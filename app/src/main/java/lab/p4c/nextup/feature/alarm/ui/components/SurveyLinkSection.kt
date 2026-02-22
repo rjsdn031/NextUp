@@ -10,13 +10,16 @@ import lab.p4c.nextup.app.ui.util.clickableThrottle
 @Composable
 fun SurveyLinkSection(
     onClick: () -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     val c = MaterialTheme.colorScheme
     val t = MaterialTheme.typography
 
+    val backgroundColor = if (enabled) c.primary else c.surfaceVariant
+    val contentColor = if (enabled) c.onPrimary else c.onSurfaceVariant
     Surface(
-        color = c.primary,
+        color = backgroundColor,
         tonalElevation = 2.dp,
         modifier = modifier.fillMaxWidth()
     ) {
@@ -28,13 +31,13 @@ fun SurveyLinkSection(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickableThrottle(onClick),
+                    .clickableThrottle(enabled) { onClick() },
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "오늘의 설문 작성하기",
+                    text = if (enabled) "오늘의 설문 작성하기" else "오늘 설문 작성 완료",
                     style = t.titleMedium,
-                    color = c.onPrimary
+                    color = contentColor
                 )
             }
         }
