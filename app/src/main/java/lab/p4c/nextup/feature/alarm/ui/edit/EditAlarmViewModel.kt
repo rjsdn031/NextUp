@@ -1,8 +1,12 @@
 package lab.p4c.nextup.feature.alarm.ui.edit
 
+import android.content.Context
+import android.media.RingtoneManager
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +22,8 @@ import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
 import lab.p4c.nextup.core.domain.alarm.model.toTitle
 import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
 import lab.p4c.nextup.core.domain.system.TimeProvider
+import lab.p4c.nextup.feature.alarm.ui.picker.UriNameResolver
+import lab.p4c.nextup.feature.alarm.ui.picker.defaultAppSounds
 import java.time.ZoneId
 
 data class EditAlarmUiState(
@@ -54,9 +60,10 @@ data class EditAlarmUiState(
 
 @HiltViewModel
 class EditAlarmViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repo: AlarmRepository,
-    private val upsert: UpsertAlarmAndReschedule,   // 저장 + 재스케줄
-    private val delete: DeleteAlarmAndCancel,        // 삭제 + 취소
+    private val upsert: UpsertAlarmAndReschedule,
+    private val delete: DeleteAlarmAndCancel,
     private val timeProvider: TimeProvider,
     private val nextTrigger: NextTriggerCalculator,
 ) : ViewModel() {
@@ -252,7 +259,8 @@ class EditAlarmViewModel @Inject constructor(
 
         sound = a.sound,
         alarmSoundEnabled = a.alarmSoundEnabled,
-        ringtoneName = a.sound.toTitle(),
+//        ringtoneName = a.sound.toTitle(), // TODO: toTitle 구조 바꾸기
+        ringtoneName = resolveSoundTitle(a.sound),
 //        ringtonePath = a.assetAudioPath,
 
         vibration = a.vibration,
@@ -290,4 +298,26 @@ class EditAlarmViewModel @Inject constructor(
         snoozeInterval = s.snoozeInterval,
         maxSnoozeCount = s.maxSnoozeCount
     )
+
+    private fun resolveSoundTitle(sound: AlarmSound): String {
+        return when (sound) {
+            is AlarmSound.Asset -> {
+                defaultAppSounds.firstOrNull { it.sound == sound }?.title ?: sound.resName
+            }
+            is AlarmSound.System -> {
+                ringtoneTitle(sound.uri) ?: "시스템 알람음"
+            }
+            is AlarmSound.Custom -> {
+                UriNameResolver.displayName(appContext, sound.uri.toUri())
+                    ?: ringtoneTitle(sound.uri)
+                    ?: "사용자 파일"
+            }
+        }
+    }
+
+    private fun ringtoneTitle(uri: String): String? {
+        return runCatching {
+            RingtoneManager.getRingtone(appContext, uri.toUri())?.getTitle(appContext)
+        }.getOrNull()
+    }
 }
