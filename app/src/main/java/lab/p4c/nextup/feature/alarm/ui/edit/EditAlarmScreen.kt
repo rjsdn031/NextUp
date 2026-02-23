@@ -19,6 +19,7 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import lab.p4c.nextup.app.ui.components.ThrottleButton
 import lab.p4c.nextup.app.ui.components.ThrottleOutlinedButton
+import lab.p4c.nextup.app.ui.util.ToastThrottler
 import lab.p4c.nextup.app.ui.util.clickableThrottle
 import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
 import lab.p4c.nextup.feature.alarm.infra.player.AlarmPreviewPlayer
@@ -38,6 +39,7 @@ fun EditAlarmScreen(
 
     val c = MaterialTheme.colorScheme
     val t = MaterialTheme.typography
+    val toastThrottler = remember { ToastThrottler(minIntervalMs = 1000L) }
 
     val isMandatory = ui.id == 1
 
@@ -302,11 +304,10 @@ fun EditAlarmScreen(
                             onSelectVolume = { v ->
                                 val ok = vm.updateVolume(v)
                                 if (!ok) {
-                                    Toast.makeText(
-                                        context,
-                                        "필수 알람은 볼륨을 20% 미만으로 설정할 수 없습니다",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    toastThrottler.show(
+                                        context = context,
+                                        message = "필수 알람은 볼륨을 20% 미만으로 설정할 수 없습니다"
+                                    )
                                 }
                             },
 
