@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
@@ -63,10 +64,7 @@ class AlarmRingingActivity : ComponentActivity() {
 
             if (targetId != currentId) return
 
-            if (exitHandled) return
-            exitHandled = true
-
-            handleTimeoutDismiss(targetId, getSharedPreferences(SNOOZE_PREF, MODE_PRIVATE))
+            handleTimeout(targetId, getSharedPreferences(SNOOZE_PREF, MODE_PRIVATE))
         }
     }
 
@@ -195,16 +193,12 @@ class AlarmRingingActivity : ComponentActivity() {
             AlarmPlayerService.ACTION_RING_TIMEOUT
         )
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(
-                timeoutReceiver,
-                filter,
-                RECEIVER_NOT_EXPORTED
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            registerReceiver(timeoutReceiver, filter)
-        }
+        ContextCompat.registerReceiver(
+            this,
+            timeoutReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
 
         timeoutReceiverRegistered = true
     }
@@ -332,13 +326,42 @@ class AlarmRingingActivity : ComponentActivity() {
         }
     }
 
+    private fun handleTimeout(id: Int, snoozePrefs: android.content.SharedPreferences) {
+        if (exitHandled) return
+        exitHandled = true
+
+        telemetryLogger.log("AlarmTimedOut", mapOf("AlarmId" to id.toString()))
+        stopPlayer(id)
+
+        lifecycleScope.launch {
+            val alarm = withContext(Dispatchers.IO) { repo.getById(id) }
+
+            if (alarm == null) {
+                handleTimeoutDismiss(id, snoozePrefs)
+                return@launch
+            }
+
+            val used = snoozePrefs.getInt(usedKey(id), 0)
+            val canAutoSnooze = alarm.snoozeEnabled && used < alarm.maxSnoozeCount
+
+            if (canAutoSnooze) {
+                handleAutoSnooze(
+                    id = id,
+                    alarm = alarm,
+                    snoozePrefs = snoozePrefs,
+                    used = used
+                )
+            } else {
+                handleTimeoutDismiss(id, snoozePrefs)
+            }
+        }
+    }
+
     private fun handleTimeoutDismiss(id: Int, snoozePrefs: android.content.SharedPreferences) {
         telemetryLogger.log(
             eventName = "AlarmTimedOut",
             payload = mapOf("AlarmId" to id.toString())
         )
-
-        stopPlayer(id)
 
         snoozePrefs.edit {
             remove(instanceKey(id))
@@ -351,6 +374,33 @@ class AlarmRingingActivity : ComponentActivity() {
             startBlockReadyTimer(10)
             finish()
         }
+    }
+
+    private fun handleAutoSnooze(
+        id: Int,
+        alarm: Alarm,
+        snoozePrefs: android.content.SharedPreferences,
+        used: Int
+    ) {
+        val nextCount = used + 1
+        snoozePrefs.edit { putInt(usedKey(id), nextCount) }
+
+        // 스누즈는 "알람 사이클 계속"이므로 blockGate는 건드리지 않음
+        val trigger = System.currentTimeMillis() + alarm.snoozeInterval * 60_000L
+
+        scheduler.cancel(id)
+
+        telemetryLogger.log(
+            eventName = "AlarmSnoozed",
+            payload = mapOf(
+                "AlarmId" to id.toString(),
+                "Interval" to alarm.snoozeInterval.toString(),
+                "snoozeCount" to nextCount.toString()
+            )
+        )
+
+        scheduler.schedule(id, trigger, alarm)
+        finish()
     }
 
     private fun stopPlayer(id: Int) {
