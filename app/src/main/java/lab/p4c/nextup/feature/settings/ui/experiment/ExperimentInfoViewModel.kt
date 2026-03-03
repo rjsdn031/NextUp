@@ -44,26 +44,21 @@ class ExperimentInfoViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true, errorMessage = null) }
 
             runCatching {
-                // --- Validation ---
                 val trimmedName = name.trim()
                 require(trimmedName.isNotEmpty())
-
+                
                 val parsedAge = age.toIntOrNull()
                 require(parsedAge != null)
-
+                
                 require(gender.isNotBlank())
 
-                val info = ExperimentInfo(
-                    name = trimmedName,
-                    age = parsedAge,
-                    gender = gender
-                )
+                val info = ExperimentInfo(trimmedName, parsedAge, gender)
 
                 repo.save(info)
-                _info.value = info
-
+                
                 val uid = ensureAnonymousSignedIn()
                 upsertExperimentInfoRemote(uid, info)
+                _info.value = info
             }.onFailure { e ->
                 _uiState.update { it.copy(errorMessage = e.message ?: "저장에 실패했어요.") }
             }
