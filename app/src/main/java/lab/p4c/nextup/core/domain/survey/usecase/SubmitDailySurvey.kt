@@ -5,6 +5,7 @@ import android.content.Intent
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.delay
+import lab.p4c.nextup.core.domain.overlay.usecase.UpdateActiveGoalFromSurvey
 import lab.p4c.nextup.core.domain.survey.model.DailySurvey
 import lab.p4c.nextup.core.domain.survey.port.SurveyRemoteStore
 import lab.p4c.nextup.core.domain.survey.port.SurveyRepository
@@ -13,21 +14,27 @@ import lab.p4c.nextup.feature.uploader.data.repository.UploadQueueRepository
 import lab.p4c.nextup.feature.uploader.infra.scheduler.UploadTriggerReceiver
 import lab.p4c.nextup.platform.telemetry.user.FirebaseUserIdProvider
 
+/**
+ * Submits a daily survey locally and schedules remote upload if needed.
+ *
+ * This use case also updates the active overlay goal using [DailySurvey.nextGoal]
+ * to keep the overlay behavior consistent regardless of upload success.
+ */
 class SubmitDailySurvey @Inject constructor(
     private val repo: SurveyRepository,
     private val remoteStore: SurveyRemoteStore,
     private val userIdProvider: FirebaseUserIdProvider,
     private val uploadQueueRepository: UploadQueueRepository,
+    private val updateActiveGoalFromSurvey: UpdateActiveGoalFromSurvey,
     @ApplicationContext private val context: Context,
 ) {
     suspend operator fun invoke(survey: DailySurvey) {
         repo.upsert(survey)
 
+        updateActiveGoalFromSurvey(survey.nextGoal)
+
         val uid = userIdProvider.getUserId()?.trim().orEmpty()
         if (uid.isNotEmpty()) {
-            // TODO:
-            // If authentication can fail in future flows,
-            // consider adding retry
             val uploaded = retry(
                 times = 3,
                 initialDelayMs = 300,

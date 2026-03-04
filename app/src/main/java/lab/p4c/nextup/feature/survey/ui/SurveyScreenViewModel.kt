@@ -8,7 +8,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.launch
-import lab.p4c.nextup.core.domain.overlay.usecase.UpdateTodayTargetFromSurvey
+import lab.p4c.nextup.core.domain.overlay.usecase.UpdateActiveGoalFromSurvey
 import lab.p4c.nextup.core.domain.survey.port.SurveyRepository
 import lab.p4c.nextup.core.domain.survey.usecase.ScheduleDailySurveyReminder
 import lab.p4c.nextup.core.domain.survey.usecase.SubmitDailySurvey
@@ -39,7 +39,7 @@ import lab.p4c.nextup.platform.telemetry.user.FirebaseUserIdProvider
 class SurveyScreenViewModel @Inject constructor(
     private val submitDailySurvey: SubmitDailySurvey,
     private val scheduleDailySurveyReminder: ScheduleDailySurveyReminder,
-    private val updateTodayTargetFromSurvey: UpdateTodayTargetFromSurvey,
+    private val updateTodayTargetFromSurvey: UpdateActiveGoalFromSurvey,
     private val timeProvider: TimeProvider,
     private val telemetryLogger: TelemetryLogger,
     private val surveyRepository: SurveyRepository,

@@ -6,5 +6,5 @@ import lab.p4c.nextup.core.domain.overlay.port.OverlayTargetRepository
 class GetActiveBlockingTarget @Inject constructor(
     private val repo: OverlayTargetRepository
 ) {
-    suspend operator fun invoke(): String = repo.getActiveOrDefault()
+    suspend operator fun invoke(): String = repo.getActiveGoalOrDefault()
 }

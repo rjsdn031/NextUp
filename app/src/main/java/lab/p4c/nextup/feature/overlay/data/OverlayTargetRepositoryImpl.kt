@@ -13,16 +13,22 @@ class OverlayTargetRepositoryImpl @Inject constructor(
     private val store: OverlayTargetStore
 ) : OverlayTargetRepository {
 
-    private val defaultText = "나는 오늘 집중을 유지한다"
+    private val defaultText = "실험에 성실하게 참여한다"
 
-    // 필요 시 source 우선순위 정책을 여기에 추가
-    override suspend fun setToday(text: String, source: TargetSource) {
-        store.setToday(text)
+    override suspend fun setActiveGoal(text: String, source: TargetSource) {
+        // TODO: Persist source if prioritization/debugging is needed later.
+        store.setActiveGoal(text)
     }
 
-    override suspend fun getActiveOrDefault(): String =
-        store.observeToday().first()?.takeIf { it.isNotBlank() } ?: defaultText
+    override suspend fun getActiveGoalOrDefault(): String {
+        return store.observeActiveGoalText()
+            .first()
+            ?.takeIf { it.isNotBlank() }
+            ?: defaultText
+    }
 
-    override fun observeActive(): Flow<String> =
-        store.observeToday().map { it?.takeIf(String::isNotBlank) ?: defaultText }
+    override fun observeActiveGoal(): Flow<String> {
+        return store.observeActiveGoalText()
+            .map { it?.takeIf(String::isNotBlank) ?: defaultText }
+    }
 }
