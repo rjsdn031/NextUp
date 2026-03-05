@@ -77,9 +77,18 @@ fun AddAlarmScreen(
     val snoozeIntervalFlow = savedState?.getStateFlow<Int?>("selectedSnoozeInterval", null)
     val snoozeMaxCountFlow = savedState?.getStateFlow<Int?>("selectedSnoozeMaxCount", null)
 
-    val pickedSnoozeEnabled by snoozeEnabledFlow?.collectAsState() ?: remember { mutableStateOf(null) }
-    val pickedSnoozeInterval by snoozeIntervalFlow?.collectAsState() ?: remember { mutableStateOf(null) }
-    val pickedSnoozeMaxCount by snoozeMaxCountFlow?.collectAsState() ?: remember { mutableStateOf(null) }
+    val pickedSnoozeEnabled by snoozeEnabledFlow?.collectAsState()
+        ?: remember { mutableStateOf(null) }
+    val pickedSnoozeInterval by snoozeIntervalFlow?.collectAsState() ?: remember {
+        mutableStateOf(
+            null
+        )
+    }
+    val pickedSnoozeMaxCount by snoozeMaxCountFlow?.collectAsState() ?: remember {
+        mutableStateOf(
+            null
+        )
+    }
 
     LaunchedEffect(pickedSnoozeEnabled, pickedSnoozeInterval, pickedSnoozeMaxCount) {
         val enabled = pickedSnoozeEnabled
@@ -102,7 +111,7 @@ fun AddAlarmScreen(
         vm.events.collect { event ->
             when (event) {
                 is AddAlarmEvent.Saved -> navController.popBackStack()
-                is AddAlarmEvent.SaveFailed -> { }
+                is AddAlarmEvent.SaveFailed -> {}
             }
         }
     }
@@ -231,11 +240,9 @@ fun AddAlarmScreen(
                                 ).show()
                             }
                         },
-                        onClick = {
-                            if (ui.alarmSoundEnabled) {
-                                { navController.navigate("alarm/sound-picker") }
-                            } else null
-                        }
+                        onClick = if (ui.alarmSoundEnabled) {
+                            { navController.navigate("alarm/sound-picker") }
+                        } else null
                     )
                 }
 

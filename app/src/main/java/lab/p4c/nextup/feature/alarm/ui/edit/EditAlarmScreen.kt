@@ -254,11 +254,9 @@ fun EditAlarmScreen(
                                     ).show()
                                 }
                             },
-                            onClick = {
-                                if (ui.alarmSoundEnabled) {
-                                    { navController.navigate("alarm/sound-picker") }
-                                } else null
-                            },
+                            onClick = if (ui.alarmSoundEnabled) {
+                                { navController.navigate("alarm/sound-picker") }
+                            } else null,
                             enabled = !ui.isBusy
                         )
                     }

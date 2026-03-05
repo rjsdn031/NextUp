@@ -138,6 +138,27 @@ fun AlarmSoundPickerScreen(
 
             item {
                 Spacer(Modifier.height(20.dp))
+                Text("사용자 파일", style = t.titleMedium, color = c.onSurface)
+            }
+
+            item {
+                SoundRow(
+                    title = selected?.takeIf { it.sound is AlarmSound.Custom }?.title ?: "파일에서 선택",
+                    selected = selected?.sound is AlarmSound.Custom,
+                    onClick = { pickAudioLauncher.launch(arrayOf("audio/*")) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Folder,
+                            contentDescription = null,
+                            tint = c.primary
+                        )
+                    },
+                    containerColor = c.surface
+                )
+            }
+
+            item {
+                Spacer(Modifier.height(20.dp))
                 Text("시스템 기본 알람음", style = t.titleMedium, color = c.onSurface)
             }
 
@@ -160,27 +181,6 @@ fun AlarmSoundPickerScreen(
                         )
                     },
                     containerColor = c.surface
-                )
-            }
-
-            item {
-                Spacer(Modifier.height(20.dp))
-                Text("사용자 파일", style = t.titleMedium, color = c.onSurface)
-            }
-
-            item {
-                SoundRow(
-                    title = selected?.takeIf { it.sound is AlarmSound.Custom }?.title ?: "파일에서 선택",
-                    selected = selected?.sound is AlarmSound.Custom,
-                    onClick = { pickAudioLauncher.launch(arrayOf("audio/*")) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Folder,
-                            contentDescription = null,
-                            tint = c.primary
-                        )
-                    },
-                    containerColor = c.surfaceVariant
                 )
             }
         }
@@ -213,7 +213,7 @@ private fun SoundRow(
         trailingContent = {
             RadioButton(
                 selected = selected,
-                onClick = null // row click으로만 처리
+                onClick = null
             )
         },
         modifier = Modifier
