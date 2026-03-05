@@ -216,29 +216,6 @@ fun AlarmSettingsScreen(navController: NavController) {
             }
 
             item {
-                val x = NextUpThemeTokens.colors
-
-                Card(
-                    shape = MaterialTheme.shapes.medium,
-                ) {
-                    ListItem(
-                        headlineContent = { Text("오프라인 음성(한국어)") },
-                        supportingContent = {
-                            Text(
-                                text = "오프라인 한국어 데이터 설치/관리",
-                                color = x.textSecondary
-                            )
-                        },
-                        trailingContent = {
-                            ThrottleButton(
-                                onClick = { SpeechSettingsIntents.openOfflineSpeechSettings(ctx) }
-                            ) { Text("설정") }
-                        }
-                    )
-                }
-            }
-
-            item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = { Text("차단할 앱 선택") },
@@ -289,6 +266,30 @@ private fun LazyListScope.settingsDebugItems(
             style = MaterialTheme.typography.titleSmall,
             color = NextUpThemeTokens.colors.textMuted
         )
+    }
+
+    item {
+        val x = NextUpThemeTokens.colors
+        val ctx = LocalContext.current
+
+        Card(
+            shape = MaterialTheme.shapes.medium,
+        ) {
+            ListItem(
+                headlineContent = { Text("오프라인 음성(한국어)") },
+                supportingContent = {
+                    Text(
+                        text = "오프라인 한국어 데이터 설치/관리",
+                        color = x.textSecondary
+                    )
+                },
+                trailingContent = {
+                    ThrottleButton(
+                        onClick = { SpeechSettingsIntents.openOfflineSpeechSettings(ctx) }
+                    ) { Text("설정") }
+                }
+            )
+        }
     }
 
     item {
