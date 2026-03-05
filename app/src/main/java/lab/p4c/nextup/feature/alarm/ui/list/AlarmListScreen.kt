@@ -1,50 +1,36 @@
 package lab.p4c.nextup.feature.alarm.ui.list
 
-import android.content.Intent
-import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.*
-import androidx.compose.material3.MenuDefaults.itemColors
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import lab.p4c.nextup.app.time.SystemTimeProvider
 import lab.p4c.nextup.app.ui.util.clickableThrottle
 import lab.p4c.nextup.core.common.time.dayOfWeekToKor
 import lab.p4c.nextup.core.common.time.formatTimeOfDay
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
-import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmAddTile
-import lab.p4c.nextup.feature.alarm.ui.components.AlarmFAB
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmHeader
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmTile
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmTopBar
-import lab.p4c.nextup.feature.alarm.ui.components.AlarmListMenu
 import lab.p4c.nextup.feature.alarm.ui.components.SurveyLinkSection
-import lab.p4c.nextup.feature.alarm.ui.ringing.AlarmRingingActivity
-import lab.p4c.nextup.feature.survey.infra.scheduler.AndroidSurveyReminderScheduler
-import lab.p4c.nextup.feature.uploader.infra.scheduler.UploadAlarmScheduler.scheduleInSecondsForDebug
-import java.time.Clock
-import java.time.ZoneId
 
 
 @Composable
@@ -71,30 +57,7 @@ fun AlarmListScreen(
     Scaffold(
         containerColor = c.background,
         contentColor = c.onBackground,
-        topBar = {
-            var expanded by remember { mutableStateOf(false) }
-            Box {
-                AlarmTopBar(onMenuClick = { expanded = true })
-                AlarmListMenu(
-                    expanded = expanded,
-                    onDismiss = { expanded = false },
-                    onNavigateSettings = { navController.navigate("settings") },
-                    onNavigateUsage = { navController.navigate("usage") },
-                    onTestSurveyReminder = { zdt ->
-                        vm.scheduleTestSurveyReminder()
-                        Toast.makeText(
-                            ctx, "테스트 알림을 예약했습니다: ${zdt.toLocalTime()}", Toast.LENGTH_SHORT
-                        ).show()
-                    },
-                    onTestFirebaseUploader = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            scheduleInSecondsForDebug(ctx, 10)
-                        }
-                    },
-                    now = now
-                )
-            }
-        },
+        topBar = { AlarmTopBar(onMenuClick = { navController.navigate("settings") }) },
         bottomBar = {
             if (surveyVisible) {
                 SurveyLinkSection(
