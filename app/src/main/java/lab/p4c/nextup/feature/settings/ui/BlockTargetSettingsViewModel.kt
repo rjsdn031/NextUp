@@ -13,7 +13,6 @@ import lab.p4c.nextup.feature.usage.infra.UsageStatsService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import lab.p4c.nextup.core.domain.telemetry.service.TelemetryLogger
-import lab.p4c.nextup.feature.usage.infra.DefaultUsageStatsService
 import java.time.Duration
 
 data class BlockTargetSettingsUi(
@@ -35,7 +34,9 @@ class BlockTargetSettingsViewModel @Inject constructor(
     private val usageStats: UsageStatsService,
     private val telemetryLogger: TelemetryLogger,
 ) : ViewModel() {
-
+    private companion object {
+        private const val USAGE_ROLLING_DAYS = 7L
+    }
     private val _ui = MutableStateFlow(BlockTargetSettingsUi())
     val ui: StateFlow<BlockTargetSettingsUi> = _ui.asStateFlow()
 
@@ -50,25 +51,21 @@ class BlockTargetSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _ui.update { it.copy(isLoading = true) }
 
-            // 1) 저장된 차단 목록
             val blocked = repo.getTargets()
 
-            // 2) 설치 앱 목록
             val apps = appFetcher.fetchInstalledApps()
 
-            // 3) 최근 24시간 usage 데이터
             val usageResult = withContext(Dispatchers.IO) {
                 usageStats.fetch(
-                    range = Duration.ofHours(24)
+                    range = Duration.ofDays(USAGE_ROLLING_DAYS)
                 )
             }
 
-            // 사용량 map: packageName -> millis
             val usageMap = usageResult.summary.associate { row ->
                 row.packageName to row.total.toMillis()
             }
 
-            // 4) UI 모델 생성
+            // UI 모델 생성
             val items = apps.map { app ->
                 BlockTargetItemUi(
                     packageName = app.packageName,
@@ -79,7 +76,7 @@ class BlockTargetSettingsViewModel @Inject constructor(
                 )
             }
 
-            // 5) 사용량 기준 정렬
+            // 사용량 기준 정렬
             val sorted = items.sortedByDescending { it.usageMillis }
 
             _ui.value = BlockTargetSettingsUi(

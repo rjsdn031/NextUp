@@ -21,8 +21,10 @@ import lab.p4c.nextup.app.ui.theme.NextUpThemeTokens
 import lab.p4c.nextup.feature.settings.ui.model.BlockTargetItemUi
 import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import lab.p4c.nextup.app.ui.components.ThrottleButton
 import lab.p4c.nextup.app.ui.components.ThrottleIconButton
 import lab.p4c.nextup.app.ui.util.clickableThrottle
+import lab.p4c.nextup.feature.settings.ui.util.UsageLabelFormatter
 
 @Composable
 fun BlockTargetSettingsRoute(
@@ -48,7 +50,6 @@ fun BlockTargetSettingsScreen(
     onBack: () -> Unit
 ) {
     val t = MaterialTheme.typography
-    val c = MaterialTheme.colorScheme
 
     Scaffold(
         topBar = {
@@ -65,7 +66,7 @@ fun BlockTargetSettingsScreen(
             )
         },
         bottomBar = {
-            Button(
+            ThrottleButton(
                 onClick = {
                     onSave()
                     onBack()
@@ -156,17 +157,10 @@ private fun BlockTargetItem(
                 style = t.bodyLarge
             )
 
-            val second = item.usageMillis / 1000
-            val minutes = second / 60
-            val rem = second % 60
-
-            val desc = if (minutes > 0) {
-                "24시간 동안 ${minutes}분 사용"
-            } else if (rem > 0) {
-                "24시간 동안 1분 미만 사용"
-            } else {
-                "24시간 동안 사용 기록 없음"
-            }
+            val desc = UsageLabelFormatter.forRollingDays(
+                usageMillis = item.usageMillis,
+                days = 7
+            )
 
             Text(
                 text = desc,
