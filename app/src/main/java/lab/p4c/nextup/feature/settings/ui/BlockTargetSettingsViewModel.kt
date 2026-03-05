@@ -18,13 +18,25 @@ import java.time.Duration
 data class BlockTargetSettingsUi(
     val items: List<BlockTargetItemUi> = emptyList(),
     val initialSelected: Set<String> = emptySet(),
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val query: String = "",
 ) {
     val currentSelected: Set<String>
         get() = items.filter { it.checked }.map { it.packageName }.toSet()
 
     val hasChanges: Boolean
         get() = currentSelected != initialSelected
+
+    val visibleItems: List<BlockTargetItemUi>
+        get() {
+            val q = query.trim()
+            if (q.isEmpty()) return items
+
+            return items.filter { item ->
+                item.appName.contains(q, ignoreCase = true) ||
+                        item.packageName.contains(q, ignoreCase = true)
+            }
+        }
 }
 
 @HiltViewModel
@@ -133,5 +145,13 @@ class BlockTargetSettingsViewModel @Inject constructor(
             // init hasChanges
             _ui.update { it.copy(initialSelected = selected) }
         }
+    }
+
+    fun onQueryChange(query: String) {
+        _ui.update { it.copy(query = query) }
+    }
+
+    fun clearQuery() {
+        _ui.update { it.copy(query = "") }
     }
 }

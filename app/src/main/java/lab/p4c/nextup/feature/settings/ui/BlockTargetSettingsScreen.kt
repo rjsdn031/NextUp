@@ -5,8 +5,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
@@ -21,6 +25,8 @@ import lab.p4c.nextup.app.ui.theme.NextUpThemeTokens
 import lab.p4c.nextup.feature.settings.ui.model.BlockTargetItemUi
 import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import lab.p4c.nextup.app.ui.components.ThrottleButton
 import lab.p4c.nextup.app.ui.components.ThrottleIconButton
 import lab.p4c.nextup.app.ui.util.clickableThrottle
@@ -37,7 +43,9 @@ fun BlockTargetSettingsRoute(
         ui = ui,
         onToggle = vm::toggle,
         onSave = vm::save,
-        onBack = onBack
+        onBack = onBack,
+        onQueryChange = vm::onQueryChange,
+        onClearQuery = vm::clearQuery,
     )
 }
 
@@ -47,9 +55,12 @@ fun BlockTargetSettingsScreen(
     ui: BlockTargetSettingsUi,
     onToggle: (String) -> Unit,
     onSave: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onQueryChange: (String) -> Unit,
+    onClearQuery: () -> Unit,
 ) {
     val t = MaterialTheme.typography
+    val focusManager = LocalFocusManager.current
 
     Scaffold(
         topBar = {
@@ -93,26 +104,84 @@ fun BlockTargetSettingsScreen(
             return@Scaffold
         }
 
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            items(ui.items) { item ->
-                BlockTargetItem(
-                    item = item,
-                    onToggle = { onToggle(item.packageName) }
-                )
-                HorizontalDivider(
-                    Modifier,
-                    DividerDefaults.Thickness,
-                    color = NextUpThemeTokens.colors.divider
-                )
+            BlockTargetSearchBar(
+                query = ui.query,
+                onQueryChange = onQueryChange,
+                onClear = {
+                    onClearQuery()
+                    focusManager.clearFocus()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            )
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(ui.visibleItems) { item ->
+                    BlockTargetItem(
+                        item = item,
+                        onToggle = { onToggle(item.packageName) }
+                    )
+                    HorizontalDivider(
+                        Modifier,
+                        DividerDefaults.Thickness,
+                        color = NextUpThemeTokens.colors.divider
+                    )
+                }
             }
         }
     }
 }
 
+@Composable
+private fun BlockTargetSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val c = MaterialTheme.colorScheme
+    val focusManager = LocalFocusManager.current
+
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier,
+        singleLine = true,
+        placeholder = { Text("앱 이름 또는 패키지명 검색") },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = "검색"
+            )
+        },
+        trailingIcon = {
+            if (query.isNotBlank()) {
+                ThrottleIconButton(onClick = onClear) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "검색어 지우기"
+                    )
+                }
+            }
+        },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(
+            onSearch = { focusManager.clearFocus() }
+        ),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = c.primary,
+            cursorColor = c.primary
+        )
+    )
+}
 @Composable
 private fun BlockTargetItem(
     item: BlockTargetItemUi,
