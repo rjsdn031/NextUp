@@ -121,19 +121,43 @@ fun BlockTargetSettingsScreen(
                     .padding(horizontal = 20.dp, vertical = 12.dp)
             )
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(ui.visibleItems) { item ->
-                    BlockTargetItem(
-                        item = item,
-                        onToggle = { onToggle(item.packageName) }
+            if (ui.errorMessage != null) {
+                Text(
+                    text = ui.errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .padding(bottom = 8.dp)
+                )
+            }
+
+            if (ui.visibleItems.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (ui.query.isBlank()) "표시할 앱이 없어요." else "검색 결과가 없어요.",
+                        color = NextUpThemeTokens.colors.textMuted,
+                        style = MaterialTheme.typography.bodyMedium
                     )
-                    HorizontalDivider(
-                        Modifier,
-                        DividerDefaults.Thickness,
-                        color = NextUpThemeTokens.colors.divider
-                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(ui.visibleItems) { item ->
+                        BlockTargetItem(
+                            item = item,
+                            onToggle = { onToggle(item.packageName) }
+                        )
+                        HorizontalDivider(
+                            Modifier,
+                            DividerDefaults.Thickness,
+                            color = NextUpThemeTokens.colors.divider
+                        )
+                    }
                 }
             }
         }

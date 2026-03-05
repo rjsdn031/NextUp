@@ -4,39 +4,33 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import lab.p4c.nextup.core.domain.blocking.port.BlockTargetRepository
+import lab.p4c.nextup.core.domain.telemetry.service.TelemetryLogger
 import lab.p4c.nextup.feature.settings.infra.InstalledAppFetcher
 import lab.p4c.nextup.feature.settings.ui.model.BlockTargetItemUi
 import lab.p4c.nextup.feature.usage.infra.UsageStatsService
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import lab.p4c.nextup.core.domain.telemetry.service.TelemetryLogger
 import java.time.Duration
 
 data class BlockTargetSettingsUi(
     val items: List<BlockTargetItemUi> = emptyList(),
+    val visibleItems: List<BlockTargetItemUi> = emptyList(),
     val initialSelected: Set<String> = emptySet(),
     val isLoading: Boolean = true,
     val query: String = "",
+    val errorMessage: String? = null,
 ) {
     val currentSelected: Set<String>
         get() = items.filter { it.checked }.map { it.packageName }.toSet()
 
     val hasChanges: Boolean
         get() = currentSelected != initialSelected
-
-    val visibleItems: List<BlockTargetItemUi>
-        get() {
-            val q = query.trim()
-            if (q.isEmpty()) return items
-
-            return items.filter { item ->
-                item.appName.contains(q, ignoreCase = true) ||
-                        item.packageName.contains(q, ignoreCase = true)
-            }
-        }
 }
 
 @HiltViewModel
@@ -46,9 +40,11 @@ class BlockTargetSettingsViewModel @Inject constructor(
     private val usageStats: UsageStatsService,
     private val telemetryLogger: TelemetryLogger,
 ) : ViewModel() {
+
     private companion object {
         private const val USAGE_ROLLING_DAYS = 7L
     }
+
     private val _ui = MutableStateFlow(BlockTargetSettingsUi())
     val ui: StateFlow<BlockTargetSettingsUi> = _ui.asStateFlow()
 
@@ -56,63 +52,70 @@ class BlockTargetSettingsViewModel @Inject constructor(
         loadApps()
     }
 
-    /**
-     * 설치된 앱 목록 + 저장된 차단 목록 + usageMillis(24h) 결합
-     */
     private fun loadApps() {
         viewModelScope.launch {
-            _ui.update { it.copy(isLoading = true) }
+            _ui.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val blocked = repo.getTargets()
+            val result = runCatching {
+                withContext(Dispatchers.IO) {
+                    val blocked = repo.getTargets()
+                    val apps = appFetcher.fetchInstalledApps()
+                    val usageResult = usageStats.fetch(
+                        range = Duration.ofDays(USAGE_ROLLING_DAYS)
+                    )
+                    Triple(blocked, apps, usageResult)
+                }
+            }
 
-            val apps = appFetcher.fetchInstalledApps()
+            result.onSuccess { (blocked, apps, usageResult) ->
+                val usageMap = usageResult.summary.associate { row ->
+                    row.packageName to row.total.toMillis()
+                }
 
-            val usageResult = withContext(Dispatchers.IO) {
-                usageStats.fetch(
-                    range = Duration.ofDays(USAGE_ROLLING_DAYS)
+                val sortedItems = apps.map { app ->
+                    BlockTargetItemUi(
+                        packageName = app.packageName,
+                        appName = app.appName,
+                        icon = app.icon,
+                        checked = blocked.contains(app.packageName),
+                        usageMillis = usageMap[app.packageName] ?: 0L
+                    )
+                }.sortedByDescending { it.usageMillis }
+
+                _ui.value = BlockTargetSettingsUi(
+                    items = sortedItems,
+                    visibleItems = filterItems(sortedItems, query = ""),
+                    initialSelected = blocked,
+                    isLoading = false,
+                    query = "",
+                    errorMessage = null,
                 )
+            }.onFailure { e ->
+                _ui.update {
+                    it.copy(
+                        isLoading = false,
+                        items = emptyList(),
+                        visibleItems = emptyList(),
+                        errorMessage = "앱 목록을 불러오지 못했어요. (${e.javaClass.simpleName})"
+                    )
+                }
             }
+        }
+    }
 
-            val usageMap = usageResult.summary.associate { row ->
-                row.packageName to row.total.toMillis()
+    fun toggle(packageName: String) {
+        _ui.update { prev ->
+            val updatedItems = prev.items.map { item ->
+                if (item.packageName == packageName) item.copy(checked = !item.checked)
+                else item
             }
-
-            // UI 모델 생성
-            val items = apps.map { app ->
-                BlockTargetItemUi(
-                    packageName = app.packageName,
-                    appName = app.appName,
-                    icon = app.icon,
-                    checked = blocked.contains(app.packageName),
-                    usageMillis = usageMap[app.packageName] ?: 0L
-                )
-            }
-
-            // 사용량 기준 정렬
-            val sorted = items.sortedByDescending { it.usageMillis }
-
-            _ui.value = BlockTargetSettingsUi(
-                items = sorted,
-                initialSelected = blocked,
-                isLoading = false
+            prev.copy(
+                items = updatedItems,
+                visibleItems = filterItems(updatedItems, prev.query)
             )
         }
     }
 
-    /**
-     * 항목 토글
-     */
-    fun toggle(packageName: String) {
-        val updated = _ui.value.items.map {
-            if (it.packageName == packageName) it.copy(checked = !it.checked)
-            else it
-        }
-        _ui.update { it.copy(items = updated) }
-    }
-
-    /**
-     * 현재 체크된 항목 저장
-     */
     fun save() {
         val uiNow = _ui.value
 
@@ -122,36 +125,57 @@ class BlockTargetSettingsViewModel @Inject constructor(
             .toSet()
 
         val before = uiNow.initialSelected
-
         val added = (selected - before).toList().sorted()
         val removed = (before - selected).toList().sorted()
 
-        // 변화 없으면 아무것도 안 함
         if (added.isEmpty() && removed.isEmpty()) return
 
         viewModelScope.launch {
-            // save
-            repo.setTargets(selected)
-
-            // logging
-            telemetryLogger.log(
-                eventName = "TargetAppChanged",
-                payload = mapOf(
-                    "AddApps" to added.joinToString(","),
-                    "SubApps" to removed.joinToString(",")
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    repo.setTargets(selected)
+                }
+            }.onSuccess {
+                telemetryLogger.log(
+                    eventName = "TargetAppChanged",
+                    payload = mapOf(
+                        "AddApps" to added.joinToString(","),
+                        "SubApps" to removed.joinToString(",")
+                    )
                 )
-            )
 
-            // init hasChanges
-            _ui.update { it.copy(initialSelected = selected) }
+                _ui.update { it.copy(initialSelected = selected) }
+            }.onFailure { e ->
+                _ui.update {
+                    it.copy(errorMessage = "저장에 실패했어요. (${e.javaClass.simpleName})")
+                }
+            }
         }
     }
 
     fun onQueryChange(query: String) {
-        _ui.update { it.copy(query = query) }
+        _ui.update { prev ->
+            prev.copy(
+                query = query,
+                visibleItems = filterItems(prev.items, query)
+            )
+        }
     }
 
     fun clearQuery() {
-        _ui.update { it.copy(query = "") }
+        onQueryChange("")
+    }
+
+    private fun filterItems(
+        items: List<BlockTargetItemUi>,
+        query: String,
+    ): List<BlockTargetItemUi> {
+        val q = query.trim()
+        if (q.isEmpty()) return items
+
+        return items.filter { item ->
+            item.appName.contains(q, ignoreCase = true) ||
+                    item.packageName.contains(q, ignoreCase = true)
+        }
     }
 }
