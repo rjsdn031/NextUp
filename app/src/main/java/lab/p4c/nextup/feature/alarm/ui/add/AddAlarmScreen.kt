@@ -15,15 +15,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import kotlinx.coroutines.launch
 import lab.p4c.nextup.app.ui.components.ThrottleButton
 import lab.p4c.nextup.app.ui.components.ThrottleOutlinedButton
 import lab.p4c.nextup.app.ui.util.ToastThrottler
 import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
-import lab.p4c.nextup.feature.alarm.infra.player.AlarmPreviewPlayer
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmNameField
-import lab.p4c.nextup.feature.alarm.ui.components.AlarmOptionsView
+import lab.p4c.nextup.feature.alarm.ui.components.AlarmOptionRow
 import lab.p4c.nextup.feature.alarm.ui.components.AlarmTimePicker
+import lab.p4c.nextup.feature.alarm.ui.components.AlarmVolumeRow
 import lab.p4c.nextup.feature.alarm.ui.components.DaySelector
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,12 +67,7 @@ fun AddAlarmScreen(
     }
 
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val preview = remember { AlarmPreviewPlayer(context) }
-
-    DisposableEffect(Unit) {
-        onDispose { preview.stop() }
-    }
+    val focusManager = LocalFocusManager.current
 
     var labelField by remember(ui.label) {
         mutableStateOf(TextFieldValue(ui.label))
@@ -97,7 +91,6 @@ fun AddAlarmScreen(
             savedState?.remove<Boolean>("selectedSnoozeEnabled")
         }
 
-        // interval/maxCount는 세트로 왔을 때 반영
         if (interval != null && maxCount != null) {
             vm.selectSnooze(interval, maxCount)
             savedState?.remove<Int>("selectedSnoozeInterval")
@@ -108,17 +101,11 @@ fun AddAlarmScreen(
     LaunchedEffect(Unit) {
         vm.events.collect { event ->
             when (event) {
-                is AddAlarmEvent.Saved -> {
-                    navController.popBackStack()
-                }
-                is AddAlarmEvent.SaveFailed -> {
-                    // Toast.makeText(LocalContext.current, event.message, LENGTH_SHORT).show()
-                }
+                is AddAlarmEvent.Saved -> navController.popBackStack()
+                is AddAlarmEvent.SaveFailed -> { }
             }
         }
     }
-
-    val focusManager = LocalFocusManager.current
 
     Scaffold(
         modifier = Modifier
@@ -126,9 +113,7 @@ fun AddAlarmScreen(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
-            ) {
-                focusManager.clearFocus()
-            },
+            ) { focusManager.clearFocus() },
         containerColor = c.background,
         contentColor = c.onBackground,
         bottomBar = {
@@ -158,9 +143,7 @@ fun AddAlarmScreen(
                             vm.updateLabel(labelField.text)
                             vm.save()
                         }
-                    ) {
-                        Text("저장")
-                    }
+                    ) { Text("저장") }
                 }
             }
         }
@@ -186,7 +169,7 @@ fun AddAlarmScreen(
                 contentPadding = PaddingValues(top = 12.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item {  // (Calculated) Next Alarm
+                item {
                     Text(
                         text = ui.nextTriggerText ?: "다음 울림 시간이 계산됩니다.",
                         style = t.bodySmall,
@@ -194,7 +177,7 @@ fun AddAlarmScreen(
                     )
                 }
 
-                item {  // Weekly Loop
+                item {
                     DaySelector(
                         selectedDays = ui.repeatDays,
                         onChange = { days ->
@@ -212,48 +195,33 @@ fun AddAlarmScreen(
                 }
 
                 if (!ui.isFirstAlarm) {
-                    item {  // Turn off alarms on Public Holidays - restricted
-                        ListItem(
-                            headlineContent = { Text("공휴일엔 알람 끄기") },
-                            supportingContent = {
-                                Text(if (ui.skipHolidays) "사용" else "사용 안 함")
-                            },
-                            trailingContent = {
-                                Switch(
-                                    checked = ui.skipHolidays,
-                                    onCheckedChange = vm::toggleSkipHolidays,
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = c.onPrimary,
-                                        checkedTrackColor = c.primary,
-                                        uncheckedThumbColor = c.outline,
-                                        uncheckedTrackColor = c.background
-                                    )
-                                )
-                            },
-                            colors = ListItemDefaults.colors(
-                                containerColor = c.surface,
-                                headlineColor = c.onSurface,
-                                supportingColor = c.onSurfaceVariant
-                            )
+                    item {
+                        AlarmOptionRow(
+                            title = "공휴일엔 알람 끄기",
+                            subtitle = if (ui.skipHolidays) "사용" else "사용 안 함",
+                            checked = ui.skipHolidays,
+                            enabled = !ui.isBusy,
+                            onCheckedChange = vm::toggleSkipHolidays
                         )
                     }
                 }
 
-                item {  // Alarm Name
+                item {
                     AlarmNameField(
                         value = labelField,
                         onValueChange = { labelField = it }
                     )
                 }
 
-                item {  // AlarmSound, Vibrate, Snooze
-                    val maxCountLabel =
-                        if (ui.maxSnoozeCount == Int.MAX_VALUE) "계속 반복"
-                        else "최대 ${ui.maxSnoozeCount}회"
-                    AlarmOptionsView(
-                        alarmSoundEnabled = ui.alarmSoundEnabled,
-                        selectedRingtoneName = ui.ringtoneName,
-                        onAlarmSoundToggle = { enabled ->
+                item {
+                    val soundSummary = if (ui.alarmSoundEnabled) ui.ringtoneName else "사용 안 함"
+
+                    AlarmOptionRow(
+                        title = "알람음",
+                        subtitle = soundSummary,
+                        checked = ui.alarmSoundEnabled,
+                        enabled = !ui.isBusy,
+                        onCheckedChange = { enabled ->
                             val ok = vm.toggleAlarmSound(enabled)
                             if (!ok) {
                                 Toast.makeText(
@@ -263,20 +231,37 @@ fun AddAlarmScreen(
                                 ).show()
                             }
                         },
-                        onSelectSound = {
-                            navController.navigate("alarm/sound-picker")
-                        },
-                        isPreviewing = ui.isPreviewing,
-                        onTogglePreview = {
-                            scope.launch {
-                                if (ui.isPreviewing) preview.stop()
-                                else preview.play(ui.sound)
-                                vm.togglePreview()
-                            }
-                        },
+                        onClick = {
+                            if (ui.alarmSoundEnabled) {
+                                { navController.navigate("alarm/sound-picker") }
+                            } else null
+                        }
+                    )
+                }
 
-                        vibrationEnabled = ui.vibration,
-                        onVibrationToggle = { enabled ->
+                item {
+                    AlarmVolumeRow(
+                        volume = ui.volume,
+                        enabled = ui.alarmSoundEnabled && !ui.isBusy,
+                        onValueChange = { v ->
+                            val ok = vm.updateVolume(v)
+                            if (!ok) {
+                                toastThrottler.show(
+                                    context = context,
+                                    message = "필수 알람은 볼륨을 20% 미만으로 설정할 수 없습니다"
+                                )
+                            }
+                        }
+                    )
+                }
+
+                item {
+                    AlarmOptionRow(
+                        title = "진동",
+                        subtitle = if (ui.vibration) "사용" else "사용 안 함",
+                        checked = ui.vibration,
+                        enabled = !ui.isBusy,
+                        onCheckedChange = { enabled ->
                             val ok = vm.toggleVibration(enabled)
                             if (!ok) {
                                 Toast.makeText(
@@ -285,30 +270,32 @@ fun AddAlarmScreen(
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
-                        },
+                        }
+                    )
+                }
 
-                        snoozeLabel = "매 ${ui.snoozeInterval}분, $maxCountLabel",
-                        onSelectSnooze = {
-                            savedState?.set("snoozeInitialEnabled", ui.snoozeEnabled)
-                            savedState?.set("snoozeInitialInterval", ui.snoozeInterval)
-                            savedState?.set("snoozeInitialMaxCount", ui.maxSnoozeCount)
+                item {
+                    val maxCountLabel =
+                        if (ui.maxSnoozeCount == Int.MAX_VALUE) "계속 반복"
+                        else "최대 ${ui.maxSnoozeCount}회"
 
-                            navController.navigate("alarm/snooze-picker")
-                        },
+                    val snoozeSummary =
+                        if (ui.snoozeEnabled) "매 ${ui.snoozeInterval}분, $maxCountLabel" else "사용 안 함"
 
-                        volume = ui.volume,
-                        onSelectVolume = { v ->
-                            val ok = vm.updateVolume(v)
-                            if (!ok) {
-                                toastThrottler.show(
-                                    context = context,
-                                    message = "필수 알람은 볼륨을 20% 미만으로 설정할 수 없습니다"
-                                )
-                            }
-                        },
-
-                        snoozeEnabled = ui.snoozeEnabled,
-                        onToggleSnooze = vm::toggleSnoozeEnabled,
+                    AlarmOptionRow(
+                        title = "다시 울림",
+                        subtitle = snoozeSummary,
+                        checked = ui.snoozeEnabled,
+                        enabled = !ui.isBusy,
+                        onCheckedChange = vm::toggleSnoozeEnabled,
+                        onClick = {
+                            if (ui.snoozeEnabled) {
+                                savedState?.set("snoozeInitialEnabled", true)
+                                savedState?.set("snoozeInitialInterval", ui.snoozeInterval)
+                                savedState?.set("snoozeInitialMaxCount", ui.maxSnoozeCount)
+                                navController.navigate("alarm/snooze-picker")
+                            } else null
+                        }
                     )
                 }
             }
