@@ -18,7 +18,6 @@ import lab.p4c.nextup.core.domain.alarm.usecase.DeleteAlarmAndCancel
 import lab.p4c.nextup.core.domain.alarm.usecase.ToggleAlarm
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
 import lab.p4c.nextup.core.domain.survey.port.SurveyRepository
-import lab.p4c.nextup.core.domain.survey.usecase.ScheduleDailySurveyReminder
 import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.core.domain.system.todaySurveyDateKey
 import java.time.ZoneId
@@ -34,7 +33,6 @@ class AlarmListViewModel @Inject constructor(
     private val timeProvider: TimeProvider,
     private val nextTrigger: NextTriggerCalculator,
     private val permissionChecker: PermissionChecker,
-    private val scheduleDailySurveyReminder: ScheduleDailySurveyReminder,    // reminder test
     private val surveyRepository: SurveyRepository,
 ) : ViewModel() {
 
@@ -96,13 +94,6 @@ class AlarmListViewModel @Inject constructor(
     }
 
     fun canOpenAddAlarm(): Boolean = permissionChecker.hasExactAlarm()
-
-    // reminder test
-    fun scheduleTestSurveyReminder() = viewModelScope.launch {
-        val now = timeProvider.now().atZone(ZoneId.systemDefault())
-        val testZdt = now.plusMinutes(1).withSecond(0).withNano(0)
-        scheduleDailySurveyReminder(testZdt.toLocalTime())
-    }
 
     fun refreshSurveyEnabled() = viewModelScope.launch {
         val key = timeProvider.todaySurveyDateKey()

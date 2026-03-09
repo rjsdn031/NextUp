@@ -8,9 +8,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.launch
-import lab.p4c.nextup.core.domain.overlay.usecase.UpdateActiveGoalFromSurvey
 import lab.p4c.nextup.core.domain.survey.port.SurveyRepository
-import lab.p4c.nextup.core.domain.survey.usecase.ScheduleDailySurveyReminder
 import lab.p4c.nextup.core.domain.survey.usecase.SubmitDailySurvey
 import lab.p4c.nextup.core.domain.system.TimeProvider
 import lab.p4c.nextup.core.domain.system.todaySurveyDateKey
@@ -38,8 +36,6 @@ import lab.p4c.nextup.platform.telemetry.user.FirebaseUserIdProvider
 @HiltViewModel
 class SurveyScreenViewModel @Inject constructor(
     private val submitDailySurvey: SubmitDailySurvey,
-    private val scheduleDailySurveyReminder: ScheduleDailySurveyReminder,
-    private val updateTodayTargetFromSurvey: UpdateActiveGoalFromSurvey,
     private val timeProvider: TimeProvider,
     private val telemetryLogger: TelemetryLogger,
     private val surveyRepository: SurveyRepository,
@@ -258,8 +254,9 @@ class SurveyScreenViewModel @Inject constructor(
      * 1. Validates and converts UI state into [DailySurvey].
      * 2. Persists the survey via [SubmitDailySurvey].
      * 3. Logs "SurveyCompleted" telemetry.
-     * 4. Updates today's target if provided.
-     * 5. Schedules the next daily survey reminder.
+     * 4. Delegates survey side effects such as overlay goal update and
+     *    reminder rescheduling to [SubmitDailySurvey].
+     * 5. Resets UI state to the first step.
      * 6. Resets UI state to the first step.
      *
      * Submission is guarded by [isSubmitting] to prevent duplicates.
@@ -280,12 +277,6 @@ class SurveyScreenViewModel @Inject constructor(
                         eventName = "SurveyCompleted",
                         payload = mapOf("DateKey" to todayKey())
                     )
-
-                    if (form.nextGoal.isNotBlank()) {
-                        updateTodayTargetFromSurvey(form.nextGoal)
-                    }
-
-                    scheduleDailySurveyReminder()
                     onSuccess()
 
                     step = flow().first()
