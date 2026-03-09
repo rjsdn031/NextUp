@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
@@ -30,11 +31,16 @@ import lab.p4c.nextup.feature.alarm.infra.player.AlarmPlayerService
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AndroidAlarmScheduler
 import lab.p4c.nextup.feature.blocking.infra.BlockGate
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 private const val SNOOZE_PREF = "alarm_snooze"
 const val ACTION_BLOCK_READY_ENDED = "ACTION_BLOCK_READY_ENDED"
 private const val TRIGGERED_DEDUPE_WINDOW_MS = 2_000L
 
+private val timeFormatter =
+    DateTimeFormatter.ofPattern("HH:mm")
 private fun instanceKey(id: Int) = "snooze_instance_$id"
 private fun usedKey(id: Int) = "snooze_used_$id"
 private fun triggeredLoggedAtKey(id: Int) = "triggered_logged_at_$id"
@@ -76,6 +82,7 @@ class AlarmRingingActivity : ComponentActivity() {
 
     private var exitProcessingStarted = false
     private var pendingExitAction: ExitAction? = null
+
 
     private val snoozePrefs by lazy {
         applicationContext.getSharedPreferences(SNOOZE_PREF, MODE_PRIVATE)
@@ -386,6 +393,18 @@ class AlarmRingingActivity : ComponentActivity() {
             )
 
             scheduler.schedule(id, trigger, alarm)
+
+            val nextTime = Instant.ofEpochMilli(trigger)
+                .atZone(ZoneId.systemDefault())
+                .toLocalTime()
+                .format(timeFormatter)
+
+            Toast.makeText(
+                this,
+                "${currentSnoozeInterval}분 후 알람이 다시 울립니다 ($nextTime)",
+                Toast.LENGTH_SHORT
+            ).show()
+
             finish()
         } finally {
             currentIsHandling = false
