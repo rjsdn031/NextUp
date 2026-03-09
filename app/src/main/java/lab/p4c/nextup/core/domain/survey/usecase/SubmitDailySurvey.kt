@@ -9,6 +9,8 @@ import lab.p4c.nextup.core.domain.overlay.usecase.UpdateActiveGoalFromSurvey
 import lab.p4c.nextup.core.domain.survey.model.DailySurvey
 import lab.p4c.nextup.core.domain.survey.port.SurveyRemoteStore
 import lab.p4c.nextup.core.domain.survey.port.SurveyRepository
+import lab.p4c.nextup.core.domain.system.TimeProvider
+import lab.p4c.nextup.core.domain.system.todaySurveyDateKey
 import lab.p4c.nextup.core.domain.upload.UploadType
 import lab.p4c.nextup.feature.uploader.data.repository.UploadQueueRepository
 import lab.p4c.nextup.feature.uploader.infra.scheduler.UploadTriggerReceiver
@@ -26,10 +28,16 @@ class SubmitDailySurvey @Inject constructor(
     private val userIdProvider: FirebaseUserIdProvider,
     private val uploadQueueRepository: UploadQueueRepository,
     private val updateActiveGoalFromSurvey: UpdateActiveGoalFromSurvey,
+    private val checkAndRescheduleSurveyReminder: CheckAndRescheduleSurveyReminder,
+    private val timeProvider: TimeProvider,
     @ApplicationContext private val context: Context,
 ) {
     suspend operator fun invoke(survey: DailySurvey) {
         repo.upsert(survey)
+
+        if (survey.dateKey == timeProvider.todaySurveyDateKey()) {
+            checkAndRescheduleSurveyReminder()
+        }
 
         updateActiveGoalFromSurvey(survey.nextGoal)
 
@@ -51,13 +59,13 @@ class SubmitDailySurvey @Inject constructor(
             dateKey = survey.dateKey,
             localRef = null,
             runAtMs = System.currentTimeMillis(),
-            priority = 20
+            priority = 20,
         )
 
         val appCtx = context.applicationContext
         appCtx.sendBroadcast(
             Intent(appCtx, UploadTriggerReceiver::class.java)
-                .setAction(UploadTriggerReceiver.UPLOAD_DAILY)
+                .setAction(UploadTriggerReceiver.UPLOAD_DAILY),
         )
     }
 
@@ -65,9 +73,10 @@ class SubmitDailySurvey @Inject constructor(
         times: Int,
         initialDelayMs: Long,
         maxDelayMs: Long,
-        block: suspend () -> Unit
+        block: suspend () -> Unit,
     ): Boolean {
         var delayMs = initialDelayMs
+
         repeat(times) { attempt ->
             try {
                 block()
@@ -78,6 +87,7 @@ class SubmitDailySurvey @Inject constructor(
                 delayMs = (delayMs * 2).coerceAtMost(maxDelayMs)
             }
         }
+
         return false
     }
 }

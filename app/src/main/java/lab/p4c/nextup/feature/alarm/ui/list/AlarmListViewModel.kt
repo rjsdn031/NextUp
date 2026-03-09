@@ -5,11 +5,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import lab.p4c.nextup.core.common.permission.PermissionChecker
 import lab.p4c.nextup.feature.alarm.ui.util.NextTriggerFormatter
@@ -19,7 +17,6 @@ import lab.p4c.nextup.core.domain.alarm.service.NextTriggerCalculator
 import lab.p4c.nextup.core.domain.alarm.usecase.DeleteAlarmAndCancel
 import lab.p4c.nextup.core.domain.alarm.usecase.ToggleAlarm
 import lab.p4c.nextup.core.domain.alarm.usecase.UpsertAlarmAndReschedule
-import lab.p4c.nextup.core.domain.experiment.usecase.IsExperimentActive
 import lab.p4c.nextup.core.domain.survey.port.SurveyRepository
 import lab.p4c.nextup.core.domain.survey.usecase.ScheduleDailySurveyReminder
 import lab.p4c.nextup.core.domain.system.TimeProvider
@@ -38,7 +35,6 @@ class AlarmListViewModel @Inject constructor(
     private val nextTrigger: NextTriggerCalculator,
     private val permissionChecker: PermissionChecker,
     private val scheduleDailySurveyReminder: ScheduleDailySurveyReminder,    // reminder test
-    private val isExperimentActive: IsExperimentActive,
     private val surveyRepository: SurveyRepository,
 ) : ViewModel() {
 
@@ -51,18 +47,6 @@ class AlarmListViewModel @Inject constructor(
     private val _surveyEnabled = MutableStateFlow(true)
     val surveyEnabled: StateFlow<Boolean> = _surveyEnabled
 
-
-    /**
-     * Whether the experiment is active (i.e., at least one blocking target is selected).
-     * Used to show/hide or enable/disable the survey entry point.
-     */
-    val surveyVisible: StateFlow<Boolean> =
-        isExperimentActive()
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = false
-            )
 
     init {
         viewModelScope.launch {
