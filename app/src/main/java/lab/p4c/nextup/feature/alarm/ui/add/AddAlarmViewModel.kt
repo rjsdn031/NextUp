@@ -23,7 +23,7 @@ data class AddAlarmUiState(
     val hour: Int = 7,
     val minute: Int = 0,
     val label: String = "",
-    val repeatDays: List<Int> = listOf(0, 1, 2, 3, 4, 5, 6, 7),     // 1=월..7=일
+    val repeatDays: List<Int> = listOf(1, 2, 3, 4, 5, 6, 7),     // 1=월..7=일
     val skipHolidays: Boolean = false,
 
     val alarmSoundEnabled: Boolean = true,
@@ -35,9 +35,9 @@ data class AddAlarmUiState(
     val fadeSeconds: Int = 0,
     val loop: Boolean = true,
 
-    val snoozeEnabled: Boolean = false,
+    val snoozeEnabled: Boolean = true,
     val snoozeInterval: Int = 5,
-    val maxSnoozeCount: Int = 3,
+    val maxSnoozeCount: Int = Int.MAX_VALUE,
 
     val isPreviewing: Boolean = false,
     val isBusy: Boolean = false,
@@ -137,30 +137,16 @@ class AddAlarmViewModel @Inject constructor(
         return !rejected
     }
 
-    fun toggleFade(on: Boolean) {
-        _ui.value = _ui.value.copy(fadeSeconds = if (on) 30 else 0)
-    }
-
-    fun toggleLoop(b: Boolean) {
-        _ui.value = _ui.value.copy(loop = b)
-    }
-
-    fun toggleSnoozeEnabled(b: Boolean) {
+    fun toggleSnoozeEnabled(b: Boolean): Boolean {
+        if (isMandatoryAlarm()) return false
         _ui.value = _ui.value.copy(snoozeEnabled = b)
+        return true
     }
 
-    fun selectSnooze(interval: Int, count: Int) {
+    fun selectSnooze(interval: Int, count: Int): Boolean {
+        if (isMandatoryAlarm()) return false
         _ui.value = _ui.value.copy(snoozeInterval = interval, maxSnoozeCount = count)
-    }
-
-    fun togglePreview() {
-        val s = _ui.value
-        if (!s.alarmSoundEnabled) return
-        _ui.value = s.copy(isPreviewing = !s.isPreviewing)
-    }
-
-    fun consumeError() {
-        _ui.value = _ui.value.copy(errorMessage = null)
+        return true
     }
 
     /* ---------- Save ---------- */
@@ -168,46 +154,56 @@ class AddAlarmViewModel @Inject constructor(
         val s = _ui.value
         if (!s.canSave) return@launch
         _ui.value = s.copy(isBusy = true)
+
         try {
             val existing = repo.getAll()
             val isFirst = existing.isEmpty()
 
             val assignedId = if (isFirst) 1 else 0
-            // 1 = mandatory alarm ID
-            // 0 = auto-generate (Room auto ID)
+
+            val fixed = if (isFirst) {
+                s.copy(
+                    repeatDays = listOf(1, 2, 3, 4, 5, 6, 7),
+                    skipHolidays = false,
+                    alarmSoundEnabled = true,
+                    vibration = true,
+                    volume = s.volume.coerceIn(0.2f, 1f),
+                    snoozeEnabled = true,
+                    snoozeInterval = 5,
+                    maxSnoozeCount = Int.MAX_VALUE,
+                )
+            } else {
+                s
+            }
 
             val alarm = Alarm(
-                id = assignedId, // 신규
-                hour = s.hour,
-                minute = s.minute,
-                days = s.repeatDays.indicesToDays(),
-                skipHolidays = s.skipHolidays,
+                id = assignedId,
+                hour = fixed.hour,
+                minute = fixed.minute,
+                days = fixed.repeatDays.indicesToDays(),
+                skipHolidays = fixed.skipHolidays,
                 enabled = true,
-
-                sound = s.sound,
-//                assetAudioPath = s.ringtonePath,
-                alarmSoundEnabled = s.alarmSoundEnabled,
-//                ringtoneName = s.ringtoneName,
-                volume = s.volume.toDouble(),
-                fadeDuration = s.fadeSeconds,
-                name = s.label,
+                sound = fixed.sound,
+                alarmSoundEnabled = fixed.alarmSoundEnabled,
+                volume = fixed.volume.toDouble(),
+                fadeDuration = fixed.fadeSeconds,
+                name = fixed.label,
                 notificationBody = "기상 시간입니다.",
-                loopAudio = s.loop,
-                vibration = s.vibration,
+                loopAudio = fixed.loop,
+                vibration = fixed.vibration,
                 warningNotificationOnKill = true,
                 androidFullScreenIntent = true,
-                snoozeEnabled = s.snoozeEnabled,
-                snoozeInterval = s.snoozeInterval,
-                maxSnoozeCount = s.maxSnoozeCount
+                snoozeEnabled = fixed.snoozeEnabled,
+                snoozeInterval = fixed.snoozeInterval,
+                maxSnoozeCount = fixed.maxSnoozeCount,
             )
+
             upsert(alarm)
             _events.emit(AddAlarmEvent.Saved)
-
         } catch (e: Exception) {
             val msg = "알람 저장 실패: ${e.message}"
             _ui.value = _ui.value.copy(errorMessage = msg)
             _events.emit(AddAlarmEvent.SaveFailed(msg))
-
         } finally {
             _ui.value = _ui.value.copy(isBusy = false)
         }

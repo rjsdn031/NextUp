@@ -307,14 +307,29 @@ fun EditAlarmScreen(
                             title = "다시 울림",
                             subtitle = snoozeSummary,
                             checked = ui.snoozeEnabled,
-                            onCheckedChange = vm::toggleSnoozeEnabled,
+                            onCheckedChange = { enabled ->
+                                val ok = vm.toggleSnoozeEnabled(enabled)
+                                if (!ok) {
+                                    Toast.makeText(
+                                        context,
+                                        "필수 알람은 다시 울림 설정을 해제할 수 없습니다",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
                             onClick = {
-                                if (ui.snoozeEnabled) {
+                                if (isMandatory) {
+                                    Toast.makeText(
+                                        context,
+                                        "필수 알람은 다시 울림 설정을 변경할 수 없습니다",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } else if (ui.snoozeEnabled) {
                                     savedState?.set("snoozeInitialEnabled", true)
                                     savedState?.set("snoozeInitialInterval", ui.snoozeInterval)
                                     savedState?.set("snoozeInitialMaxCount", ui.maxSnoozeCount)
                                     navController.navigate("alarm/snooze-picker")
-                                } else null
+                                }
                             },
                             enabled = !ui.isBusy
                         )

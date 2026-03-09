@@ -35,6 +35,15 @@ private fun instanceKey(id: Int) = "snooze_instance_$id"
 private fun usedKey(id: Int) = "snooze_used_$id"
 
 private fun triggeredLoggedAtKey(id: Int) = "triggered_logged_at_$id"
+
+private fun Alarm.effectiveSnoozeEnabled(): Boolean =
+    if (id == 1) true else snoozeEnabled
+
+private fun Alarm.effectiveSnoozeInterval(): Int =
+    if (id == 1) 5 else snoozeInterval
+
+private fun Alarm.effectiveMaxSnoozeCount(): Int =
+    if (id == 1) Int.MAX_VALUE else maxSnoozeCount
 private const val TRIGGERED_DEDUPE_WINDOW_MS = 2_000L // 2초 내 재진입은 중복으로 간주
 
 @AndroidEntryPoint
@@ -101,9 +110,13 @@ class AlarmRingingActivity : ComponentActivity() {
                 title = a.name.ifBlank { "알람" }
                 body = a.notificationBody
 
-                snoozeEnabled = a.snoozeEnabled
-                snoozeInterval = a.snoozeInterval
-                maxSnoozeCount = a.maxSnoozeCount
+                val effectiveSnoozeEnabled = a.effectiveSnoozeEnabled()
+                val effectiveSnoozeInterval = a.effectiveSnoozeInterval()
+                val effectiveMaxSnoozeCount = a.effectiveMaxSnoozeCount()
+
+                snoozeEnabled = effectiveSnoozeEnabled
+                snoozeInterval = effectiveSnoozeInterval
+                maxSnoozeCount = effectiveMaxSnoozeCount
 
                 val now = System.currentTimeMillis()
                 val last = snoozePrefs.getLong(triggeredLoggedAtKey(id), 0L)
@@ -132,7 +145,7 @@ class AlarmRingingActivity : ComponentActivity() {
                 }
 
                 val used = snoozePrefs.getInt(usedKey(id), 0)
-                canSnooze = snoozeEnabled && (used < maxSnoozeCount)
+                canSnooze = effectiveSnoozeEnabled && (used < effectiveMaxSnoozeCount)
             }
 
             val latestCanSnooze by rememberUpdatedState(canSnooze)
@@ -342,7 +355,10 @@ class AlarmRingingActivity : ComponentActivity() {
             }
 
             val used = snoozePrefs.getInt(usedKey(id), 0)
-            val canAutoSnooze = alarm.snoozeEnabled && used < alarm.maxSnoozeCount
+            val effectiveSnoozeEnabled = alarm.effectiveSnoozeEnabled()
+            val effectiveMaxSnoozeCount = alarm.effectiveMaxSnoozeCount()
+
+            val canAutoSnooze = effectiveSnoozeEnabled && used < effectiveMaxSnoozeCount
 
             if (canAutoSnooze) {
                 handleAutoSnooze(
@@ -385,8 +401,8 @@ class AlarmRingingActivity : ComponentActivity() {
         val nextCount = used + 1
         snoozePrefs.edit { putInt(usedKey(id), nextCount) }
 
-        // 스누즈는 "알람 사이클 계속"이므로 blockGate는 건드리지 않음
-        val trigger = System.currentTimeMillis() + alarm.snoozeInterval * 60_000L
+        val effectiveSnoozeInterval = alarm.effectiveSnoozeInterval()
+        val trigger = System.currentTimeMillis() + effectiveSnoozeInterval * 60_000L
 
         scheduler.cancel(id)
 
@@ -394,7 +410,7 @@ class AlarmRingingActivity : ComponentActivity() {
             eventName = "AlarmSnoozed",
             payload = mapOf(
                 "AlarmId" to id.toString(),
-                "Interval" to alarm.snoozeInterval.toString(),
+                "Interval" to effectiveSnoozeInterval.toString(),
                 "snoozeCount" to nextCount.toString()
             )
         )

@@ -47,9 +47,9 @@ data class EditAlarmUiState(
     val fadeSeconds: Int = 0,
     val loop: Boolean = true,
 
-    val snoozeEnabled: Boolean = false,
+    val snoozeEnabled: Boolean = true,
     val snoozeInterval: Int = 5,
-    val maxSnoozeCount: Int = 3,
+    val maxSnoozeCount: Int = Int.MAX_VALUE,
 
     val isPreviewing: Boolean = false,
     val nextTriggerText: String? = null
@@ -152,30 +152,16 @@ class EditAlarmViewModel @Inject constructor(
         return !rejected
     }
 
-    fun toggleFade(on: Boolean) {
-        _ui.value = _ui.value.copy(fadeSeconds = if (on) 30 else 0)
-    }
-
-    fun toggleLoop(b: Boolean) {
-        _ui.value = _ui.value.copy(loop = b)
-    }
-
-    fun toggleSnoozeEnabled(b: Boolean) {
+    fun toggleSnoozeEnabled(b: Boolean): Boolean {
+        if (isMandatoryAlarm()) return false
         _ui.value = _ui.value.copy(snoozeEnabled = b)
+        return true
     }
 
-    fun selectSnooze(interval: Int, count: Int) {
+    fun selectSnooze(interval: Int, count: Int): Boolean {
+        if (isMandatoryAlarm()) return false
         _ui.value = _ui.value.copy(snoozeInterval = interval, maxSnoozeCount = count)
-    }
-
-    fun togglePreview() {
-        val s = _ui.value
-        if (!s.alarmSoundEnabled) return
-        _ui.value = s.copy(isPreviewing = !s.isPreviewing)
-    }
-
-    fun consumeError() {
-        _ui.value = _ui.value.copy(errorMessage = null)
+        return true
     }
 
     /* ----- 저장/삭제 ----- */
@@ -191,6 +177,9 @@ class EditAlarmViewModel @Inject constructor(
                     alarmSoundEnabled = true,
                     vibration = true,
                     volume = s.volume.coerceIn(0.2f, 1f),
+                    snoozeEnabled = true,
+                    snoozeInterval = 5,
+                    maxSnoozeCount = Int.MAX_VALUE,
                 )
             } else s
 
@@ -210,7 +199,7 @@ class EditAlarmViewModel @Inject constructor(
         val id = _ui.value.id ?: return@launch
         _ui.value = _ui.value.copy(isBusy = true)
         try {
-            delete(id)                             // ← 유즈케이스 호출
+            delete(id)
             onDone(true)
         } catch (e: Exception) {
             _ui.value = _ui.value.copy(errorMessage = "알람 삭제 실패: ${e.message}")

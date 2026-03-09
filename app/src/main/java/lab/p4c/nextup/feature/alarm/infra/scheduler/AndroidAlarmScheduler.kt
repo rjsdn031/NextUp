@@ -23,7 +23,6 @@ class AndroidAlarmScheduler @Inject constructor(
         Log.d(TAG, "schedule id=$id at=$triggerAtUtcMillis")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // 정확 알람 권한 체크 결과를 활용하려면 분기/가이드 처리 추가
             val canExact = alarmManager.canScheduleExactAlarms()
             Log.d(TAG, "canScheduleExactAlarms=$canExact")
         }

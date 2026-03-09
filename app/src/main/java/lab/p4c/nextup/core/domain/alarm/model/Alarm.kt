@@ -65,7 +65,7 @@ data class Alarm(
     val warningNotificationOnKill: Boolean = true,  // TODO(refactor):도메인에 있어야 하나?
     val androidFullScreenIntent: Boolean = true, // TODO(refactor):도메인에 있어야 하나?
 
-    val snoozeEnabled: Boolean = false,
+    val snoozeEnabled: Boolean = true,
     val snoozeInterval: Int = 5,
-    val maxSnoozeCount: Int = 3
+    val maxSnoozeCount: Int = Int.MAX_VALUE
 )
