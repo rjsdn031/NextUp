@@ -407,7 +407,7 @@ class AlarmRingingActivity : ComponentActivity() {
         scheduler.cancel(id)
 
         telemetryLogger.log(
-            eventName = "AlarmSnoozed",
+            eventName = "AlarmAutoSnoozed",
             payload = mapOf(
                 "AlarmId" to id.toString(),
                 "Interval" to effectiveSnoozeInterval.toString(),
