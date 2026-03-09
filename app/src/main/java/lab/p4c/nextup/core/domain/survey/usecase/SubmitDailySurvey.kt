@@ -19,8 +19,11 @@ import lab.p4c.nextup.platform.telemetry.user.FirebaseUserIdProvider
 /**
  * Submits a daily survey locally and schedules remote upload if needed.
  *
- * This use case also updates the active overlay goal using [DailySurvey.nextGoal]
- * to keep the overlay behavior consistent regardless of upload success.
+ * This use case also:
+ * - reschedules survey reminders after a successful local submission for today
+ * - updates the active overlay goal when [DailySurvey.nextGoal] is not blank
+ *
+ * These side effects are applied regardless of remote upload success.
  */
 class SubmitDailySurvey @Inject constructor(
     private val repo: SurveyRepository,
@@ -39,7 +42,9 @@ class SubmitDailySurvey @Inject constructor(
             checkAndRescheduleSurveyReminder()
         }
 
-        updateActiveGoalFromSurvey(survey.nextGoal)
+        if (survey.nextGoal.isNotBlank()) {
+            updateActiveGoalFromSurvey(survey.nextGoal)
+        }
 
         val uid = userIdProvider.getUserId()?.trim().orEmpty()
         if (uid.isNotEmpty()) {

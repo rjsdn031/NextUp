@@ -9,8 +9,8 @@ import lab.p4c.nextup.core.domain.survey.model.DailySurvey
  * - Time fields use the "HH:mm" 24-hour format.
  * - Score fields are stored as 0..4 in the UI and are converted to 1..5
  *   when mapped into the domain model ([DailySurvey]).
- * - Free-text fields are validated with a minimum length requirement to reduce
- *   low-effort responses in the experiment context.
+ * - [SurveyFormState.productivityReason] is validated with a minimum length requirement.
+ * - [SurveyFormState.nextGoal] is validated only when the step is included in the flow.
  */
 data class SurveyFormState(
     val missedYesterdayReason: String = "",
@@ -110,12 +110,13 @@ internal fun String.isTimeHHmm(): Boolean {
  *   and at least 10 characters.
  * - Sleep times must be present and match "HH:mm".
  * - Score selections must be present and within 0..4.
- * - Free-text fields ([SurveyFormState.productivityReason], [SurveyFormState.nextGoal])
- *   must be present and at least 10 characters.
+ * - [SurveyFormState.productivityReason] must be present and at least 10 characters.
+ * - If [needsNextGoal] is true, [SurveyFormState.nextGoal] must be present.
  *
  * @param needsMissedReason Whether the "missed yesterday reason" question is part of the flow.
+ * @param needsNextGoal Whether the "next goal" question is part of the flow.
  */
-fun SurveyFormState.validate(needsMissedReason: Boolean): List<SurveyValidationError> = buildList {
+fun SurveyFormState.validate(needsMissedReason: Boolean, needsNextGoal: Boolean): List<SurveyValidationError> = buildList {
 
     // (어제 설문을 안했다면) 왜 설문을 안했는지
     if (needsMissedReason) {
@@ -160,9 +161,11 @@ fun SurveyFormState.validate(needsMissedReason: Boolean): List<SurveyValidationE
     }
 
     // 내일 목표
-    when {
-        nextGoal.isBlank() ->
-            add(SurveyValidationError.MissingNextGoal)
+    if (needsNextGoal) {
+        when {
+            nextGoal.isBlank() ->
+                add(SurveyValidationError.MissingNextGoal)
+        }
     }
 }
 
@@ -177,8 +180,12 @@ fun SurveyFormState.validate(needsMissedReason: Boolean): List<SurveyValidationE
  * @param dateKey Date key for the survey in "YYYY-MM-DD" format (project convention).
  * @param needsMissedReason Whether the "missed yesterday reason" question is part of the flow.
  */
-fun SurveyFormState.toDomain(dateKey: String, needsMissedReason: Boolean): Validation<DailySurvey> {
-    val errors = validate(needsMissedReason)
+fun SurveyFormState.toDomain(
+    dateKey: String,
+    needsMissedReason: Boolean,
+    needsNextGoal: Boolean,
+): Validation<DailySurvey> {
+    val errors = validate(needsMissedReason, needsNextGoal)
     if (errors.isNotEmpty()) return Validation.Err(errors)
 
     return Validation.Ok(
@@ -191,7 +198,7 @@ fun SurveyFormState.toDomain(dateKey: String, needsMissedReason: Boolean): Valid
             productivityScore = productivityScore!! + 1,   // 1..5
             productivityReason = productivityReason.trim(),
             goalAchievement = goalAchievement!! + 1,        // 1..5
-            nextGoal = nextGoal.trim()
+            nextGoal = if (needsNextGoal) nextGoal.trim() else ""
         )
     )
 }

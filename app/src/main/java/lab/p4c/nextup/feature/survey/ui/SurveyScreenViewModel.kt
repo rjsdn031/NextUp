@@ -6,8 +6,10 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import kotlinx.coroutines.launch
+import lab.p4c.nextup.core.domain.experiment.usecase.IsExperimentActive
 import lab.p4c.nextup.core.domain.survey.port.SurveyRepository
 import lab.p4c.nextup.core.domain.survey.usecase.SubmitDailySurvey
 import lab.p4c.nextup.core.domain.system.TimeProvider
@@ -37,16 +39,17 @@ import lab.p4c.nextup.platform.telemetry.user.FirebaseUserIdProvider
 class SurveyScreenViewModel @Inject constructor(
     private val submitDailySurvey: SubmitDailySurvey,
     private val timeProvider: TimeProvider,
+    private val isExperimentActive: IsExperimentActive,
     private val telemetryLogger: TelemetryLogger,
     private val surveyRepository: SurveyRepository,
     private val userIdProvider: FirebaseUserIdProvider,
 ) : ViewModel() {
 
     /**
-     * Core survey flow excluding the optional "MissedReason" step.
+     * Core survey flow excluding optional steps.
      *
-     * The actual flow is determined dynamically by [flow()],
-     * depending on whether yesterday's survey was missing.
+     * Optional steps such as [SurveyStep.MissedReason] and [SurveyStep.NextGoal]
+     * are appended conditionally by [flow()].
      */
     private val baseFlow = listOf(
         SurveyStep.SleepTime,
@@ -54,7 +57,6 @@ class SurveyScreenViewModel @Inject constructor(
         SurveyStep.ProductivityScore,
         SurveyStep.ProductivityReason,
         SurveyStep.GoalAchievement,
-        SurveyStep.NextGoal
     )
 
     var step by mutableStateOf(SurveyStep.MissedReason)
@@ -67,6 +69,9 @@ class SurveyScreenViewModel @Inject constructor(
         private set
 
     var needsMissedReason by mutableStateOf(false)
+        private set
+
+    var needsNextGoal by mutableStateOf(false)
         private set
 
     private var startedLogged = false
@@ -105,6 +110,7 @@ class SurveyScreenViewModel @Inject constructor(
 
         viewModelScope.launch {
             needsMissedReason = surveyRepository.getByDate(yesterdayKey()) == null
+            needsNextGoal = isExperimentActive().first()
             step = flow().first()
         }
     }
@@ -147,8 +153,21 @@ class SurveyScreenViewModel @Inject constructor(
      * If yesterday's survey is missing, the flow starts with
      * [SurveyStep.MissedReason], otherwise it starts with [SurveyStep.SleepTime].
      */
-    private fun flow(): List<SurveyStep> =
-        if (needsMissedReason) listOf(SurveyStep.MissedReason) + baseFlow else baseFlow
+    private fun flow(): List<SurveyStep> {
+        val steps = mutableListOf<SurveyStep>()
+
+        if (needsMissedReason) {
+            steps += SurveyStep.MissedReason
+        }
+
+        steps += baseFlow
+
+        if (needsNextGoal) {
+            steps += SurveyStep.NextGoal
+        }
+
+        return steps
+    }
 
     fun isFirstStep(): Boolean = step == flow().first()
     fun isLastStep(): Boolean = step == flow().last()
@@ -220,7 +239,10 @@ class SurveyScreenViewModel @Inject constructor(
      * and no submission is currently in progress.
      */
     val canSubmit: Boolean
-        get() = form.validate(needsMissedReason).isEmpty() && !isSubmitting
+        get() = form.validate(
+            needsMissedReason = needsMissedReason,
+            needsNextGoal = needsNextGoal,
+        ).isEmpty() && !isSubmitting
 
     fun primaryText(): String = if (isLastStep()) "제출" else "다음"
 
@@ -257,7 +279,6 @@ class SurveyScreenViewModel @Inject constructor(
      * 4. Delegates survey side effects such as overlay goal update and
      *    reminder rescheduling to [SubmitDailySurvey].
      * 5. Resets UI state to the first step.
-     * 6. Resets UI state to the first step.
      *
      * Submission is guarded by [isSubmitting] to prevent duplicates.
      */
@@ -269,7 +290,13 @@ class SurveyScreenViewModel @Inject constructor(
         isSubmitting = true
 
         try {
-            when (val r = form.toDomain(todayKey(), needsMissedReason)) {
+            when (
+                val r = form.toDomain(
+                    dateKey = todayKey(),
+                    needsMissedReason = needsMissedReason,
+                    needsNextGoal = needsNextGoal,
+                )
+            ) {
                 is Validation.Ok -> {
                     submitDailySurvey(r.value)
 

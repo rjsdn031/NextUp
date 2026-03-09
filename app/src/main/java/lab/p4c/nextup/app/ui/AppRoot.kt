@@ -34,16 +34,9 @@ private object Routes {
     const val SOUND_PICKER = "alarm/sound-picker"
     const val SNOOZE_PICKER = "alarm/snooze-picker"
     const val EDIT = "edit/{id}"
-    fun edit(id: Int) = "edit/$id"
-
-    // usage 서브그래프
     const val USAGEGRAPH = "usage_graph"
     const val USAGELIST = "usage"                 // 리스트
     const val USAGEDETAIL = "usage/detail/{pkg}?startMs={startMs}&endMs={endMs}"
-    fun usageDetail(pkg: String, startMs: Long, endMs: Long): String {
-        return "usage/detail/$pkg?startMs=$startMs&endMs=$endMs"
-    }
-
     const val SURVEY = "survey"
     const val DEEPLINK_SURVEY = "app://nextup/survey" // 알림 URI
 }
