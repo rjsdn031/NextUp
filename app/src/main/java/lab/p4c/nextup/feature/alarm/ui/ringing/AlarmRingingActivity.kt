@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
@@ -13,9 +14,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import lab.p4c.nextup.app.ui.theme.NextUpTheme
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
@@ -27,13 +30,13 @@ import lab.p4c.nextup.feature.alarm.infra.player.AlarmPlayerService
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
 import lab.p4c.nextup.feature.alarm.infra.scheduler.AndroidAlarmScheduler
 import lab.p4c.nextup.feature.blocking.infra.BlockGate
-import javax.inject.Inject
 
 private const val SNOOZE_PREF = "alarm_snooze"
 const val ACTION_BLOCK_READY_ENDED = "ACTION_BLOCK_READY_ENDED"
+private const val TRIGGERED_DEDUPE_WINDOW_MS = 2_000L
+
 private fun instanceKey(id: Int) = "snooze_instance_$id"
 private fun usedKey(id: Int) = "snooze_used_$id"
-
 private fun triggeredLoggedAtKey(id: Int) = "triggered_logged_at_$id"
 
 private fun Alarm.effectiveSnoozeEnabled(): Boolean =
@@ -44,7 +47,12 @@ private fun Alarm.effectiveSnoozeInterval(): Int =
 
 private fun Alarm.effectiveMaxSnoozeCount(): Int =
     if (id == 1) Int.MAX_VALUE else maxSnoozeCount
-private const val TRIGGERED_DEDUPE_WINDOW_MS = 2_000L // 2초 내 재진입은 중복으로 간주
+
+private enum class ExitAction {
+    DISMISS,
+    TIMEOUT,
+    SNOOZE,
+}
 
 @AndroidEntryPoint
 class AlarmRingingActivity : ComponentActivity() {
@@ -60,6 +68,19 @@ class AlarmRingingActivity : ComponentActivity() {
     private var exitHandled = false
     private var timeoutReceiverRegistered = false
 
+    private var currentAlarm: Alarm? = null
+    private var currentCanSnooze = false
+    private var currentSnoozeInterval = 5
+    private var currentMaxSnoozeCount = 3
+    private var currentIsHandling = false
+
+    private var exitProcessingStarted = false
+    private var pendingExitAction: ExitAction? = null
+
+    private val snoozePrefs by lazy {
+        applicationContext.getSharedPreferences(SNOOZE_PREF, MODE_PRIVATE)
+    }
+
     private val timeoutReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             Log.i("AlarmRinging", "timeoutReceiver onReceive intent=$intent")
@@ -73,7 +94,7 @@ class AlarmRingingActivity : ComponentActivity() {
 
             if (targetId != currentId) return
 
-            handleTimeout(targetId, getSharedPreferences(SNOOZE_PREF, MODE_PRIVATE))
+            requestExitAction(targetId, ExitAction.TIMEOUT)
         }
     }
 
@@ -85,14 +106,14 @@ class AlarmRingingActivity : ComponentActivity() {
 
         val id = intent.getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1)
         if (id <= 0) {
-            finish(); return
+            finish()
+            return
         }
 
         setContent {
             var title by remember { mutableStateOf("알람") }
             var body by remember { mutableStateOf("일어날 시간입니다!") }
 
-            var snoozeEnabled by remember { mutableStateOf(false) }
             var snoozeInterval by remember { mutableIntStateOf(5) }
             var maxSnoozeCount by remember { mutableIntStateOf(3) }
             var canSnooze by remember { mutableStateOf(false) }
@@ -100,28 +121,26 @@ class AlarmRingingActivity : ComponentActivity() {
             var alarm by remember { mutableStateOf<Alarm?>(null) }
             var isHandling by remember { mutableStateOf(false) }
 
-            val snoozePrefs = remember {
-                applicationContext.getSharedPreferences(SNOOZE_PREF, MODE_PRIVATE)
-            }
-
             LaunchedEffect(id) {
-                val a = withContext(Dispatchers.IO) { repo.getById(id) } ?: return@LaunchedEffect
-                alarm = a
-                title = a.name.ifBlank { "알람" }
-                body = a.notificationBody
+                val loadedAlarm = withContext(Dispatchers.IO) { repo.getById(id) } ?: return@LaunchedEffect
+                alarm = loadedAlarm
+                currentAlarm = loadedAlarm
 
-                val effectiveSnoozeEnabled = a.effectiveSnoozeEnabled()
-                val effectiveSnoozeInterval = a.effectiveSnoozeInterval()
-                val effectiveMaxSnoozeCount = a.effectiveMaxSnoozeCount()
+                title = loadedAlarm.name.ifBlank { "알람" }
+                body = loadedAlarm.notificationBody
 
-                snoozeEnabled = effectiveSnoozeEnabled
+                val effectiveSnoozeInterval = loadedAlarm.effectiveSnoozeInterval()
+                val effectiveMaxSnoozeCount = loadedAlarm.effectiveMaxSnoozeCount()
+
                 snoozeInterval = effectiveSnoozeInterval
                 maxSnoozeCount = effectiveMaxSnoozeCount
+
+                currentSnoozeInterval = effectiveSnoozeInterval
+                currentMaxSnoozeCount = effectiveMaxSnoozeCount
 
                 val now = System.currentTimeMillis()
                 val last = snoozePrefs.getLong(triggeredLoggedAtKey(id), 0L)
                 if (now - last > TRIGGERED_DEDUPE_WINDOW_MS) {
-
                     val used = snoozePrefs.getInt(usedKey(id), 0)
                     val isSnoozed = used > 0
 
@@ -130,7 +149,7 @@ class AlarmRingingActivity : ComponentActivity() {
                         eventName = "AlarmTriggered",
                         payload = mapOf(
                             "AlarmId" to id.toString(),
-                            "isSnoozed" to isSnoozed.toString() // "true" | "false"
+                            "isSnoozed" to isSnoozed.toString()
                         )
                     )
 
@@ -145,27 +164,16 @@ class AlarmRingingActivity : ComponentActivity() {
                 }
 
                 val used = snoozePrefs.getInt(usedKey(id), 0)
-                canSnooze = effectiveSnoozeEnabled && (used < effectiveMaxSnoozeCount)
-            }
+                val computedCanSnooze =
+                    loadedAlarm.effectiveSnoozeEnabled() && (used < effectiveMaxSnoozeCount)
 
-            val latestCanSnooze by rememberUpdatedState(canSnooze)
-            val latestAlarm by rememberUpdatedState(alarm)
-            val latestSnoozeInterval by rememberUpdatedState(snoozeInterval)
-            val latestMaxSnoozeCount by rememberUpdatedState(maxSnoozeCount)
+                canSnooze = computedCanSnooze
+                currentCanSnooze = computedCanSnooze
+            }
 
             DisposableEffect(id) {
                 val callback = onBackPressedDispatcher.addCallback(this@AlarmRingingActivity) {
-                    handleExit(
-                        id = id,
-                        canSnooze = latestCanSnooze,
-                        alarm = latestAlarm,
-                        snoozeInterval = latestSnoozeInterval,
-                        maxSnoozeCount = latestMaxSnoozeCount,
-                        snoozePrefs = snoozePrefs,
-                        isHandling = isHandling,
-                        setHandling = { isHandling = it },
-                        setCanSnooze = { canSnooze = it }
-                    )
+                    requestDefaultExit(id)
                 }
                 onDispose { callback.remove() }
             }
@@ -177,24 +185,20 @@ class AlarmRingingActivity : ComponentActivity() {
                     showSnooze = canSnooze,
                     snoozeMinutes = snoozeInterval,
                     onDismiss = {
-                        handleDismiss(
-                            id = id,
-                            snoozePrefs = snoozePrefs
-                        )
+                        requestExitAction(id, ExitAction.DISMISS)
                     },
                     onSnooze = {
-                        handleSnooze(
-                            id = id,
-                            alarm = alarm,
-                            snoozeInterval = snoozeInterval,
-                            maxSnoozeCount = maxSnoozeCount,
-                            snoozePrefs = snoozePrefs,
-                            setCanSnooze = { canSnooze = it },
-                            isHandling = isHandling,
-                            setHandling = { isHandling = it }
-                        )
+                        requestExitAction(id, ExitAction.SNOOZE)
                     }
                 )
+            }
+
+            LaunchedEffect(alarm, canSnooze, snoozeInterval, maxSnoozeCount, isHandling) {
+                currentAlarm = alarm
+                currentCanSnooze = canSnooze
+                currentSnoozeInterval = snoozeInterval
+                currentMaxSnoozeCount = maxSnoozeCount
+                currentIsHandling = isHandling
             }
         }
     }
@@ -221,49 +225,103 @@ class AlarmRingingActivity : ComponentActivity() {
             runCatching { unregisterReceiver(timeoutReceiver) }
             timeoutReceiverRegistered = false
         }
+
+        if (shouldHandleSystemExitOnStop()) {
+            val id = intent.getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1)
+            if (id > 0) {
+                requestDefaultExit(id)
+            }
+        }
+
         super.onStop()
     }
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
+
         val id = intent.getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1)
-        if (id > 0 && !exitHandled) {
-            exitHandled = true
-            handleDismiss(id, getSharedPreferences(SNOOZE_PREF, MODE_PRIVATE))
+        if (id > 0) {
+            requestDefaultExit(id)
         }
     }
 
-    private fun handleExit(
-        id: Int,
-        canSnooze: Boolean,
-        alarm: Alarm?,
-        snoozeInterval: Int,
-        maxSnoozeCount: Int,
-        snoozePrefs: android.content.SharedPreferences,
-        isHandling: Boolean,
-        setHandling: (Boolean) -> Unit,
-        setCanSnooze: (Boolean) -> Unit
-    ) {
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        val id = intent.getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1)
+        if (id <= 0) return super.onKeyDown(keyCode, event)
+
+        return when (keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP,
+            KeyEvent.KEYCODE_VOLUME_DOWN,
+            KeyEvent.KEYCODE_VOLUME_MUTE,
+            KeyEvent.KEYCODE_ASSIST,
+            KeyEvent.KEYCODE_VOICE_ASSIST -> {
+                requestDefaultExit(id)
+                true
+            }
+            else -> super.onKeyDown(keyCode, event)
+        }
+    }
+
+    private fun shouldHandleSystemExitOnStop(): Boolean {
+        return !exitHandled &&
+                !isFinishing &&
+                !isChangingConfigurations
+    }
+
+    private fun requestDefaultExit(id: Int) {
+        val action = if (currentCanSnooze) ExitAction.SNOOZE else ExitAction.DISMISS
+        requestExitAction(id, action)
+    }
+
+    private fun requestExitAction(id: Int, incomingAction: ExitAction) {
         if (exitHandled) return
-        exitHandled = true
 
-        if (canSnooze) {
-            handleSnooze(
-                id = id,
-                alarm = alarm,
-                snoozeInterval = snoozeInterval,
-                maxSnoozeCount = maxSnoozeCount,
-                snoozePrefs = snoozePrefs,
-                setCanSnooze = setCanSnooze,
-                isHandling = isHandling,
-                setHandling = setHandling
-            )
-        } else {
-            handleDismiss(id, snoozePrefs)
+        pendingExitAction = chooseHigherPriorityAction(
+            current = pendingExitAction,
+            incoming = incomingAction
+        )
+
+        if (exitProcessingStarted) return
+        exitProcessingStarted = true
+
+        lifecycleScope.launch {
+            yield()
+
+            when (pendingExitAction ?: ExitAction.DISMISS) {
+                ExitAction.SNOOZE -> handleSnoozeInternal(id)
+                ExitAction.TIMEOUT -> handleTimeoutInternal(id)
+                ExitAction.DISMISS -> handleDismissInternal(id)
+            }
         }
     }
 
-    private fun handleDismiss(id: Int, snoozePrefs: android.content.SharedPreferences) {
+    private fun chooseHigherPriorityAction(
+        current: ExitAction?,
+        incoming: ExitAction
+    ): ExitAction {
+        val currentPriority = priorityOf(current)
+        val incomingPriority = priorityOf(incoming)
+        return if (incomingPriority > currentPriority) incoming else current ?: incoming
+    }
+
+    private fun priorityOf(action: ExitAction?): Int {
+        return when (action) {
+            ExitAction.DISMISS -> 0
+            ExitAction.TIMEOUT -> 1
+            ExitAction.SNOOZE -> 2
+            null -> -1
+        }
+    }
+
+    private fun tryMarkExitHandled(): Boolean {
+        if (exitHandled) return false
+        exitHandled = true
+        return true
+    }
+
+    private fun handleDismissInternal(id: Int) {
+        if (!tryMarkExitHandled()) return
+
         telemetryLogger.log(
             eventName = "AlarmDismissed",
             payload = mapOf("AlarmId" to id.toString())
@@ -288,92 +346,83 @@ class AlarmRingingActivity : ComponentActivity() {
         }
     }
 
-    private fun handleSnooze(
-        id: Int,
-        alarm: Alarm?,
-        snoozeInterval: Int,
-        maxSnoozeCount: Int,
-        snoozePrefs: android.content.SharedPreferences,
-        setCanSnooze: (Boolean) -> Unit,
-        isHandling: Boolean,
-        setHandling: (Boolean) -> Unit
-    ) {
-        if (isHandling) return
-        setHandling(true)
+    private fun handleSnoozeInternal(id: Int) {
+        if (!tryMarkExitHandled()) return
+        if (currentIsHandling) return
+
+        currentIsHandling = true
         try {
             val used = snoozePrefs.getInt(usedKey(id), 0)
-            if (used >= maxSnoozeCount) {
-                setCanSnooze(false)
-                handleDismiss(id, snoozePrefs)
+            if (used >= currentMaxSnoozeCount) {
+                currentCanSnooze = false
+                handleDismissInternal(id)
                 return
             }
 
             val snoozeCount = used + 1
             snoozePrefs.edit { putInt(usedKey(id), snoozeCount) }
-            if (snoozeCount >= maxSnoozeCount) setCanSnooze(false)
+
+            if (snoozeCount >= currentMaxSnoozeCount) {
+                currentCanSnooze = false
+            }
 
             stopPlayer(id)
 
-            val a = alarm ?: run {
+            val alarm = currentAlarm ?: run {
                 finish()
                 return
             }
 
-            val trigger = System.currentTimeMillis() + snoozeInterval * 60_000L
+            val trigger = System.currentTimeMillis() + currentSnoozeInterval * 60_000L
             scheduler.cancel(id)
 
             telemetryLogger.log(
                 eventName = "AlarmSnoozed",
                 payload = mapOf(
                     "AlarmId" to id.toString(),
-                    "Interval" to snoozeInterval.toString(),
+                    "Interval" to currentSnoozeInterval.toString(),
                     "snoozeCount" to snoozeCount.toString()
                 )
             )
 
-            scheduler.schedule(id, trigger, a)
-
+            scheduler.schedule(id, trigger, alarm)
             finish()
         } finally {
-            setHandling(false)
+            currentIsHandling = false
         }
     }
 
-    private fun handleTimeout(id: Int, snoozePrefs: android.content.SharedPreferences) {
-        if (exitHandled) return
-        exitHandled = true
+    private fun handleTimeoutInternal(id: Int) {
+        if (!tryMarkExitHandled()) return
 
-        telemetryLogger.log("AlarmTimedOut", mapOf("AlarmId" to id.toString()))
         stopPlayer(id)
 
         lifecycleScope.launch {
             val alarm = withContext(Dispatchers.IO) { repo.getById(id) }
 
             if (alarm == null) {
-                handleTimeoutDismiss(id, snoozePrefs)
+                handleTimeoutDismissInternal(id)
                 return@launch
             }
 
             val used = snoozePrefs.getInt(usedKey(id), 0)
             val effectiveSnoozeEnabled = alarm.effectiveSnoozeEnabled()
             val effectiveMaxSnoozeCount = alarm.effectiveMaxSnoozeCount()
-
             val canAutoSnooze = effectiveSnoozeEnabled && used < effectiveMaxSnoozeCount
 
             if (canAutoSnooze) {
-                handleAutoSnooze(
+                handleAutoSnoozeInternal(
                     id = id,
                     alarm = alarm,
-                    snoozePrefs = snoozePrefs,
                     used = used
                 )
             } else {
-                handleTimeoutDismiss(id, snoozePrefs)
+                handleTimeoutDismissInternal(id)
             }
         }
     }
 
-    private fun handleTimeoutDismiss(id: Int, snoozePrefs: android.content.SharedPreferences) {
+    private fun handleTimeoutDismissInternal(id: Int) {
         telemetryLogger.log(
             eventName = "AlarmTimedOut",
             payload = mapOf("AlarmId" to id.toString())
@@ -392,10 +441,9 @@ class AlarmRingingActivity : ComponentActivity() {
         }
     }
 
-    private fun handleAutoSnooze(
+    private fun handleAutoSnoozeInternal(
         id: Int,
         alarm: Alarm,
-        snoozePrefs: android.content.SharedPreferences,
         used: Int
     ) {
         val nextCount = used + 1
