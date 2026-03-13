@@ -13,4 +13,7 @@ interface SurveyDao {
 
     @Query("SELECT * FROM survey WHERE dateKey = :dateKey LIMIT 1")
     suspend fun getByDate(dateKey: String): SurveyEntity?
+
+    @Query("DELETE FROM survey WHERE dateKey = :dateKey")
+    suspend fun deleteByDate(dateKey: String)
 }

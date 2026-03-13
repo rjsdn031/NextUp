@@ -20,4 +20,8 @@ class SurveyRepositoryImpl @Inject constructor(
     override suspend fun getByDate(dateKey: String): DailySurvey? {
         return dao.getByDate(dateKey)?.toDomain()
     }
+
+    override suspend fun deleteByDate(dateKey: String) {
+        dao.deleteByDate(dateKey)
+    }
 }

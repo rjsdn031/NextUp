@@ -1,57 +1,48 @@
 package lab.p4c.nextup.core.domain.survey.usecase
 
-import java.time.LocalTime
+import android.util.Log
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import javax.inject.Inject
+import lab.p4c.nextup.core.domain.survey.port.SurveyReminderScheduler
 import lab.p4c.nextup.core.domain.system.TimeProvider
 
 /**
- * 디버그 환경에서 survey reminder 시간을 임시로 구성해
- * [CheckAndRescheduleSurveyReminder]의 실제 정책 흐름을 테스트한다.
+ * Survey reminder 강제 예약 디버그 유즈케이스.
  *
- * 이 유즈케이스는 예약 정책을 직접 구현하지 않는다.
- * 항상 [CheckAndRescheduleSurveyReminder]를 통해 다음 reminder를 계산하고 예약한다.
+ * 운영 정책과 무관하게 현재 시각 기준 N초 뒤에 단일 알림을 예약한다.
  */
 class DebugScheduleSurveyReminder @Inject constructor(
     private val timeProvider: TimeProvider,
-    private val checkAndRescheduleSurveyReminder: CheckAndRescheduleSurveyReminder,
+    private val scheduler: SurveyReminderScheduler,
 ) {
-    suspend fun scheduleInMinutes(
-        offsetsInMinutes: List<Long>,
+
+    fun scheduleForceInSeconds(
+        offsetSeconds: Long = 10,
         zone: ZoneId = ZoneId.systemDefault(),
-    ): List<LocalTime> {
-        val reminderTimes = buildReminderTimes(offsetsInMinutes, zone)
+    ): ZonedDateTime {
 
-        checkAndRescheduleSurveyReminder(
-            reminderTimes = reminderTimes,
-            zone = zone,
-        )
+        val now = timeProvider.now().atZone(zone)
 
-        return reminderTimes
-    }
-
-    suspend fun scheduleInMinute(
-        offsetInMinutes: Long = 1,
-        zone: ZoneId = ZoneId.systemDefault(),
-    ): List<LocalTime> {
-        return scheduleInMinutes(
-            offsetsInMinutes = listOf(offsetInMinutes),
-            zone = zone,
-        )
-    }
-
-    private fun buildReminderTimes(
-        offsetsInMinutes: List<Long>,
-        zone: ZoneId,
-    ): List<LocalTime> {
-        val now = timeProvider.now()
-            .atZone(zone)
-            .withSecond(0)
+        val scheduledAt = now
+            .plusSeconds(offsetSeconds)
             .withNano(0)
 
-        return offsetsInMinutes
-            .distinct()
-            .sorted()
-            .map { offset -> now.plusMinutes(offset).toLocalTime() }
+        Log.d(TAG, "Debug schedule requested")
+        Log.d(TAG, "now=$now")
+        Log.d(TAG, "offsetSeconds=$offsetSeconds")
+        Log.d(TAG, "scheduledAt=$scheduledAt")
+
+        scheduler.cancel()
+        Log.d(TAG, "Previous reminder cancelled")
+
+        scheduler.scheduleAt(scheduledAt)
+        Log.d(TAG, "scheduleAt() called")
+
+        return scheduledAt
+    }
+
+    companion object {
+        private const val TAG = "SurveyReminderDebug"
     }
 }

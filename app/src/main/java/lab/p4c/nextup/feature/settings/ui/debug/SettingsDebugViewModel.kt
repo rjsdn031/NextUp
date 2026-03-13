@@ -9,6 +9,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import lab.p4c.nextup.core.domain.survey.usecase.DebugClearTodaySurvey
 import lab.p4c.nextup.core.domain.survey.usecase.DebugScheduleSurveyReminder
 import lab.p4c.nextup.feature.uploader.infra.scheduler.UploadAlarmScheduler
 import java.time.ZoneId
@@ -16,23 +17,31 @@ import java.time.ZoneId
 @HiltViewModel
 class SettingsDebugViewModel @Inject constructor(
     private val debugScheduleSurveyReminder: DebugScheduleSurveyReminder,
+    private val debugClearTodaySurvey: DebugClearTodaySurvey,
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<SettingsDebugUiEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
 
-    fun scheduleSurveyReminderInOneMinute() = viewModelScope.launch {
+    fun clearTodaySurvey() = viewModelScope.launch {
         val zone = ZoneId.systemDefault()
-        val reminderTimes = debugScheduleSurveyReminder.scheduleInMinute(
-            offsetInMinutes = 1,
+        val clearedDateKey = debugClearTodaySurvey(zone)
+
+        _events.tryEmit(
+            SettingsDebugUiEvent.Toast("오늘 설문 데이터를 삭제했습니다: $clearedDateKey")
+        )
+    }
+
+    fun scheduleSurveyReminderInTenSec() = viewModelScope.launch {
+        val zone = ZoneId.systemDefault()
+
+        val scheduledAt = debugScheduleSurveyReminder.scheduleForceInSeconds(
+            offsetSeconds = 10,
             zone = zone,
         )
 
-        val message = reminderTimes
-            .joinToString(", ") { it.toString() }
-
         _events.tryEmit(
-            SettingsDebugUiEvent.Toast("테스트 알림을 예약했습니다: $message")
+            SettingsDebugUiEvent.Toast("테스트 알림 예약: $scheduledAt")
         )
     }
 

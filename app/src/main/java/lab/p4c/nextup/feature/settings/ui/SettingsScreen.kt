@@ -230,7 +230,8 @@ fun AlarmSettingsScreen(navController: NavController) {
             if (isAdminMode) {
                 settingsDebugItems(
                     onNavigateUsage = { navController.navigate("usage") },
-                    onTestSurveyReminder = { debugVm.scheduleSurveyReminderInOneMinute() },
+                    onClearTodaySurvey = { debugVm.clearTodaySurvey() },
+                    onTestSurveyReminder = { debugVm.scheduleSurveyReminderInTenSec() },
                     onTestUploader = { debugVm.triggerUploaderInSeconds(ctx, 10) }
                 )
             }
@@ -257,6 +258,7 @@ fun AlarmSettingsScreen(navController: NavController) {
 
 private fun LazyListScope.settingsDebugItems(
     onNavigateUsage: () -> Unit,
+    onClearTodaySurvey: () -> Unit,
     onTestSurveyReminder: () -> Unit,
     onTestUploader: () -> Unit,
 ) {
@@ -305,8 +307,20 @@ private fun LazyListScope.settingsDebugItems(
     item {
         Card(modifier = Modifier.fillMaxWidth()) {
             ListItem(
-                headlineContent = { Text("서베이 리마인더 테스트") },
-                supportingContent = { Text("1분 후 설문 리마인더 예약") },
+                headlineContent = { Text("오늘 설문 데이터 삭제") },
+                supportingContent = { Text("Room에 저장된 오늘 설문 데이터를 제거") },
+                trailingContent = {
+                    ThrottleButton(onClick = onClearTodaySurvey) { Text("삭제") }
+                }
+            )
+        }
+    }
+
+    item {
+        Card(modifier = Modifier.fillMaxWidth()) {
+            ListItem(
+                headlineContent = { Text("설문 리마인더 테스트") },
+                supportingContent = { Text("10초 뒤 설문 리마인더 예약") },
                 trailingContent = {
                     ThrottleButton(onClick = onTestSurveyReminder) { Text("예약") }
                 }
