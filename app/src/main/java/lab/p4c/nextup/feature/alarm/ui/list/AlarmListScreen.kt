@@ -80,7 +80,7 @@ fun AlarmListScreen(
 
             AlarmHeader(now = now, nextAlarmMessage = nextMessage)
             LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 modifier = Modifier
                     .weight(1f)
