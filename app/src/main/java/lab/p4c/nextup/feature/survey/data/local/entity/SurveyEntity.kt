@@ -15,7 +15,7 @@ data class SurveyEntity(
     val sleepQualityScore: Int,
 
     val productivityScore: Int,
-    val productivityReason: String,
+//    val productivityReason: String,
     val goalAchievement: Int,
     val nextGoal: String
 )

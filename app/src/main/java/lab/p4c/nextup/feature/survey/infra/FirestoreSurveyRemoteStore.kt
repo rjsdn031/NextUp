@@ -29,7 +29,7 @@ class FirestoreSurveyRemoteStore @Inject constructor(
             "sleepEndTime" to survey.sleepEndTime,
             "sleepQualityScore" to survey.sleepQualityScore,
             "productivityScore" to survey.productivityScore,
-            "productivityReason" to survey.productivityReason,
+//            "productivityReason" to survey.productivityReason,
             "goalAchievement" to survey.goalAchievement,
             "nextGoal" to survey.nextGoal,
             "updatedAtMs" to System.currentTimeMillis()

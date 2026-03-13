@@ -21,7 +21,7 @@ enum class SurveyStep {
     SleepTime,
     SleepQuality,
     ProductivityScore,
-    ProductivityReason,
+//    ProductivityReason,
     GoalAchievement,
     NextGoal
 }

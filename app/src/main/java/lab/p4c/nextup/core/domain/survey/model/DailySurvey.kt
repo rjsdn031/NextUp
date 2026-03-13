@@ -11,7 +11,7 @@ data class DailySurvey(
     val sleepQualityScore: Int, // 1~5
 
     val productivityScore: Int,     // 1~5
-    val productivityReason: String,  // 서술형
+//    val productivityReason: String,  // 서술형
     val goalAchievement: Int,       // 1~5
     val nextGoal: String             // 서술형
 )

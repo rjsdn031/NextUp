@@ -38,8 +38,8 @@ class SurveyUploadFileBuilder @Inject constructor(
             append("\"sleepQualityScore\":").append(e.sleepQualityScore).append(',')
 
             append("\"productivityScore\":").append(e.productivityScore).append(',')
-            append("\"productivityReason\":\"")
-                .append(escape(e.productivityReason)).append("\",")
+//            append("\"productivityReason\":\"")
+//                .append(escape(e.productivityReason)).append("\",")
 
             append("\"goalAchievement\":").append(e.goalAchievement).append(',')
             append("\"nextGoal\":\"").append(escape(e.nextGoal)).append('"')

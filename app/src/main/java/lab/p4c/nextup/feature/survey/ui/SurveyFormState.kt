@@ -9,7 +9,6 @@ import lab.p4c.nextup.core.domain.survey.model.DailySurvey
  * - Time fields use the "HH:mm" 24-hour format.
  * - Score fields are stored as 0..4 in the UI and are converted to 1..5
  *   when mapped into the domain model ([DailySurvey]).
- * - [SurveyFormState.productivityReason] is validated with a minimum length requirement.
  * - [SurveyFormState.nextGoal] is validated only when the step is included in the flow.
  */
 data class SurveyFormState(
@@ -18,7 +17,7 @@ data class SurveyFormState(
     val sleepEndTime: String = "",   // "HH:mm"
     val sleepQualityScore: Int? = null, // 0..4
     val productivityScore: Int? = null, // 0..4
-    val productivityReason: String = "",
+//    val productivityReason: String = "",
     val goalAchievement: Int? = null,   // 0..4
     val nextGoal: String = ""
 )
@@ -54,8 +53,8 @@ sealed interface SurveyValidationError {
     /** Missing productivity score selection. */
     data object MissingProductivityScore : SurveyValidationError
 
-    /** Missing free-text reason for the productivity score. */
-    data object MissingReason : SurveyValidationError
+//    /** Missing free-text reason for the productivity score. */
+//    data object MissingReason : SurveyValidationError
 
     /** Missing goal achievement score selection. */
     data object MissingGoalAchievement : SurveyValidationError
@@ -69,8 +68,8 @@ sealed interface SurveyValidationError {
     /** Goal achievement score is outside the allowed UI range (0..4). */
     data object InvalidGoalAchievement : SurveyValidationError
 
-    /** Productivity reason does not meet the minimum length requirement. */
-    data object ReasonTooShort : SurveyValidationError
+//    /** Productivity reason does not meet the minimum length requirement. */
+//    data object ReasonTooShort : SurveyValidationError
 }
 
 /**
@@ -110,7 +109,6 @@ internal fun String.isTimeHHmm(): Boolean {
  *   and at least 10 characters.
  * - Sleep times must be present and match "HH:mm".
  * - Score selections must be present and within 0..4.
- * - [SurveyFormState.productivityReason] must be present and at least 10 characters.
  * - If [needsNextGoal] is true, [SurveyFormState.nextGoal] must be present.
  *
  * @param needsMissedReason Whether the "missed yesterday reason" question is part of the flow.
@@ -145,14 +143,14 @@ fun SurveyFormState.validate(needsMissedReason: Boolean, needsNextGoal: Boolean)
         else -> if (!s.isScoreValid()) add(SurveyValidationError.InvalidProductivityScore)
     }
 
-    // 주관식 이유
-    when {
-        productivityReason.isBlank() ->
-            add(SurveyValidationError.MissingReason)
-
-        productivityReason.trim().length < 10 ->
-            add(SurveyValidationError.ReasonTooShort)
-    }
+//    // 주관식 이유
+//    when {
+//        productivityReason.isBlank() ->
+//            add(SurveyValidationError.MissingReason)
+//
+//        productivityReason.trim().length < 10 ->
+//            add(SurveyValidationError.ReasonTooShort)
+//    }
 
     // 목표 달성 점수
     when (val g = goalAchievement) {
@@ -196,7 +194,7 @@ fun SurveyFormState.toDomain(
             sleepEndTime = sleepEndTime.trim(),
             sleepQualityScore = sleepQualityScore!! + 1,   // 1..5
             productivityScore = productivityScore!! + 1,   // 1..5
-            productivityReason = productivityReason.trim(),
+//            productivityReason = productivityReason.trim(),
             goalAchievement = goalAchievement!! + 1,        // 1..5
             nextGoal = if (needsNextGoal) nextGoal.trim() else ""
         )

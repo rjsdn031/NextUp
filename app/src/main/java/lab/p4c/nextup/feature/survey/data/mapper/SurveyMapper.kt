@@ -10,7 +10,7 @@ fun DailySurvey.toEntity() = SurveyEntity(
     sleepEndTime = sleepEndTime,
     sleepQualityScore = sleepQualityScore,
     productivityScore = productivityScore,
-    productivityReason = productivityReason,
+//    productivityReason = productivityReason,
     goalAchievement = goalAchievement,
     nextGoal = nextGoal
 )
@@ -22,7 +22,7 @@ fun SurveyEntity.toDomain() = DailySurvey(
     sleepEndTime = sleepEndTime,
     sleepQualityScore = sleepQualityScore,
     productivityScore = productivityScore,
-    productivityReason = productivityReason,
+//    productivityReason = productivityReason,
     goalAchievement = goalAchievement,
     nextGoal = nextGoal
 )

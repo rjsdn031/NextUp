@@ -55,7 +55,7 @@ class SurveyScreenViewModel @Inject constructor(
         SurveyStep.SleepTime,
         SurveyStep.SleepQuality,
         SurveyStep.ProductivityScore,
-        SurveyStep.ProductivityReason,
+//        SurveyStep.ProductivityReason,
         SurveyStep.GoalAchievement,
     )
 
@@ -135,9 +135,9 @@ class SurveyScreenViewModel @Inject constructor(
         form = form.copy(productivityScore = v)
     }
 
-    fun onReason(t: String) {
-        form = form.copy(productivityReason = t)
-    }
+//    fun onReason(t: String) {
+//        form = form.copy(productivityReason = t)
+//    }
 
     fun onGoalAchievement(v: Int) {
         form = form.copy(goalAchievement = v)
@@ -223,8 +223,8 @@ class SurveyScreenViewModel @Inject constructor(
             SurveyStep.ProductivityScore ->
                 form.productivityScore != null
 
-            SurveyStep.ProductivityReason ->
-                form.productivityReason.trim().length >= 10
+//            SurveyStep.ProductivityReason ->
+//                form.productivityReason.trim().length >= 10
 
             SurveyStep.GoalAchievement ->
                 form.goalAchievement != null

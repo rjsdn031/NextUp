@@ -198,15 +198,15 @@ private fun SurveyStepContent(
                 )
             }
 
-            SurveyStep.ProductivityReason -> {
-                QuestionCardText(
-                    question = "그렇게 생각한 이유를 적어주세요.",
-                    text = form.productivityReason,
-                    placeholder = "10자 이상 적어주세요",
-                    enabled = true,
-                    onChange = vm::onReason
-                )
-            }
+//            SurveyStep.ProductivityReason -> {
+//                QuestionCardText(
+//                    question = "그렇게 생각한 이유를 적어주세요.",
+//                    text = form.productivityReason,
+//                    placeholder = "10자 이상 적어주세요",
+//                    enabled = true,
+//                    onChange = vm::onReason
+//                )
+//            }
 
             SurveyStep.GoalAchievement -> {
                 QuestionCard(
