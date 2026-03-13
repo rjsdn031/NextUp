@@ -12,6 +12,7 @@ import lab.p4c.nextup.core.domain.auth.usecase.EnsureAnonymousSignedIn
 import lab.p4c.nextup.core.domain.experiment.model.ExperimentInfo
 import lab.p4c.nextup.core.domain.experiment.port.ExperimentInfoRepository
 import lab.p4c.nextup.core.domain.experiment.usecase.UpsertExperimentInfoRemote
+import lab.p4c.nextup.core.domain.telemetry.port.UserIdProvider
 
 data class ExperimentInfoUiState(
     val isSaving: Boolean = false,
@@ -22,7 +23,8 @@ data class ExperimentInfoUiState(
 class ExperimentInfoViewModel @Inject constructor(
     private val repo: ExperimentInfoRepository,
     private val ensureAnonymousSignedIn: EnsureAnonymousSignedIn,
-    private val upsertExperimentInfoRemote: UpsertExperimentInfoRemote
+    private val upsertExperimentInfoRemote: UpsertExperimentInfoRemote,
+    private val userIdProvider: UserIdProvider
 ) : ViewModel() {
 
     private val _info = MutableStateFlow<ExperimentInfo?>(null)
@@ -31,9 +33,13 @@ class ExperimentInfoViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ExperimentInfoUiState())
     val uiState: StateFlow<ExperimentInfoUiState> = _uiState
 
+    private val _userId = MutableStateFlow<String?>(null)
+    val userId: StateFlow<String?> = _userId
+
     init {
         viewModelScope.launch {
             _info.value = repo.get()
+            _userId.value = userIdProvider.getUserId()
         }
     }
 
@@ -55,10 +61,12 @@ class ExperimentInfoViewModel @Inject constructor(
                 val info = ExperimentInfo(trimmedName, parsedAge, gender)
 
                 repo.save(info)
-                
+
                 val uid = ensureAnonymousSignedIn()
                 upsertExperimentInfoRemote(uid, info)
+
                 _info.value = info
+                _userId.value = uid
             }.onFailure { e ->
                 _uiState.update { it.copy(errorMessage = e.message ?: "저장에 실패했어요.") }
             }

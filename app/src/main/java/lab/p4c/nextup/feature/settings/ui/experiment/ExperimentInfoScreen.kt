@@ -38,14 +38,12 @@ fun ExperimentInfoScreen(
 ) {
     val info by vm.info.collectAsState()
     val uiState by vm.uiState.collectAsState()
+    val userId by vm.userId.collectAsState()
 
     var name by remember { mutableStateOf("") }
     var age by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
-
-    // 저장 후에는 기본적으로 읽기 전용, "수정" 버튼을 눌렀을 때만 편집 모드
     var isEditing by remember { mutableStateOf(true) }
-    var hasInitialized by remember { mutableStateOf(false) }
 
     val hasSaved = info != null
     val isBusy = uiState.isSaving
@@ -54,18 +52,13 @@ fun ExperimentInfoScreen(
             age.toIntOrNull() != null &&
             gender.isNotBlank()
 
-    // 최초 1회 + 저장 완료 후(새 info 반영)에는 폼을 저장값으로 동기화하고 읽기 전용으로 전환
     LaunchedEffect(info) {
-        if (!hasInitialized) {
-            hasInitialized = true
-        }
         info?.let {
             name = it.name
             age = it.age.toString()
             gender = it.gender
             isEditing = false
         } ?: run {
-            // 아직 저장된 값이 없으면 입력 가능
             isEditing = true
         }
     }
@@ -90,7 +83,10 @@ fun ExperimentInfoScreen(
                 title = { Text("실험 정보 입력") },
                 navigationIcon = {
                     ThrottleIconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = null
+                        )
                     }
                 }
             )
@@ -103,6 +99,24 @@ fun ExperimentInfoScreen(
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            userId?.let { id ->
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "참가자 ID",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "ID: $id",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
