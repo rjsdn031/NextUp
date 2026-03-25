@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -38,6 +39,7 @@ import lab.p4c.nextup.platform.permission.UsageAccessPermission
 import lab.p4c.nextup.platform.telemetry.permission.PermissionTelemetryEntryPoint
 
 private const val ADMIN_MODE_PASSWORD = "wakeupnextup"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmSettingsScreen(navController: NavController) {
@@ -216,6 +218,12 @@ fun AlarmSettingsScreen(navController: NavController) {
             }
 
             item {
+                HorizontalDivider(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = { Text("차단할 앱 선택") },
@@ -278,17 +286,19 @@ private fun LazyListScope.settingsDebugItems(
             shape = MaterialTheme.shapes.medium,
         ) {
             ListItem(
-                headlineContent = { Text("오프라인 음성(한국어)") },
+                headlineContent = { Text("음성 인식 설정") },
                 supportingContent = {
                     Text(
-                        text = "오프라인 한국어 데이터 설치/관리",
+                        text = "음성 인식 및 오프라인 언어 설정을 확인합니다",
                         color = x.textSecondary
                     )
                 },
                 trailingContent = {
                     ThrottleButton(
-                        onClick = { SpeechSettingsIntents.openOfflineSpeechSettings(ctx) }
-                    ) { Text("설정") }
+                        onClick = { SpeechSettingsIntents.openSpeechRecognitionSettings(ctx) }
+                    ) {
+                        Text("열기")
+                    }
                 }
             )
         }
@@ -340,6 +350,7 @@ private fun LazyListScope.settingsDebugItems(
         }
     }
 }
+
 @Composable
 private fun PermissionCard(
     title: String,

@@ -1,54 +1,68 @@
-// lab.p4c.nextup.platform.permission.SpeechSettingsIntents.kt
 package lab.p4c.nextup.platform.permission
 
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.provider.Settings
 import androidx.core.net.toUri
 
+/**
+ * Opens speech-related system settings with safe fallbacks.
+ *
+ * This helper does not guarantee navigation to a dedicated offline speech pack screen,
+ * because Android does not provide a stable public intent for that destination across devices.
+ * Instead, it routes the user to the closest available speech/input settings screen.
+ */
 object SpeechSettingsIntents {
 
-    /** 오프라인 음성 인식(한국어) 설치/관리 화면으로 최대한 가까운 경로로 보낸다. */
-    fun openOfflineSpeechSettings(context: Context) {
-        // 1) 음성 입력 설정 (가장 이상적)
-        if (tryStart(context, Intent(Settings.ACTION_VOICE_INPUT_SETTINGS))) return
+    private const val GOOGLE_APP_PACKAGE = "com.google.android.googlequicksearchbox"
+    private const val GOOGLE_SPEECH_SERVICES_PACKAGE = "com.google.android.tts"
 
-        // 2) 언어 및 입력(IME) 설정로 폴백
-        if (tryStart(context, Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))) return
-
-        // 3) Google 앱 앱정보 화면 (여기서 "오프라인 음성 인식" 진입 가능)
-        if (tryStart(
-                context,
-                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = "package:com.google.android.googlequicksearchbox".toUri()
-                }
-            )
-        ) return
-
-        // 4) 설정 메인으로 최종 폴백
-        tryStart(context, Intent(Settings.ACTION_SETTINGS))
-    }
-
-    /** Google 앱(인식 엔진) 설정/업데이트가 필요할 때 */
-    fun openGoogleAppDetails(context: Context) {
-        tryStart(
-            context,
-            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = "package:com.google.android.googlequicksearchbox".toUri()
-            }
+    /**
+     * Opens the closest available speech recognition settings screen.
+     *
+     * Fallback order:
+     * 1. Voice input settings
+     * 2. Input method settings
+     * 3. Speech Services by Google app details
+     * 4. Google app details
+     * 5. General settings
+     *
+     * @param context Context used to launch the settings activity.
+     */
+    fun openSpeechRecognitionSettings(context: Context) {
+        val candidates = listOf(
+//            Intent(Settings.ACTION_VOICE_INPUT_SETTINGS),
+            Intent(Settings.ACTION_INPUT_METHOD_SETTINGS),
+            buildAppDetailsIntent(GOOGLE_SPEECH_SERVICES_PACKAGE),
+            buildAppDetailsIntent(GOOGLE_APP_PACKAGE),
+            Intent(Settings.ACTION_SETTINGS)
         )
+
+        candidates.firstOrNull { canHandle(context, it) }
+            ?.let { start(context, it) }
     }
 
-    private fun tryStart(context: Context, intent: Intent): Boolean {
-        return try {
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
-            true
+    private fun buildAppDetailsIntent(packageName: String): Intent =
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = "package:$packageName".toUri()
+        }
+
+    private fun canHandle(context: Context, intent: Intent): Boolean {
+        val packageManager: PackageManager = context.packageManager
+        return intent.resolveActivity(packageManager) != null
+    }
+
+    private fun start(context: Context, intent: Intent) {
+        try {
+            context.startActivity(
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
         } catch (_: ActivityNotFoundException) {
-            false
-        } catch (_: Throwable) {
-            false
+            // No-op.
+        } catch (_: SecurityException) {
+            // No-op.
         }
     }
 }
