@@ -27,9 +27,10 @@ fun BlockingOverlayView(
     onBind: (
         setTarget: (String) -> Unit,
         setPhase: (UnlockPhase) -> Unit,
-        setPartial: (String, Float) -> Unit
+        setPartial: (String, Float) -> Unit,
+        setErrno: (Int?) -> Unit,
     ) -> Unit,
-    threshold: Float = 0.90f
+    threshold: Float = 0.90f,
 ) {
     val c = MaterialTheme.colorScheme
     val x = NextUpThemeTokens.colors
@@ -40,14 +41,12 @@ fun BlockingOverlayView(
     var partial by remember { mutableStateOf("") }
     var similarity by remember { mutableFloatStateOf(0f) }
     var isListening by remember { mutableStateOf(false) }
+    var errno by remember { mutableStateOf<Int?>(null) }
 
     val eligible = phase == UnlockPhase.Matched
+
     BackHandler(enabled = true) {
-        if (eligible) {
-            onConfirm()
-        } else {
-            // Blocking 상태에서는 뒤로가기 무시
-        }
+        if (eligible) onConfirm()
     }
 
     LaunchedEffect(Unit) {
@@ -55,22 +54,21 @@ fun BlockingOverlayView(
             { t -> target = t },
             { p ->
                 phase = p
+                if (p == UnlockPhase.Listening || p == UnlockPhase.Idle || p == UnlockPhase.Matched) {
+                    errno = null
+                }
 
                 isListening = when (p) {
                     UnlockPhase.Listening -> true
-                    UnlockPhase.Processing -> false
-                    UnlockPhase.Matched -> false
-                    UnlockPhase.Mismatch -> false
-                    UnlockPhase.PermissionErr -> false
-                    UnlockPhase.Timeout -> false
-                    UnlockPhase.Busy -> false
-                    UnlockPhase.ClientErr -> false
-                    UnlockPhase.Idle -> false
+                    else -> false
                 }
             },
             { hyp, sim ->
                 partial = hyp
                 similarity = sim.coerceIn(0f, 1f)
+            },
+            { error ->
+                errno = error
             }
         )
     }
@@ -79,10 +77,9 @@ fun BlockingOverlayView(
         modifier = Modifier
             .fillMaxSize()
             .background(c.scrim.copy(alpha = 0.75f))
-            .pointerInput(Unit) { /* 터치 차단 */ }
+            .pointerInput(Unit) { }
             .padding(horizontal = 24.dp)
     ) {
-
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -98,6 +95,7 @@ fun BlockingOverlayView(
                 color = c.onBackground,
                 textAlign = TextAlign.Center
             )
+
             Spacer(Modifier.height(16.dp))
 
             OverlayMatchedText(
@@ -109,15 +107,17 @@ fun BlockingOverlayView(
 
             Spacer(Modifier.height(16.dp))
 
-            OverlayPhaseText(phase = phase)
+            OverlayPhaseText(
+                phase = phase,
+                errno = errno,
+            )
         }
 
         OverlayActionButton(
             isEligible = eligible,
             isListening = isListening,
             onToggleListening = {
-                if (isListening) onStopListening()
-                else onStartListening()
+                if (isListening) onStopListening() else onStartListening()
             },
             onConfirm = onConfirm,
             modifier = Modifier

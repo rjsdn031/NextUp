@@ -8,9 +8,12 @@ import lab.p4c.nextup.feature.overlay.ui.UnlockPhase
 import lab.p4c.nextup.feature.overlay.ui.util.phaseText
 
 @Composable
-fun OverlayPhaseText(phase: UnlockPhase) {
+fun OverlayPhaseText(
+    phase: UnlockPhase,
+    errno: Int? = null,
+) {
     Text(
-        text = phaseText(phase),
+        text = phaseText(phase, errno),
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center

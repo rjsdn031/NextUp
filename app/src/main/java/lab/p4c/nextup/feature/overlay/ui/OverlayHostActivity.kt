@@ -162,9 +162,13 @@ class OverlayHostActivity : ComponentActivity() {
                         setResult(RESULT_OK)
                         finish()
                     },
-                    onBind = { setTarget, setPhase, setPartial ->
+                    onBind = { setTarget, setPhase, setPartial, setErrno ->
                         BlockingOverlayController.bind(
-                            setTarget, setPhase, setPartial, phrase
+                            setTarget = setTarget,
+                            setPhase = setPhase,
+                            setPartial = setPartial,
+                            setErrno = setErrno,
+                            targetPhrase = phrase
                         )
                     }
                 )

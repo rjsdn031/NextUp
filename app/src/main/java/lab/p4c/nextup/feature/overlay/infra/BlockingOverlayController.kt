@@ -11,18 +11,22 @@ object BlockingOverlayController {
     private var setTarget: ((String) -> Unit)? = null
     private var setPhase: ((UnlockPhase) -> Unit)? = null
     private var setPartial: ((String, Float) -> Unit)? = null
+    private var setErrno: ((Int?) -> Unit)? = null
 
     fun bind(
         setTarget: (String) -> Unit,
         setPhase: (UnlockPhase) -> Unit,
         setPartial: (String, Float) -> Unit,
-        targetPhrase: String
+        setErrno: (Int?) -> Unit,
+        targetPhrase: String,
     ) {
         this.setTarget = setTarget
         this.setPhase = setPhase
         this.setPartial = setPartial
+        this.setErrno = setErrno
 
         setTarget(targetPhrase)
+        setErrno(null)
         setPhase(UnlockPhase.Idle)
     }
 
@@ -30,12 +34,13 @@ object BlockingOverlayController {
         activity: Activity,
         targetPhrase: String,
         onUnlocked: () -> Unit,
-        onFailed: (UnlockPhase) -> Unit
+        onFailed: (UnlockPhase) -> Unit,
     ) {
-        stopSession()
+        stopSession(clearBindings = false)
+        setErrno?.invoke(null)
 
         stt = SpeechUnlockSession(
-            context = activity,
+            context = activity.applicationContext,
             targetPhrase = targetPhrase,
             onPhase = { phase ->
                 setPhase?.invoke(phase)
@@ -45,18 +50,28 @@ object BlockingOverlayController {
                 setPartial?.invoke(hyp, sim)
             },
             onSuccess = {
+                setErrno?.invoke(null)
                 setPhase?.invoke(UnlockPhase.Matched)
                 onUnlocked()
             },
             onErrorUi = { code ->
                 Log.e("STT", "SpeechRecognizer error: $code")
+                setErrno?.invoke(code)
             }
         ).also { it.start() }
     }
 
-    fun stopSession() {
+    fun stopSession(clearBindings: Boolean = true) {
         stt?.stop()
         stt = null
+        setErrno?.invoke(null)
+
+        if (clearBindings) {
+            setTarget = null
+            setPhase = null
+            setPartial = null
+            setErrno = null
+        }
     }
 }
 

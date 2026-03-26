@@ -15,13 +15,14 @@ import kotlin.math.max
 import kotlin.math.min
 
 class SpeechUnlockSession(
-    private val context: Context,
+    context: Context,
     private val targetPhrase: String,
     private val onPhase: (UnlockPhase) -> Unit,
     private val onPartial: (String, Float) -> Unit,
     private val onSuccess: () -> Unit,
     private val onErrorUi: (Int) -> Unit
 ) {
+    private val appContext = context.applicationContext
     private val main = Handler(Looper.getMainLooper())
 
     private var recognizer: SpeechRecognizer? = null
@@ -33,6 +34,7 @@ class SpeechUnlockSession(
         if (isDestroyed || isListening || locked) return
         ensureRecognizer()
         if (recognizer == null) {
+            onErrorUi(-1)
             onPhase(UnlockPhase.ClientErr)
             return
         }
@@ -55,7 +57,7 @@ class SpeechUnlockSession(
     private fun ensureRecognizer() {
         if (recognizer == null) {
             try {
-                recognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
+                recognizer = SpeechRecognizer.createSpeechRecognizer(appContext).apply {
                     setRecognitionListener(listener)
                 }
             } catch (e: Exception) {
@@ -156,15 +158,7 @@ class SpeechUnlockSession(
             locked = false
 
             onErrorUi(error)
-
-            val phase = when (error) {
-                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> UnlockPhase.PermissionErr
-                SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> UnlockPhase.Busy
-                SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> UnlockPhase.Timeout
-                SpeechRecognizer.ERROR_NO_MATCH -> UnlockPhase.Mismatch
-                else -> UnlockPhase.ClientErr
-            }
-            onPhase(phase)
+            onPhase(UnlockPhase.ClientErr)
 
             stopAndDestroy()
         }
