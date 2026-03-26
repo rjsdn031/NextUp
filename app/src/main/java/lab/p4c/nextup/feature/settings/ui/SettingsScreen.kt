@@ -43,6 +43,10 @@ private const val ADMIN_MODE_PASSWORD = "wakeupnextup"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmSettingsScreen(navController: NavController) {
+    val settingsVm: SettingsViewModel = hiltViewModel()
+    val settingsUi by settingsVm.ui.collectAsState()
+    val debugVm: SettingsDebugViewModel = hiltViewModel()
+
     val ctx = LocalContext.current
 
     var exactGranted by remember { mutableStateOf(ExactAlarmPermission.canSchedule(ctx)) }
@@ -79,13 +83,14 @@ fun AlarmSettingsScreen(navController: NavController) {
                 micGranted = MicrophonePermission.isGranted(ctx)
 
                 tracker.checkAndLog(source = "APP_FLOW")
+                settingsVm.refreshExperimentInfo()
             }
         }
         lifecycleOwner.lifecycle.addObserver(obs)
         onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
     }
 
-    val debugVm: SettingsDebugViewModel = hiltViewModel()
+
 
     LaunchedEffect(Unit) {
         debugVm.events.collect { e ->
@@ -131,9 +136,23 @@ fun AlarmSettingsScreen(navController: NavController) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = { Text("실험 정보 입력") },
-                        supportingContent = { Text("실험자 이름, 나이, 성별을 입력하세요") },
-                        modifier = Modifier.clickableThrottle {
-                            navController.navigate("experimentInfo")
+                        supportingContent = {
+                            Text(settingsUi.experimentInfoEntry.supportingText)
+                        },
+                        trailingContent = {
+                            if (settingsUi.experimentInfoEntry.isCompleted) {
+                                ThrottleOutlinedButton(
+                                    onClick = { navController.navigate("experimentInfo") }
+                                ) {
+                                    Text(settingsUi.experimentInfoEntry.buttonText)
+                                }
+                            } else {
+                                ThrottleButton(
+                                    onClick = { navController.navigate("experimentInfo") }
+                                ) {
+                                    Text(settingsUi.experimentInfoEntry.buttonText)
+                                }
+                            }
                         }
                     )
                 }
@@ -220,16 +239,20 @@ fun AlarmSettingsScreen(navController: NavController) {
             item {
                 HorizontalDivider(
                     modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 )
             }
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = { Text("차단할 앱 선택") },
-                        supportingContent = { Text("오버레이로 차단할 앱을 선택하세요") },
-                        modifier = Modifier.clickableThrottle {
-                            navController.navigate("blockTargets")
+                        supportingContent = { Text("알람 해제 후 오버레이로 차단할 앱을 선택하세요") },
+                        trailingContent = {
+                            ThrottleButton(
+                                onClick = { navController.navigate("blockTargets") }
+                            ) {
+                                Text("설정")
+                            }
                         }
                     )
                 }
