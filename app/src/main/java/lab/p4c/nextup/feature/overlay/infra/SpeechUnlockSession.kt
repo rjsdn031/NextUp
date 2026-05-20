@@ -9,6 +9,9 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import lab.p4c.nextup.feature.overlay.ui.UnlockPhase
 import lab.p4c.nextup.feature.overlay.ui.util.getSimilarity
 import kotlin.math.max
@@ -32,9 +35,17 @@ class SpeechUnlockSession(
 
     fun start() {
         if (isDestroyed || isListening || locked) return
+
+        if (!hasRecordAudioPermission()) {
+            Log.e("SpeechUnlock", "RECORD_AUDIO permission is not granted")
+            onErrorUi(SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS)
+            onPhase(UnlockPhase.PermissionErr)
+            return
+        }
+
         ensureRecognizer()
         if (recognizer == null) {
-            onErrorUi(-1)
+            onErrorUi(SpeechRecognizer.ERROR_CLIENT)
             onPhase(UnlockPhase.ClientErr)
             return
         }
@@ -43,10 +54,34 @@ class SpeechUnlockSession(
         onPhase(UnlockPhase.Listening)
 
         main.postDelayed({
-            recognizer?.startListening(koreanIntent())
+            if (isDestroyed || locked) return@postDelayed
+
+            if (!hasRecordAudioPermission()) {
+                Log.e("SpeechUnlock", "RECORD_AUDIO permission was revoked before startListening")
+                isListening = false
+                onErrorUi(SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS)
+                onPhase(UnlockPhase.PermissionErr)
+                stopAndDestroy()
+                return@postDelayed
+            }
+
+            try {
+                recognizer?.startListening(koreanIntent())
+            } catch (e: SecurityException) {
+                Log.e("SpeechUnlock", "startListening security exception: ${e.message}", e)
+                isListening = false
+                onErrorUi(SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS)
+                onPhase(UnlockPhase.PermissionErr)
+                stopAndDestroy()
+            } catch (e: Exception) {
+                Log.e("SpeechUnlock", "startListening fail: ${e.message}", e)
+                isListening = false
+                onErrorUi(SpeechRecognizer.ERROR_CLIENT)
+                onPhase(UnlockPhase.ClientErr)
+                stopAndDestroy()
+            }
         }, 150)
     }
-
     fun stop() {
         isDestroyed = true
         isListening = false
@@ -76,6 +111,12 @@ class SpeechUnlockSession(
         }
     }
 
+    private fun hasRecordAudioPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            appContext,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+    }
     private fun koreanIntent() = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
         putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR")
         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -158,7 +199,13 @@ class SpeechUnlockSession(
             locked = false
 
             onErrorUi(error)
-            onPhase(UnlockPhase.ClientErr)
+
+            val phase = when (error) {
+                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> UnlockPhase.PermissionErr
+                else -> UnlockPhase.ClientErr
+            }
+
+            onPhase(phase)
 
             stopAndDestroy()
         }
