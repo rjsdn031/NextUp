@@ -20,6 +20,12 @@
         android:name="android.hardware.microphone"
         android:required="false" />
 
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <application
         android:name="lab.p4c.nextup.app.NextUpApp"
         android:icon="@mipmap/ic_launcher"

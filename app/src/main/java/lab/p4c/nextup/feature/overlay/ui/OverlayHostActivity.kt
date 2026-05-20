@@ -4,6 +4,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.PowerManager
 import android.util.Log
+import android.Manifest
+import android.content.pm.PackageManager
+import android.provider.Settings
+import android.speech.RecognitionService
+import android.speech.SpeechRecognizer
+import androidx.core.content.ContextCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.content.getSystemService
@@ -113,13 +119,21 @@ class OverlayHostActivity : ComponentActivity() {
                             onFailed = { phase ->
                                 if (!attemptFinalized) {
                                     attemptFinalized = true
+                                    val base = mapOf(
+                                        "overlaySessionId" to overlaySessionId,
+                                        "attemptId" to attemptId,
+                                        "Reason" to phase.name
+                                    )
+
+                                    val payload = if (phase == UnlockPhase.ClientErr) {
+                                        base + buildClientErrDiagnosticsPayload()
+                                    } else {
+                                        base
+                                    }
+
                                     telemetryLogger.log(
                                         eventName = "SpeechUnlockFailed",
-                                        payload = mapOf(
-                                            "overlaySessionId" to overlaySessionId,
-                                            "attemptId" to attemptId,
-                                            "Reason" to phase.name
-                                        )
+                                        payload = payload
                                     )
                                 }
                             }
@@ -198,5 +212,59 @@ class OverlayHostActivity : ComponentActivity() {
                 "target" to target
             )
         )
+    }
+
+    private fun buildClientErrDiagnosticsPayload(): Map<String, String> {
+        val selectedRecognizer = Settings.Secure.getString(
+            contentResolver,
+            "voice_recognition_service"
+        )
+
+        val recognizerCandidates = queryRecognitionServiceCandidates()
+
+        val powerManager = getSystemService<PowerManager>()
+
+        return mapOf(
+            "sttAvailable" to SpeechRecognizer
+                .isRecognitionAvailable(this)
+                .toString(),
+
+            "recordAudioGranted" to hasRecordAudioPermission().toString(),
+
+            "selectedRecognizer" to selectedRecognizer.orEmpty().ifBlank { "EMPTY" },
+
+            "recognizerCandidates" to recognizerCandidates
+                .ifEmpty { listOf("EMPTY") }
+                .joinToString("|"),
+
+            "batteryOptimizationIgnored" to
+                    (powerManager?.isIgnoringBatteryOptimizations(packageName) == true)
+                        .toString()
+        )
+    }
+
+    private fun hasRecordAudioPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun queryRecognitionServiceCandidates(): List<String> {
+        val intent = Intent(RecognitionService.SERVICE_INTERFACE)
+
+        @Suppress("DEPRECATION")
+        val resolveInfos = packageManager.queryIntentServices(
+            intent,
+            PackageManager.GET_META_DATA
+        )
+
+        return resolveInfos
+            .mapNotNull { resolveInfo ->
+                val serviceInfo = resolveInfo.serviceInfo ?: return@mapNotNull null
+                "${serviceInfo.packageName}/${serviceInfo.name}"
+            }
+            .distinct()
+            .sorted()
     }
 }
