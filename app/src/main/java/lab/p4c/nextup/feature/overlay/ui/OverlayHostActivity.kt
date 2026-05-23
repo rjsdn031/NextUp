@@ -1,5 +1,6 @@
 package lab.p4c.nextup.feature.overlay.ui
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.os.PowerManager
@@ -8,9 +9,11 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.provider.Settings
 import android.speech.RecognitionService
+import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import androidx.core.content.ContextCompat
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.core.content.getSystemService
 import androidx.lifecycle.lifecycleScope
@@ -23,6 +26,7 @@ import lab.p4c.nextup.app.ui.theme.NextUpTheme
 import lab.p4c.nextup.core.domain.telemetry.service.TelemetryLogger
 import lab.p4c.nextup.feature.blocking.infra.BlockGate
 import lab.p4c.nextup.feature.overlay.infra.BlockingOverlayController
+import lab.p4c.nextup.feature.overlay.ui.util.getSimilarity
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -39,8 +43,16 @@ class OverlayHostActivity : ComponentActivity() {
 
     private var currentAttemptId: String? = null
     private var attemptFinalized: Boolean = false
+    private var fallbackAttemptId: String? = null
+    private var fallbackTargetPhrase: String = ""
 
     private var confirmed: Boolean = false
+
+    private val speechFallbackLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        handleSpeechFallbackResult(result.resultCode, result.data)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -117,7 +129,13 @@ class OverlayHostActivity : ComponentActivity() {
                                 }
                             },
                             onFailed = { phase ->
-                                if (!attemptFinalized) {
+                                if (phase == UnlockPhase.PermissionErr || phase == UnlockPhase.ClientErr) {
+                                    launchSpeechFallback(
+                                        targetPhrase = phrase,
+                                        attemptId = attemptId,
+                                        originalPhase = phase
+                                    )
+                                } else if (!attemptFinalized) {
                                     attemptFinalized = true
                                     val base = mapOf(
                                         "overlaySessionId" to overlaySessionId,
@@ -188,6 +206,103 @@ class OverlayHostActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    private fun launchSpeechFallback(
+        targetPhrase: String,
+        attemptId: String,
+        originalPhase: UnlockPhase
+    ) {
+        fallbackAttemptId = attemptId
+        fallbackTargetPhrase = targetPhrase
+
+        BlockingOverlayController.updateErrno(null)
+        BlockingOverlayController.updatePhase(UnlockPhase.Listening)
+
+        val fallbackIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR")
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+        }
+
+        runCatching {
+            speechFallbackLauncher.launch(fallbackIntent)
+        }.onFailure { t ->
+            Log.e("OverlaySpeechFallback", "Failed to launch fallback recognizer", t)
+            fallbackAttemptId = null
+            fallbackTargetPhrase = ""
+            BlockingOverlayController.updatePhase(originalPhase)
+            logSpeechFailureOnce(
+                attemptId = attemptId,
+                reason = originalPhase
+            )
+        }
+    }
+
+    private fun handleSpeechFallbackResult(resultCode: Int, data: Intent?) {
+        val attemptId = fallbackAttemptId ?: return
+        val targetPhrase = fallbackTargetPhrase
+
+        fallbackAttemptId = null
+        fallbackTargetPhrase = ""
+
+        val hypotheses = if (resultCode == Activity.RESULT_OK) {
+            data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS).orEmpty()
+        } else {
+            emptyList()
+        }
+
+        val best = hypotheses.maxByOrNull { hyp ->
+            getSimilarity(targetPhrase, hyp).second
+        }.orEmpty()
+
+        val similarity = getSimilarity(targetPhrase, best).second
+        BlockingOverlayController.updatePartial(best, similarity)
+
+        if (best.isNotBlank() && similarity >= 0.80f) {
+            if (!attemptFinalized) {
+                attemptFinalized = true
+                telemetryLogger.log(
+                    eventName = "SpeechUnlockSucceeded",
+                    payload = mapOf(
+                        "overlaySessionId" to overlaySessionId,
+                        "attemptId" to attemptId,
+                        "fallback" to "RecognizerIntent"
+                    )
+                )
+            }
+
+            BlockingOverlayController.updatePartial(targetPhrase, 1f)
+            BlockingOverlayController.updatePhase(UnlockPhase.Matched)
+        } else {
+            val reason = if (best.isBlank()) UnlockPhase.ClientErr else UnlockPhase.Mismatch
+            BlockingOverlayController.updatePhase(reason)
+            logSpeechFailureOnce(
+                attemptId = attemptId,
+                reason = reason
+            )
+        }
+    }
+
+    private fun logSpeechFailureOnce(
+        attemptId: String,
+        reason: UnlockPhase
+    ) {
+        if (attemptFinalized) return
+
+        attemptFinalized = true
+        telemetryLogger.log(
+            eventName = "SpeechUnlockFailed",
+            payload = mapOf(
+                "overlaySessionId" to overlaySessionId,
+                "attemptId" to attemptId,
+                "Reason" to reason.name,
+                "fallback" to "RecognizerIntent"
+            )
+        )
     }
 
     override fun onDestroy() {

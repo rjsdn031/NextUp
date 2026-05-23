@@ -73,6 +73,18 @@ object BlockingOverlayController {
             setErrno = null
         }
     }
+
+    fun updatePhase(phase: UnlockPhase) {
+        setPhase?.invoke(phase)
+    }
+
+    fun updatePartial(hypothesis: String, similarity: Float) {
+        setPartial?.invoke(hypothesis, similarity)
+    }
+
+    fun updateErrno(errno: Int?) {
+        setErrno?.invoke(errno)
+    }
 }
 
 private fun UnlockPhase.isTerminalFailure(): Boolean = when (this) {
