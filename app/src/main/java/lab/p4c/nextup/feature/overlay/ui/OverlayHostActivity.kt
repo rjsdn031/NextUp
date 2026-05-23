@@ -140,7 +140,7 @@ class OverlayHostActivity : ComponentActivity() {
                         )
                     },
                     onStopListening = {
-                        BlockingOverlayController.stopSession()
+                        BlockingOverlayController.stopSession(clearBindings = false)
 
                         val attemptId = currentAttemptId
                         if (attemptId != null && !attemptFinalized) {
