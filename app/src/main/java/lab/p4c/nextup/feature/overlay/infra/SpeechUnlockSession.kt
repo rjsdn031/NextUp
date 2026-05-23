@@ -25,6 +25,7 @@ class SpeechUnlockSession(
     private val onSuccess: () -> Unit,
     private val onErrorUi: (Int) -> Unit
 ) {
+    private val recognizerContext = context
     private val appContext = context.applicationContext
     private val main = Handler(Looper.getMainLooper())
 
@@ -92,7 +93,7 @@ class SpeechUnlockSession(
     private fun ensureRecognizer() {
         if (recognizer == null) {
             try {
-                recognizer = SpeechRecognizer.createSpeechRecognizer(appContext).apply {
+                recognizer = SpeechRecognizer.createSpeechRecognizer(recognizerContext).apply {
                     setRecognitionListener(listener)
                 }
             } catch (e: Exception) {
@@ -199,13 +200,7 @@ class SpeechUnlockSession(
             locked = false
 
             onErrorUi(error)
-
-            val phase = when (error) {
-                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> UnlockPhase.PermissionErr
-                else -> UnlockPhase.ClientErr
-            }
-
-            onPhase(phase)
+            onPhase(phaseForError(error))
 
             stopAndDestroy()
         }
@@ -215,6 +210,13 @@ class SpeechUnlockSession(
 
     private fun isSuccess(hyp: String, target: String, sim: Float): Boolean {
         return sim >= 0.80f
+    }
+
+    private fun phaseForError(error: Int): UnlockPhase {
+        return when (error) {
+            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> UnlockPhase.PermissionErr
+            else -> UnlockPhase.ClientErr
+        }
     }
 
 }

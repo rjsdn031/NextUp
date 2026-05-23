@@ -40,7 +40,7 @@ object BlockingOverlayController {
         setErrno?.invoke(null)
 
         stt = SpeechUnlockSession(
-            context = activity.applicationContext,
+            context = activity,
             targetPhrase = targetPhrase,
             onPhase = { phase ->
                 setPhase?.invoke(phase)
