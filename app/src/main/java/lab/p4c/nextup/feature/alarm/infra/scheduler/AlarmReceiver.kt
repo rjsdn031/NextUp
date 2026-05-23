@@ -3,6 +3,7 @@ package lab.p4c.nextup.feature.alarm.infra.scheduler
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.content.ContextCompat
 import dagger.hilt.EntryPoints
 import lab.p4c.nextup.feature.alarm.infra.player.AlarmPlayerService
@@ -27,18 +28,26 @@ class AlarmReceiver : BroadcastReceiver() {
                 .putExtra(EXTRA_ALARM_ID, id)
         )
 
-        context.startActivity(
-            Intent(
-                context,
-                AlarmRingingActivity::class.java
-            )
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                .putExtra(EXTRA_ALARM_ID, id)
-        )
+        runCatching {
+            context.startActivity(buildRingingIntent(context, id))
+        }.onFailure { t ->
+            Log.w(TAG, "Failed to launch ringing activity; fullscreen notification remains", t)
+        }
     }
 
     companion object {
+        private const val TAG = "AlarmReceiver"
         const val ACTION_FIRE = "lab.p4c.nextup.action.ALARM_FIRE"
         const val EXTRA_ALARM_ID = "alarm_id"
+
+        fun buildRingingIntent(context: Context, id: Int): Intent =
+            Intent(context, AlarmRingingActivity::class.java)
+                .setAction(AndroidAlarmScheduler.ACTION_SHOW_FROM_ALARM)
+                .addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP
+                )
+                .putExtra(EXTRA_ALARM_ID, id)
     }
 }

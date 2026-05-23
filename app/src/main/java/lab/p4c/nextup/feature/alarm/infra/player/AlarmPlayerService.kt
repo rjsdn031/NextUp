@@ -26,7 +26,6 @@ import lab.p4c.nextup.feature.alarm.infra.scheduler.AlarmReceiver
 import lab.p4c.nextup.core.domain.alarm.model.Alarm
 import lab.p4c.nextup.core.domain.alarm.model.AlarmSound
 import lab.p4c.nextup.core.domain.alarm.port.AlarmRepository
-import lab.p4c.nextup.feature.alarm.ui.ringing.AlarmRingingActivity
 import androidx.core.net.toUri
 import kotlin.getValue
 
@@ -257,9 +256,7 @@ class AlarmPlayerService : Service() {
     }
 
     private fun buildNotification(title: String, body: String, id: Int): Notification {
-        val full = Intent(this, AlarmRingingActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .putExtra(AlarmReceiver.EXTRA_ALARM_ID, id)
+        val full = AlarmReceiver.buildRingingIntent(this, id)
 
         val fullPi = PendingIntent.getActivity(
             this, id, full,

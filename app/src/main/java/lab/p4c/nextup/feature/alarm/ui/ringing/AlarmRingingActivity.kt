@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
@@ -38,6 +39,7 @@ import java.time.format.DateTimeFormatter
 private const val SNOOZE_PREF = "alarm_snooze"
 const val ACTION_BLOCK_READY_ENDED = "ACTION_BLOCK_READY_ENDED"
 private const val TRIGGERED_DEDUPE_WINDOW_MS = 2_000L
+private const val USER_LEAVE_EXIT_ARM_DELAY_MS = 500L
 
 private val timeFormatter =
     DateTimeFormatter.ofPattern("HH:mm")
@@ -73,6 +75,7 @@ class AlarmRingingActivity : ComponentActivity() {
 
     private var exitHandled = false
     private var timeoutReceiverRegistered = false
+    private var screenOffReceiverRegistered = false
 
     private var currentAlarm: Alarm? = null
     private var currentCanSnooze = false
@@ -82,6 +85,7 @@ class AlarmRingingActivity : ComponentActivity() {
 
     private var exitProcessingStarted = false
     private var pendingExitAction: ExitAction? = null
+    private var userLeaveExitArmedAtMs = Long.MAX_VALUE
 
 
     private val snoozePrefs by lazy {
@@ -105,6 +109,20 @@ class AlarmRingingActivity : ComponentActivity() {
         }
     }
 
+    private val screenOffReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != Intent.ACTION_SCREEN_OFF) return
+
+            val id = this@AlarmRingingActivity.intent
+                .getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1)
+
+            if (id > 0) {
+                Log.d("AlarmRinging", "Screen off -> default exit")
+                requestDefaultExit(id)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -116,6 +134,8 @@ class AlarmRingingActivity : ComponentActivity() {
             finish()
             return
         }
+
+        registerScreenOffReceiver()
 
         setContent {
             var title by remember { mutableStateOf("알람") }
@@ -210,6 +230,11 @@ class AlarmRingingActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        userLeaveExitArmedAtMs = SystemClock.elapsedRealtime() + USER_LEAVE_EXIT_ARM_DELAY_MS
+    }
+
     override fun onStart() {
         super.onStart()
 
@@ -233,18 +258,21 @@ class AlarmRingingActivity : ComponentActivity() {
             timeoutReceiverRegistered = false
         }
 
-        if (shouldHandleSystemExitOnStop()) {
-            val id = intent.getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1)
-            if (id > 0) {
-                requestDefaultExit(id)
-            }
-        }
-
         super.onStop()
+    }
+
+    override fun onDestroy() {
+        unregisterScreenOffReceiver()
+        super.onDestroy()
     }
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
+
+        if (!shouldHandleUserLeaveExit()) {
+            Log.d("AlarmRinging", "Ignore early onUserLeaveHint")
+            return
+        }
 
         val id = intent.getIntExtra(AlarmReceiver.EXTRA_ALARM_ID, -1)
         if (id > 0) {
@@ -269,10 +297,29 @@ class AlarmRingingActivity : ComponentActivity() {
         }
     }
 
-    private fun shouldHandleSystemExitOnStop(): Boolean {
+    private fun registerScreenOffReceiver() {
+        if (screenOffReceiverRegistered) return
+
+        ContextCompat.registerReceiver(
+            this,
+            screenOffReceiver,
+            android.content.IntentFilter(Intent.ACTION_SCREEN_OFF),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+
+        screenOffReceiverRegistered = true
+    }
+
+    private fun unregisterScreenOffReceiver() {
+        if (!screenOffReceiverRegistered) return
+
+        runCatching { unregisterReceiver(screenOffReceiver) }
+        screenOffReceiverRegistered = false
+    }
+
+    private fun shouldHandleUserLeaveExit(): Boolean {
         return !exitHandled &&
-                !isFinishing &&
-                !isChangingConfigurations
+                SystemClock.elapsedRealtime() >= userLeaveExitArmedAtMs
     }
 
     private fun requestDefaultExit(id: Int) {
